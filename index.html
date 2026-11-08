@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>imad.chat</title>
+<meta name="description" content="Imad Chatraoui — scrivimi, ti rispondo.">
+<meta name="theme-color" content="#0f1714">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f1714'/><path d='M50 14 61 39 86 50 61 61 50 86 39 61 14 50 39 39Z' fill='%23d4a94f'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1714; --panel:#16201c; --me:#1f3a2f; --bot:#1b2622; --line:#25332d;
+  --text:#e9efe9; --muted:#8fa199; --gold:#d4a94f; --accent:#3fa37a;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f5f1e8; --panel:#fffdf8; --me:#d9eadf; --bot:#ffffff; --line:#e4ddcc;
+    --text:#1d2622; --muted:#6b7570; --gold:#a87a1f; --accent:#2a7d5a;
+  }
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--text);
+  font:15px/1.5 Inter,system-ui,sans-serif;
+  display:flex; justify-content:center;
+}
+/* 8-point star pattern (khatam) */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; opacity:.07;
+  background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><g fill='none' stroke='%23d4a94f' stroke-width='1.2'><rect x='22' y='22' width='36' height='36'/><rect x='22' y='22' width='36' height='36' transform='rotate(45 40 40)'/><circle cx='40' cy='40' r='6'/></g></svg>");
+}
+.app{position:relative;width:100%;max-width:560px;height:100dvh;display:flex;flex-direction:column}
+header{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;
+  background:var(--panel);border-bottom:1px solid var(--line);
+}
+.avatar{width:42px;height:42px;border-radius:50%;background:var(--me);display:grid;place-items:center;
+  font-family:Amiri,serif;font-size:22px;color:var(--gold);flex:none;border:1px solid var(--gold)}
+.who b{display:block;font-weight:600}
+.who small{color:var(--muted);font-size:12.5px}
+.who small i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:5px;vertical-align:1px;font-style:normal}
+.salam{margin-left:auto;font-family:Amiri,serif;color:var(--gold);font-size:18px}
+#log{flex:1;overflow-y:auto;padding:18px 16px 8px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth}
+.day{align-self:center;font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);padding:3px 10px;border-radius:99px;margin-bottom:6px}
+.msg{max-width:85%;padding:9px 13px;border-radius:16px;animation:in .25s ease-out;word-wrap:break-word}
+.msg a{color:var(--gold)}
+.bot{align-self:flex-start;background:var(--bot);border:1px solid var(--line);border-bottom-left-radius:4px}
+.me{align-self:flex-end;background:var(--me);border-bottom-right-radius:4px}
+.ayah{border-color:var(--gold)}
+.ayah .ar{font-family:Amiri,serif;font-size:24px;line-height:1.8;direction:rtl;text-align:right;color:var(--gold)}
+.ayah .ref{font-size:12px;color:var(--muted);margin-top:4px}
+.card{display:block;margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line);text-decoration:none;color:var(--text)!important}
+.card small{color:var(--muted);display:block}
+.typing{display:flex;gap:4px;padding:12px 14px}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:dot 1s infinite}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+#chips{display:flex;gap:8px;overflow-x:auto;padding:8px 16px;scrollbar-width:none}
+#chips button{flex:none;background:transparent;color:var(--text);border:1px solid var(--line);border-radius:99px;padding:7px 13px;font:inherit;font-size:13.5px;cursor:pointer}
+#chips button:hover{border-color:var(--gold);color:var(--gold)}
+form{display:flex;gap:8px;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--line)}
+input{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:99px;padding:11px 16px;font:inherit;font-size:16px;outline:none}
+input:focus{border-color:var(--gold)}
+form button{width:44px;height:44px;border-radius:50%;border:0;background:var(--gold);color:#111;font-size:18px;cursor:pointer;flex:none}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+@keyframes dot{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="avatar">ع</div>
+    <div class="who"><b>Imad Chatraoui</b><small><i></i>online · di solito risponde subito</small></div>
+    <div class="salam" title="As-salāmu ʿalaykum">السلام عليكم</div>
+  </header>
+  <div id="log" aria-live="polite"><div class="day" id="day"></div></div>
+  <div id="chips"></div>
+  <form id="f" autocomplete="off">
+    <input id="q" placeholder="Scrivi un messaggio…" aria-label="Messaggio">
+    <button aria-label="Invia">➤</button>
+  </form>
+</div>
+<script>
+/* ========= MODIFICA QUI I TUOI DATI ========= */
+const ME = {
+  insta: "https://instagram.com/TUO_USERNAME",
+  email: "imad.chatraoui@gmail.com",
+  github: "https://github.com/imadchatraoui",
+  projects: [
+    { name: "imad.chat", desc: "Questo sito: un portfolio che è una chat.", url: "https://imad.chat" },
+    { name: "Progetto 2", desc: "Descrizione breve del progetto.", url: "#" },
+  ],
+};
+const AYAT = [
+  { ar:"إِنَّ مَعَ الْعُسْرِ يُسْرًا", it:"In verità, con la difficoltà viene la facilità.", ref:"94/6", name:"Ash-Sharh" },
+  { ar:"رَّبِّ زِدْنِي عِلْمًا", it:"Signore mio, accresci la mia conoscenza.", ref:"20/114", name:"Ta-Ha" },
+  { ar:"أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ", it:"Nel ricordo di Allah si rasserenano i cuori.", ref:"13/28", name:"Ar-Ra'd" },
+  { ar:"فَاذْكُرُونِي أَذْكُرْكُمْ", it:"Ricordatevi di Me, e Io Mi ricorderò di voi.", ref:"2/152", name:"Al-Baqarah" },
+  { ar:"وَمَن يَتَوَكَّلْ عَلَى اللَّهِ فَهُوَ حَسْبُهُ", it:"E chi confida in Allah, Egli gli basta.", ref:"65/3", name:"At-Talaq" },
+  { ar:"لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا", it:"Allah non impone a nessuna anima più di quanto possa sopportare.", ref:"2/286", name:"Al-Baqarah" },
+];
+/* ============================================ */
+
+const log = document.getElementById("log"), chips = document.getElementById("chips");
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const scroll = () => log.scrollTop = log.scrollHeight;
+
+function bubble(html, who = "bot", extra = "") {
+  const d = document.createElement("div");
+  d.className = `msg ${who} ${extra}`; d.innerHTML = html;
+  log.appendChild(d); scroll(); return d;
+}
+async function say(...parts) {
+  for (const p of parts) {
+    const t = bubble('<div class="typing"><span></span><span></span><span></span></div>');
+    t.style.padding = "0";
+    await wait(Math.min(400 + (typeof p === "string" ? p.length * 8 : 500), 1300));
+    t.remove();
+    typeof p === "string" ? bubble(p) : bubble(p.html, "bot", p.cls || "");
+  }
+}
+function ayah(a) {
+  return { cls: "ayah", html:
+    `<div class="ar">${a.ar}</div><div>«${a.it}»</div>
+     <div class="ref"><a href="https://quran.com/${a.ref}" target="_blank" rel="noopener">Corano ${a.ref.replace("/", ":")} · ${a.name} ↗</a></div>` };
+}
+const ayahOfDay = () => AYAT[Math.floor(Date.now() / 864e5) % AYAT.length];
+const randomAyah = () => AYAT[Math.floor(Math.random() * AYAT.length)];
+
+const TOPICS = {
+  chi: { label: "👋 Chi sei?", re: /chi|sei|about|presenta|imad/i, run: () => say(
+    "Sono Imad Chatraoui.",
+    "Scrivi qui una o due righe su di te: cosa studi o fai, dove vivi, cosa ti appassiona.",
+    "Il dominio? Il più corto che avesse il mio nome e un pezzo del cognome. E .chat… beh, qui si chatta 😄") },
+  progetti: { label: "🛠 Progetti", re: /progett|lavor|project|portfolio/i, run: () => say(
+    "Ecco alcune cose a cui ho lavorato:",
+    { html: ME.projects.map(p => `<a class="card" href="${p.url}" target="_blank" rel="noopener"><b>${p.name}</b><small>${p.desc}</small></a>`).join("") }) },
+  contatti: { label: "✉️ Contatti", re: /contatt|mail|insta|social|scriv/i, run: () => say(
+    { html: `Mi trovi qui:<a class="card" href="${ME.insta}" target="_blank" rel="noopener"><b>Instagram</b></a><a class="card" href="mailto:${ME.email}"><b>Email</b><small>${ME.email}</small></a><a class="card" href="${ME.github}" target="_blank" rel="noopener"><b>GitHub</b></a>` }) },
+  ayah: { label: "📖 Un versetto", re: /vers|ayah|aya|coran|quran|corano/i, run: () => say("Eccone uno per te:", ayah(randomAyah())) },
+  salat: { label: "🕌 Prossima preghiera", re: /pregh|salat|salah|namaz|orari/i, run: prayer },
+};
+
+async function prayer() {
+  await say("Un attimo, controllo la tua posizione…");
+  const pos = await new Promise(r => navigator.geolocation
+    ? navigator.geolocation.getCurrentPosition(p => r(p.coords), () => r(null), { timeout: 8000 })
+    : r(null));
+  const url = pos
+    ? `https://api.aladhan.com/v1/timings?latitude=${pos.latitude}&longitude=${pos.longitude}&method=3`
+    : `https://api.aladhan.com/v1/timingsByCity?city=Rome&country=Italy&method=3`;
+  try {
+    const t = (await (await fetch(url)).json()).data.timings;
+    const names = { Fajr:"Fajr", Dhuhr:"Dhuhr", Asr:"Asr", Maghrib:"Maghrib", Isha:"Isha" };
+    const now = new Date(), mins = now.getHours() * 60 + now.getMinutes();
+    let next = Object.keys(names).find(k => { const [h, m] = t[k].split(":"); return h * 60 + +m > mins; }) || "Fajr";
+    await say({ html: `${pos ? "" : "<small>(Posizione non disponibile, uso Roma)</small><br>"}La prossima è <b>${names[next]}</b> alle <b>${t[next]}</b>.<br><small>${Object.keys(names).map(k => `${k} ${t[k]}`).join(" · ")}</small>` });
+  } catch { await say("Non riesco a recuperare gli orari ora, riprova più tardi."); }
+}
+
+const GREET = /^(salam|salaam|assalam|as-salam|ciao|hey|hi|hello|buongiorno|buonasera)/i;
+async function handle(text) {
+  bubble(text.replace(/[<>&]/g, c => ({ "<":"&lt;", ">":"&gt;", "&":"&amp;" }[c])), "me");
+  if (/salam/i.test(text)) return say("Wa ʿalaykum as-salām wa raḥmatullāh 🤍");
+  if (GREET.test(text)) return say("Ciao! Chiedimi pure qualcosa, o usa i bottoni qui sotto.");
+  if (/grazie|thanks|jazak/i.test(text)) return say("Wa iyyākum! 🤍");
+  const t = Object.values(TOPICS).find(t => t.re.test(text));
+  if (t) return t.run();
+  say("Hmm, a questo non so ancora rispondere 😅", { html: `Ma puoi scrivermi davvero: <a href="${ME.insta}" target="_blank" rel="noopener">Instagram</a> o <a href="mailto:${ME.email}">email</a>.` });
+}
+
+Object.values(TOPICS).forEach(t => {
+  const b = document.createElement("button"); b.textContent = t.label;
+  b.onclick = () => handle(t.label.replace(/^\S+\s/, ""));
+  chips.appendChild(b);
+});
+document.getElementById("f").onsubmit = e => {
+  e.preventDefault(); const q = document.getElementById("q");
+  if (q.value.trim()) handle(q.value.trim()); q.value = "";
+};
+document.getElementById("day").textContent = new Intl.DateTimeFormat("it-IT", { weekday:"long", day:"numeric", month:"long" }).format(new Date())
+  + " · " + new Intl.DateTimeFormat("it-u-ca-islamic", { day:"numeric", month:"long", year:"numeric" }).format(new Date());
+
+(async () => {
+  await wait(300);
+  await say("As-salāmu ʿalaykum 👋", "Sono Imad. Benvenuto su imad.chat — qui si chatta, letteralmente.", "Il versetto di oggi:", ayah(ayahOfDay()), "Cosa vuoi sapere?");
+})();
+</script>
+</body>
+</html>
