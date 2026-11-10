@@ -1,0 +1,7 @@
+{
+  "placeholder": true,
+  "items": [
+    { "id": "torino", "name": "Torino", "nameLocal": "", "country": "Italia", "lat": 45.0703, "lon": 7.6869, "tz": "Europe/Rome", "motif": "liberty", "blurb": "", "facts": [], "sources": [] },
+    { "id": "al-quds", "name": "Al-Quds", "nameLocal": "القدس", "country": "Palestina", "lat": 31.7767, "lon": 35.2345, "tz": "Asia/Jerusalem", "motif": "tatreez", "blurb": "", "facts": [], "sources": [] }
+  ]
+}

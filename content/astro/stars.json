@@ -1,0 +1,8 @@
+{
+  "placeholder": true,
+  "items": [
+    { "id": "sirius", "name": "Sirio", "latin": "Sirius", "ar": "", "translit": "al-Shiʿrā", "meaning": "", "ra": 6.7525, "dec": -16.7161, "mag": -1.46, "constellation": "Cane Maggiore", "pointer": true, "quran": "53:49", "note": "", "sources": [] },
+    { "id": "vega", "name": "Vega", "latin": "Vega", "ar": "", "translit": "al-Nasr al-Wāqiʿ", "meaning": "", "ra": 18.6156, "dec": 38.7837, "mag": 0.03, "constellation": "Lira", "pointer": true, "quran": null, "note": "", "sources": [] },
+    { "id": "aldebaran", "name": "Aldebaran", "latin": "Aldebaran", "ar": "", "translit": "al-Dabarān", "meaning": "", "ra": 4.5987, "dec": 16.5093, "mag": 0.87, "constellation": "Toro", "pointer": true, "quran": null, "note": "", "sources": [] }
+  ]
+}
