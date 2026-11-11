@@ -259,10 +259,14 @@ export class SoundManager {
 
     // un riverbero generato: rumore che si spegne, come una sala di pietra
     const conv = ctx.createConvolver();
-    conv.buffer = this.impulse(ctx, 2.8, 2.6);
+    conv.buffer = this.impulse(ctx, 2.4, 2.8);
+    // il riverbero non prende i bassi: niente rimbombo, e sui telefoni non si sentirebbero comunque
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 220;
     const wet = ctx.createGain();
     wet.gain.value = 0.32;
-    wet.connect(conv);
+    wet.connect(hp).connect(conv);
     conv.connect(master);
 
     this.master = master;
@@ -574,7 +578,24 @@ export class SoundManager {
 
   /** Un colpo profondo, come su una grande porta di legno sotto il cielo aperto. */
   private knock(t: number) {
-    this.thud(t, { from: 118, to: 56, gain: 0.2, decay: 0.55, wet: 1.4 });
+    const ctx = this.ctx!;
+    // il fondo
+    this.thud(t, { from: 170, to: 86, gain: 0.13, decay: 0.38, wet: 0.7 });
+    // il legno: un corpo nelle medie, quello che si sente anche dall'altoparlante di un telefono
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 430;
+    bp.Q.value = 1.6;
+    const g = this.gainAt(t, 0.002, 0.2, 0.11, this.dry!);
+    const send = ctx.createGain();
+    send.gain.value = 0.9;
+    g.connect(send).connect(this.wet!);
+    bp.connect(g);
+    this.noise(t, 0.14, bp);
+    const body = this.gainAt(t, 0.002, 0.07, 0.18, this.dry!);
+    body.connect(send);
+    const o = this.sine(t, 265, 0.22, body);
+    o.frequency.exponentialRampToValueAtTime(190, t + 0.15);
   }
 
   /** Un tono cristallino che sale, trafigge e si spegne piano. */
@@ -603,15 +624,15 @@ export class SoundManager {
     const ctx = this.ctx!;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.025, t + 0.8);
+    g.gain.linearRampToValueAtTime(0.02, t + 0.8);
     g.gain.linearRampToValueAtTime(0, t + dur);
     g.connect(this.dry!);
     const lp = ctx.createBiquadFilter();
     lp.type = "lowpass";
-    lp.frequency.value = 180;
+    lp.frequency.value = 520;
     lp.connect(g);
-    this.sine(t, 55, dur, lp);
-    this.sine(t, 82.4, dur, lp);
+    this.sine(t, 110, dur, lp);
+    this.sine(t, 164.81, dur, lp);
   }
 
   /** Una pagina di manoscritto che si volta: piccoli fruscii. */
@@ -624,7 +645,7 @@ export class SoundManager {
       bp.type = "bandpass";
       bp.frequency.value = rand(2600, 5200);
       bp.Q.value = 0.8;
-      bp.connect(this.gainAt(s, 0.008, 0.02 * amount * (1 - i * 0.15), 0.05, this.dry!));
+      bp.connect(this.gainAt(s, 0.008, 0.045 * amount * (1 - i * 0.15), 0.06, this.dry!));
       this.noise(s, 0.08, bp);
     }
   }

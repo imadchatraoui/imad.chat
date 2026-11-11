@@ -34,15 +34,16 @@
       "lon": 35.2342,
       "tz": "Asia/Jerusalem",
       "motif": "tatreez",
-      "blurb": "Al-Quds significa «la Santa»; il suo nome più antico in arabo è Bayt al-Maqdis, «la Casa della Santità». Per i musulmani è la città della prima qibla e del Viaggio notturno, e la sua Città Vecchia è patrimonio dell’umanità dal 1981.",
+      "blurb": "Al-Quds significa «la Santa»; prima ancora gli arabi la chiamavano Bayt al-Maqdis, «la Casa della Santità». Per i musulmani è la città della prima qibla e del Viaggio notturno, e la sua Città Vecchia è patrimonio dell’umanità dal 1981.",
       "facts": [
         "Fu la prima qibla: fino alla rivelazione di 2:144, nel secondo anno dell’Egira, i musulmani di Medina pregavano rivolti verso Gerusalemme.",
         "La Cupola della Roccia, costruita nel 691-692, è la più antica opera di architettura islamica giunta fino a noi.",
-        "Il geografo al-Muqaddasi, nato qui verso il 946, prese il nome dalla città e ne descrisse mura, vie e mercati; a chi lo credeva egiziano rispondeva di essere palestinese.",
+        "Il geografo al-Muqaddasi, nato qui verso il 946, prese il nome dalla città e ne descrisse mura, vie e mercati; a Shiraz, a chi gli chiese se fosse egiziano, rispose di essere palestinese.",
         "Il tatreez, il ricamo palestinese a punto croce, è dal 2021 patrimonio immateriale UNESCO: i suoi motivi distinguono villaggi, regioni e perfino famiglie."
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Jerusalem",
+        "https://en.wikipedia.org/wiki/Names_of_Jerusalem",
         "https://en.wikipedia.org/wiki/Dome_of_the_Rock",
         "https://en.wikipedia.org/wiki/Qibla",
         "https://en.wikipedia.org/wiki/Al-Maqdisi",
@@ -64,7 +65,7 @@
         "Nel 767 vi nacque Muhammad ibn Idris al-Shafiʿi, fondatore di una delle quattro grandi scuole giuridiche sunnite.",
         "Secondo la tradizione islamica vi è sepolto Hashim ibn ʿAbd Manaf, bisnonno del Profeta Muhammad.",
         "Nel XIII secolo il sultano Baybars dotò la Grande Moschea di Gaza di una biblioteca di oltre 20.000 manoscritti.",
-        "Nella Città Vecchia molti edifici di epoca mamelucca alternano filari di pietra rossa e bianca: è lo stile detto ablaq."
+        "Nella Città Vecchia alcuni edifici antichi alternano filari di pietra rossa e bianca: è lo stile detto ablaq, diffuso in epoca mamelucca."
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Gaza_City",
@@ -81,11 +82,11 @@
       "lon": -5.0033,
       "tz": "Africa/Casablanca",
       "motif": "zellige",
-      "blurb": "Fès el-Bali, la città vecchia fondata dagli Idrisidi tra il 789 e l’808, è una delle aree urbane senza automobili più grandi del mondo. Tra i suoi vicoli c’è al-Qarawiyyin, nata come moschea per volontà di una donna, Fatima al-Fihri.",
+      "blurb": "Fès el-Bali, la città vecchia fondata dagli Idrisidi tra il 789 e l’808, è una delle aree urbane senza automobili più grandi del mondo. Tra i suoi vicoli c’è al-Qarawiyyin, nata come moschea, secondo la tradizione, per volontà di una donna, Fatima al-Fihri.",
       "facts": [
         "Al-Qarawiyyin, fondata nell’857-859, è indicata dall’UNESCO e dal Guinness dei primati come la più antica istituzione di studi superiori ancora in attività.",
         "La medina di Fès è patrimonio dell’umanità UNESCO dal 1981.",
-        "Alla conceria Chouara, attiva fin dalla fondazione della città, le pelli si tingono in vasche di pietra piene di colori.",
+        "Alla conceria Chouara, che la tradizione locale fa risalire alla fondazione della città, le pelli si tingono in vasche di pietra piene di colori.",
         "Lo zellige, mosaico di piccole tessere smaltate tagliate a mano, riveste le madrase marinidi della città."
       ],
       "sources": [
@@ -110,7 +111,7 @@
       "facts": [
         "Santa Sofia, completata nel 537, era allora il più grande spazio interno del mondo.",
         "Nel 1577 l’astronomo Taqi al-Din vi fondò uno dei più grandi osservatori dell’età premoderna, per rivaleggiare con quello di Samarcanda; fu distrutto già nel 1580.",
-        "Le maioliche di Iznik, blu cobalto sotto vetrina e poi rosso bolo, rivestono gli edifici di Mimar Sinan; l’ultimo grande edificio decorato con esse fu la Moschea Blu, completata nel 1616."
+        "Le ceramiche di Iznik, blu cobalto sotto vetrina e poi anche rosso bolo, decorano gli edifici imperiali di Mimar Sinan; l’ultimo grande edificio decorato con le loro piastrelle fu la Moschea Blu, completata nel 1616."
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Istanbul",

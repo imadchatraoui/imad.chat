@@ -13,13 +13,13 @@
       "constellation": "Cane Maggiore",
       "pointer": true,
       "quran": "53:49",
-      "note": "È la stella più luminosa del cielo notturno e l’unica chiamata per nome nel Corano (53:49). Sugli astrolabi di al-Andalus e dell’Europa medievale è al-ʿAbūr (Alhabor), «quella che ha attraversato».",
+      "note": "È la stella più luminosa del cielo notturno e, Sole a parte, l’unica chiamata per nome nel Corano (53:49). Sugli astrolabi di al-Andalus e dell’Europa medievale è al-ʿAbūr (Alhabor), «quella che ha attraversato».",
       "sources": [
         "https://en.wikipedia.org/wiki/Sirius",
         "https://it.wikipedia.org/wiki/Sirio",
         "https://ar.wikipedia.org/wiki/%D8%A7%D9%84%D8%B4%D8%B9%D8%B1%D9%89_%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%D9%8A%D8%A9",
         "https://quran.com/an-najm/49",
-        "https://www.sothebys.com/buy/86364273-70b2-47b4-a90e-ea891dbd2657/lots/6f4448ae-8290-433f-ab77-585fd76c2433",
+        "https://www.sothebys.com/en/buy/auction/2021/arts-of-the-islamic-world-india-including-fine-rugs-and-carpets/a-gilt-brass-astrolabe-signed-by-ahmad-ibn-abu",
         "https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt",
         "https://github.com/astronexus/HYG-Database"
       ]
@@ -60,7 +60,7 @@
       "constellation": "Boote",
       "pointer": true,
       "quran": null,
-      "note": "È la stella più luminosa dell’emisfero celeste boreale. Chaucer, nel suo trattato sull’astrolabio (1391), la chiama Alramih, dal nome arabo.",
+      "note": "È la stella più luminosa dell’emisfero celeste boreale. Gli arabi la chiamavano anche ḥāris al-samāʾ, «il guardiano del cielo».",
       "sources": [
         "https://en.wikipedia.org/wiki/Arcturus",
         "https://it.wikipedia.org/wiki/Arturo_(astronomia)",
@@ -218,7 +218,7 @@
       "constellation": "Orione",
       "pointer": true,
       "quran": null,
-      "note": "Il nome europeo nasce da un errore di lettura: in yad al-jawzāʾ la y araba fu letta come b, lettere che differiscono solo per i punti. Nel 2019-2020 questa supergigante rossa si è offuscata in modo spettacolare.",
+      "note": "Il nome europeo nasce da un errore di lettura: in yad al-jawzāʾ la y araba fu letta come b, lettere che differiscono solo per i punti. Nel 2019-2020 questa supergigante rossa si è offuscata in modo vistoso.",
       "sources": [
         "https://en.wikipedia.org/wiki/Betelgeuse",
         "https://it.wikipedia.org/wiki/Betelgeuse",
@@ -303,18 +303,19 @@
       "latin": "Spica",
       "ar": "السماك الأعزل",
       "translit": "al-Simāk al-Aʿzal",
-      "meaning": "l’elevato disarmato",
+      "meaning": "il simāk disarmato (simāk: forse «l’elevato»)",
       "ra": 13.419883,
       "dec": -11.16132,
       "mag": 0.98,
       "constellation": "Vergine",
       "pointer": true,
       "quran": null,
-      "note": "Per gli arabi era «l’elevato disarmato», in coppia con Arturo, «l’elevato del lanciere». Si ritiene che le sue posizioni abbiano permesso a Ipparco di scoprire la precessione degli equinozi.",
+      "note": "Per gli arabi era il simāk «disarmato», in coppia con Arturo, il simāk «del lanciere»: simāk è una parola di significato incerto, forse «l’elevato». Si ritiene che le sue posizioni abbiano permesso a Ipparco di scoprire la precessione degli equinozi.",
       "sources": [
         "https://en.wikipedia.org/wiki/Spica",
         "https://it.wikipedia.org/wiki/Spica",
         "https://ar.wikipedia.org/wiki/%D8%A7%D9%84%D8%B3%D9%85%D8%A7%D9%83_%D8%A7%D9%84%D8%A3%D8%B9%D8%B2%D9%84",
+        "https://en.wikipedia.org/wiki/Arcturus",
         "https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt",
         "https://github.com/astronexus/HYG-Database"
       ]
@@ -534,7 +535,7 @@
       "constellation": "Orsa Maggiore",
       "pointer": true,
       "quran": null,
-      "note": "Per gli arabi le quattro stelle del Grande Carro erano una bara (naʿsh) e le tre del manico le figlie in lutto che la seguono: Alkaid, l’ultima, guida il corteo.",
+      "note": "Per gli arabi le quattro stelle che formano il corpo del Grande Carro erano una bara (naʿsh), e le tre del timone le figlie in lutto: Alkaid, all’estremità, è la loro guida.",
       "sources": [
         "https://en.wikipedia.org/wiki/Alkaid",
         "https://it.wikipedia.org/wiki/Alkaid",
@@ -578,7 +579,7 @@
       "constellation": "Orsa Minore",
       "pointer": false,
       "quran": null,
-      "note": "Commentando 16:16, al-Ṭabarī identifica la stella che guida i viaggiatori nella notte con al-Jady e le due Farqad dell’Orsa Minore. Ibn al-ʿArabī, citato da al-Qurṭubī, spiega che serve anche a trovare la qibla.",
+      "note": "Commentando 16:16, al-Ṭabarī identifica la stella che guida i viaggiatori nella notte con al-Jady e le due Farqad dell’Orsa Minore. Il giurista andaluso Abū Bakr ibn al-ʿArabī, citato da al-Qurṭubī, spiega che serve anche a trovare la qibla.",
       "sources": [
         "https://en.wikipedia.org/wiki/Polaris",
         "https://it.wikipedia.org/wiki/Polaris",
@@ -586,6 +587,8 @@
         "https://en.wikipedia.org/wiki/List_of_Arabic_star_names",
         "https://quran.com/an-nahl/16/tafsirs/ar-tafsir-al-tabari",
         "https://quran.com/an-nahl/16/tafsirs/ar-tafseer-al-qurtubi",
+        "https://en.wikipedia.org/wiki/Tafsir_al-Qurtubi",
+        "https://en.wikipedia.org/wiki/Abu_Bakr_ibn_al-Arabi",
         "https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt",
         "https://github.com/astronexus/HYG-Database"
       ]
@@ -603,12 +606,13 @@
       "constellation": "Ariete",
       "pointer": false,
       "quran": null,
-      "note": "È la stella più luminosa dell’Ariete. Chaucer, nel suo trattato sull’astrolabio, la chiama Alnath, nome oggi passato a un’altra stella.",
+      "note": "È la stella più luminosa dell’Ariete. Chaucer, in uno dei Racconti di Canterbury, la chiama Alnath, nome oggi passato a un’altra stella.",
       "sources": [
         "https://en.wikipedia.org/wiki/Hamal",
         "https://it.wikipedia.org/wiki/Hamal",
         "https://ar.wikipedia.org/wiki/%D8%A7%D9%84%D9%86%D8%A7%D8%B7%D8%AD_(%D9%86%D8%AC%D9%85)",
         "https://en.wikipedia.org/wiki/List_of_Arabic_star_names",
+        "https://archive.org/details/atreatiseonastr00skeagoog",
         "https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt",
         "https://github.com/astronexus/HYG-Database"
       ]
@@ -791,7 +795,7 @@
         "https://it.wikipedia.org/wiki/Scheat",
         "https://en.wikipedia.org/wiki/List_of_Arabic_star_names",
         "https://en.wikipedia.org/wiki/Alpha_Pegasi",
-        "https://www.sothebys.com/buy/86364273-70b2-47b4-a90e-ea891dbd2657/lots/6f4448ae-8290-433f-ab77-585fd76c2433",
+        "https://www.sothebys.com/en/buy/auction/2021/arts-of-the-islamic-world-india-including-fine-rugs-and-carpets/a-gilt-brass-astrolabe-signed-by-ahmad-ibn-abu",
         "https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt",
         "https://github.com/astronexus/HYG-Database"
       ]
@@ -846,9 +850,9 @@
       "id": "alcyone",
       "name": "Alcione",
       "latin": "Alcyone",
-      "ar": "الثريا",
-      "translit": "al-Thurayyā",
-      "meaning": "le Pleiadi",
+      "ar": "نير الثريا",
+      "translit": "Nayyir al-Thurayyā",
+      "meaning": "la luminosa delle Pleiadi",
       "ra": 3.79141,
       "dec": 24.10514,
       "mag": 2.85,
@@ -860,7 +864,6 @@
         "https://en.wikipedia.org/wiki/Alcyone_(star)",
         "https://it.wikipedia.org/wiki/Alcyone_(astronomia)",
         "https://ar.wikipedia.org/wiki/%D9%86%D9%8A%D8%B1_%D8%A7%D9%84%D8%AB%D8%B1%D9%8A%D8%A7",
-        "https://en.wikipedia.org/wiki/List_of_Arabic_star_names",
         "https://en.wikipedia.org/wiki/Pleiades",
         "https://quran.com/at-tariq/3/tafsirs/ar-tafsir-al-tabari",
         "https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt",
@@ -929,7 +932,7 @@
         "https://it.wikipedia.org/wiki/Alfa_Serpentis",
         "https://ar.wikipedia.org/wiki/%D8%B9%D9%86%D9%82_%D8%A7%D9%84%D8%AD%D9%8A%D8%A9",
         "https://en.wikipedia.org/wiki/List_of_Arabic_star_names",
-        "https://www.sothebys.com/buy/86364273-70b2-47b4-a90e-ea891dbd2657/lots/6f4448ae-8290-433f-ab77-585fd76c2433",
+        "https://www.sothebys.com/en/buy/auction/2021/arts-of-the-islamic-world-india-including-fine-rugs-and-carpets/a-gilt-brass-astrolabe-signed-by-ahmad-ibn-abu",
         "https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt",
         "https://github.com/astronexus/HYG-Database"
       ]

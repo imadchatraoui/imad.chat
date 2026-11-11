@@ -38,7 +38,7 @@ export default function SiteChrome({
   }, []);
 
   return (
-    <header ref={ref} className={`${t.vars} ${c.bar} ${className ?? ""}`} data-hidden={hidden ? "" : undefined} aria-hidden={hidden || undefined}>
+    <header ref={ref} className={`${t.vars} ${c.bar} ${className ?? ""}`} data-hidden={hidden ? "" : undefined} inert={hidden}>
       <LogoSlot href={homeHref} />
       <div className={c.actions}>
         {soundToggle ? <SoundToggle /> : null}
@@ -48,7 +48,6 @@ export default function SiteChrome({
           aria-haspopup="dialog"
           aria-expanded={sectionsOpen}
           onClick={onOpenSections}
-          tabIndex={hidden ? -1 : undefined}
         >
           Sezioni
         </button>

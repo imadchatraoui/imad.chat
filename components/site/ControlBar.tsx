@@ -248,7 +248,7 @@ export default function ControlBar({
   }, [onHeight]);
 
   return (
-    <div className={`${t.vars} ${b.bar} ${className ?? ""}`} data-hidden={hidden ? "" : undefined} aria-hidden={hidden || undefined}>
+    <div className={`${t.vars} ${b.bar} ${className ?? ""}`} data-hidden={hidden ? "" : undefined} inert={hidden}>
       <div ref={inner} className={b.inner}>
         <div className={b.timeRow}>
           <TimeReadout

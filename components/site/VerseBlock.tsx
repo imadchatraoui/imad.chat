@@ -11,6 +11,15 @@ export interface VerseBlockProps {
   className?: string;
 }
 
+/**
+ * I segni di pausa (waqf, U+06D6–U+06DC) stanno sopra la fine della parola che li precede: lo spazio
+ * prima di loro diventa indivisibile, così l'a capo non li lascia soli all'inizio della riga.
+ * Si toccano solo gli spazi, mai le lettere.
+ */
+function bindWaqf(ar: string): string {
+  return ar.replace(/ (?=[ۖ-ۜ])/g, " ");
+}
+
 export default function VerseBlock({ verse, className }: VerseBlockProps) {
   const ref = ayahRef(verse.surah, verse.ayahs);
   const url = quranUrl(verse.surah, verse.ayahs);
@@ -18,7 +27,7 @@ export default function VerseBlock({ verse, className }: VerseBlockProps) {
     <figure className={`${p.verse} ${className ?? ""}`}>
       <blockquote cite={url}>
         <p className={p.verseAr} lang="ar" dir="rtl">
-          {verse.ar}
+          {bindWaqf(verse.ar)}
         </p>
         <span className={p.verseRule} aria-hidden="true" />
         <p className={p.verseIt} lang="it">

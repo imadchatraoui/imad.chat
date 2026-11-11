@@ -3,7 +3,7 @@
     {
       "id": "libro-stelle-fisse",
       "title": "Il Libro delle stelle fisse",
-      "text": "Verso il 964, a Shiraz, l’astronomo persiano ʿAbd al-Raḥmān al-Ṣūfī scrisse in arabo il Libro delle figure delle stelle. Unì il catalogo di Tolomeo alla tradizione araba e disegnò ogni costellazione due volte: come appare guardando il cielo e come si vede su un globo celeste. Fu copiato per secoli in tutto il mondo islamico.",
+      "text": "Nel 964 l’astronomo persiano ʿAbd al-Raḥmān al-Ṣūfī dedicò all’emiro buyide ʿAḍud al-Dawla il Libro delle figure delle stelle fisse, scritto in arabo. Unì il catalogo di Tolomeo alla tradizione araba e disegnò ogni costellazione due volte: come appare guardando il cielo e come si vede su un globo celeste. Fu copiato per secoli in tutto il mondo islamico.",
       "tags": [
         "stelle",
         "nomi-arabi",
@@ -11,6 +11,7 @@
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/The_Book_of_Fixed_Stars",
+        "https://en.wikipedia.org/wiki/Abd_al-Rahman_al-Sufi",
         "https://www.metmuseum.org/art/collection/search/446297",
         "https://collectionapi.metmuseum.org/public/collection/v1/objects/446297"
       ]
@@ -94,7 +95,7 @@
     {
       "id": "chaucer",
       "title": "Un trattato per Lewis",
-      "text": "Nel 1391 Geoffrey Chaucer scrisse un trattato sull’astrolabio per il figlio Lewis, che aveva dieci anni. È considerato la più antica opera in inglese dedicata a uno strumento scientifico complesso, e conserva nomi arabi di stelle: Sirio vi si chiama Alhabor, da al-ʿabūr, e Arturo Alramih, da al-rāmiḥ.",
+      "text": "Nel 1391 Geoffrey Chaucer scrisse un trattato sull’astrolabio per il figlio Lewis, che aveva dieci anni. È considerato la più antica opera in inglese dedicata a uno strumento scientifico complesso, e conserva nomi arabi di stelle: Sirio, per esempio, vi si chiama Alhabor, da al-ʿabūr, e nei disegni ha una testa di cane.",
       "tags": [
         "astrolabio",
         "storia",
@@ -103,13 +104,13 @@
       "sources": [
         "https://en.wikipedia.org/wiki/A_Treatise_on_the_Astrolabe",
         "https://en.wikipedia.org/wiki/Sirius",
-        "https://en.wikipedia.org/wiki/Arcturus"
+        "https://archive.org/details/atreatiseonastr00skeagoog"
       ]
     },
     {
       "id": "astrolabi-al-met",
       "title": "Due astrolabi a New York",
-      "text": "Il Metropolitan Museum conserva un astrolabio d’ottone intarsiato d’argento datato 690 dell’Egira, il 1291: il costruttore indicato è ʿUmar ibn Yūsuf, principe rasulide che regnò sullo Yemen nel 1295-96. Accanto c’è un astrolabio persiano del 1654-55, attribuito a Mashhad, opera di Muhammad Zaman al-Munajjim al-Asturlabi: «l’astronomo, il fabbricante di astrolabi».",
+      "text": "Il Metropolitan Museum conserva un astrolabio d’ottone intarsiato d’argento datato 690 dell’Egira, il 1291: il costruttore indicato è ʿUmar ibn Yūsuf, principe rasulide che regnò sullo Yemen nel 1295-96. Nella stessa collezione c’è un astrolabio persiano del 1654-55, attribuito a Mashhad, opera di Muhammad Zaman al-Munajjim al-Asturlabi: «l’astronomo, il fabbricante di astrolabi».",
       "tags": [
         "astrolabio",
         "storia"
@@ -124,14 +125,14 @@
     {
       "id": "rete-di-tudela",
       "title": "Ventisei stelle a Tudela",
-      "text": "Un astrolabio dorato firmato da Aḥmad ibn Abī ʿAbd Allāh al-Qurṭubī, datato 1336-37 e attribuito a Tudela, porta sulla rete ventisei stelle con i loro nomi arabi: al-ʿabūr per Sirio, al-dabarān, qalb al-ʿaqrab, al-wāqiʿ per Vega. La rete ha due rosette decorative che non compaiono su nessun altro astrolabio noto.",
+      "text": "Un astrolabio d’ottone firmato a Tudela nel 1336-37 da Aḥmad ibn Abī ʿAbd Allāh al-Qurṭubī porta sulla rete ventisei stelle con i loro nomi arabi: al-ʿabūr per Sirio, al-dabarān, qalb al-ʿaqrab, wāqiʿ per Vega. La rete ha due rosette decorative che non compaiono su nessun altro astrolabio noto.",
       "tags": [
         "astrolabio",
         "stelle",
         "nomi-arabi"
       ],
       "sources": [
-        "https://www.sothebys.com/buy/86364273-70b2-47b4-a90e-ea891dbd2657/lots/6f4448ae-8290-433f-ab77-585fd76c2433"
+        "https://www.sothebys.com/en/buy/auction/2021/arts-of-the-islamic-world-india-including-fine-rugs-and-carpets/a-gilt-brass-astrolabe-signed-by-ahmad-ibn-abu"
       ]
     },
     {
@@ -228,8 +229,8 @@
     },
     {
       "id": "at-tariq-quale-stella",
-      "title": "Quale stella è at-Ṭāriq?",
-      "text": "Gli esegeti classici non sono d’accordo. Per Qatāda è ogni stella, che appare di notte e si nasconde di giorno; al-Qurṭubī riporta anche Saturno e, da Ibn Zayd, le Pleiadi, e cita al-Qushayrī: per i più è un nome generico, riferito a tutte le stelle. Il versetto non la nomina, e la domanda resta aperta.",
+      "title": "Quale stella è aṭ-Ṭāriq?",
+      "text": "Gli esegeti classici non sono d’accordo. Per Qatāda è ogni stella, che appare di notte e si nasconde di giorno; al-Qurṭubī riporta anche Saturno, al-Jady, cioè la Polare (da Ibn ʿAbbās), e le Pleiadi (da Ibn Zayd), e cita al-Qushayrī: per i più è un nome generico. Il versetto non la nomina, e la domanda resta aperta.",
       "tags": [
         "corano",
         "at-tariq",
@@ -237,6 +238,7 @@
       ],
       "sources": [
         "https://quran.com/at-tariq/1/tafsirs/ar-tafseer-al-qurtubi",
+        "https://quran.com/at-tariq/3/tafsirs/ar-tafseer-al-qurtubi",
         "https://quran.com/at-tariq/1/tafsirs/ar-tafsir-al-tabari",
         "https://quran.com/at-tariq/1/tafsirs/en-tafisr-ibn-kathir"
       ]
@@ -244,7 +246,7 @@
     {
       "id": "al-shira",
       "title": "La stella nominata nel Corano",
-      "text": "Sirio è l’unica stella chiamata per nome nel Corano: al-Shiʿrā, in 53:49. Ibn Kathīr riporta da Ibn ʿAbbās, Mujāhid, Qatāda e Ibn Zayd che al-Shiʿrā è la stella brillante detta anche Mirzam al-Jawzāʾ, e che un gruppo di arabi la adorava.",
+      "text": "Sirio è l’unica stella, Sole a parte, chiamata per nome nel Corano: al-Shiʿrā, in 53:49. Ibn Kathīr riporta da Ibn ʿAbbās, Mujāhid, Qatāda e Ibn Zayd che al-Shiʿrā è la stella brillante detta anche Mirzam al-Jawzāʾ, e che un gruppo di arabi la adorava.",
       "tags": [
         "corano",
         "stelle",
@@ -252,7 +254,8 @@
       ],
       "sources": [
         "https://quran.com/an-najm/49",
-        "https://quran.com/an-najm/49/tafsirs/en-tafisr-ibn-kathir"
+        "https://quran.com/an-najm/49/tafsirs/en-tafisr-ibn-kathir",
+        "https://ar.wikipedia.org/wiki/%D8%A7%D9%84%D8%B4%D8%B9%D8%B1%D9%89_%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%D9%8A%D8%A9"
       ]
     },
     {
@@ -297,7 +300,7 @@
     {
       "id": "polare-guida",
       "title": "La stella che guida",
-      "text": "Commentando 16:16, al-Ṭabarī identifica la stella che guida i viaggiatori nella notte con al-Jady, la Polare, e con le due Farqad dell’Orsa Minore. Ibn al-ʿArabī, citato da al-Qurṭubī, spiega che girano intorno al polo fisso e guidano per terra, per mare e verso la qibla: a grandi linee, basta tenere il polo dietro la spalla sinistra.",
+      "text": "Commentando 16:16, al-Ṭabarī identifica la stella che guida i viaggiatori di notte con al-Jady, la Polare, e le due Farqad dell’Orsa Minore. Il giurista andaluso Abū Bakr ibn al-ʿArabī, citato da al-Qurṭubī, aggiunge che guidano anche verso la qibla: basta tenere il polo dietro la spalla sinistra, una regola valida a grandi linee solo a nord-ovest della Mecca.",
       "tags": [
         "corano",
         "qibla",
@@ -305,7 +308,9 @@
       ],
       "sources": [
         "https://quran.com/an-nahl/16/tafsirs/ar-tafsir-al-tabari",
-        "https://quran.com/an-nahl/16/tafsirs/ar-tafseer-al-qurtubi"
+        "https://quran.com/an-nahl/16/tafsirs/ar-tafseer-al-qurtubi",
+        "https://en.wikipedia.org/wiki/Tafsir_al-Qurtubi",
+        "https://en.wikipedia.org/wiki/Abu_Bakr_ibn_al-Arabi"
       ]
     },
     {
