@@ -167,6 +167,53 @@ V-TARIQ-V (aspect_ratio 9:16) e V-TARIQ-H (aspect_ratio 16:9): "Night sky over a
 Ricordati: alla fine una sola tabella in un blocco di codice, ID | job_id | stato.
 ```
 
-## Messaggio 3 — loop delle città e reel (lo preparo io)
+## Limite: un lavoro alla volta per tipo
 
-Lo scrivo quando incolli in Claude Code le tabelle dei messaggi 1 e 2: uso le immagini approvate come primo e ultimo fotogramma dei video, così i loop sono perfetti, e i job ID li metto io.
+Al primo tentativo Higgsfield ha risposto `429 rate_limit_reached` a quasi tutti gli invii: con la prova accetta pochissimi lavori insieme, a quanto pare uno per tipo (un'immagine, un suono, un video). Non costa crediti; vuol dire solo "troppi lavori insieme". Da allora le chat lavorano in sequenza con i messaggi qui sotto, che sostituiscono l'ordine dei messaggi 1 e 2.
+
+### Seguito per la chat "imad — immagini"
+
+```text
+Higgsfield ha un limite di lavori contemporanei: l'errore 429 vuol dire "troppi lavori insieme", non è un problema di crediti. Nuove regole da ora (quelle di prima restano: use_unlim: true sempre, mai crediti, configurazioni coperte, niente testo nelle immagini):
+1. In questa chat al massimo UN'immagine e UN video attivi alla volta. Invia il successivo solo quando quello prima è completato o fallito.
+2. Se ricevi 429, aspetta controllando lo stato del lavoro attivo e poi reinvia lo stesso asset. Non saltarlo e non passare mai ai crediti.
+3. T02 è già in coda: non reinviarlo. Poi N-TORINO-V e O01S. Mostrami le 3 prove e aspetta il mio ok.
+4. Dopo il mio ok, immagini in quest'ordine:
+   N-ALQUDS-V, N-GAZA-V, N-FES-V, N-ISTANBUL-V, N-SAMARCANDA-V, N-KYOTO-V, N-CUSCO-V,
+   B-TORINO, B-ALQUDS, B-GAZA, B-FES, B-ISTANBUL, B-SAMARCANDA, B-KYOTO, B-CUSCO,
+   O02S, O03S, O04S, O05S, O06S, T01, T03,
+   D-TORINO-V, D-ALQUDS-V, D-GAZA-V, D-FES-V, D-ISTANBUL-V, D-SAMARCANDA-V, D-KYOTO-V, D-CUSCO-V,
+   H01, B-OLIVA, N-BATTIR-V, D-BATTIR-V,
+   poi tutte le -H (prima le N, poi le D), poi H02, H03, H04, T04, T05, T06.
+   Le O01P…O06P saltale: le faremo solo se servono.
+5. Sempre dopo il mio ok, appena una N-<CITTÀ>-V è completata crea il suo loop L-<CITTÀ>-V, un video alla volta:
+   seedance_2_0, mode std, resolution 720p, aspect_ratio 9:16, duration 10, bitrate_mode high, generate_audio false, start_image = job_id della N-<CITTÀ>-V, end_image = lo stesso job_id.
+   Prompt: "Locked-off camera, no camera movement at all. The scene stays exactly as in the image; only very subtle living details move: " + [DETTAGLI] + " The sky stays clean and empty. The last frame matches the first frame exactly, for a seamless loop. No people walking into frame, no text."
+   [DETTAGLI] per città:
+   TORINO: "a few windows flicker, a faint haze drifts over the river Po, small reflections shimmer on the water."
+   ALQUDS: "a few windows and lanterns flicker softly, a light warm haze drifts between the domes."
+   GAZA: "gentle waves roll onto the sand, the fishing boats rock slowly, harbour lights shimmer on the water."
+   FES: "a few rooftop lights flicker, a thin smoke drifts slowly."
+   ISTANBUL: "ripples and reflections shimmer on the water, a small ferry's lights glide very slowly."
+   SAMARCANDA: "the lights on the tiled portals glow and pulse very softly, a light breeze moves dust near the ground."
+   KYOTO: "paper lanterns flicker softly, a few leaves stir in the breeze."
+   CUSCO: "city lights twinkle softly, a thin mist drifts slowly over the mountains."
+   Ordine dei loop: TORINO, ALQUDS, GAZA, FES, ISTANBUL, SAMARCANDA, KYOTO, CUSCO.
+6. Ogni 10 asset completati scrivimi la tabella aggiornata in un blocco di codice (ID | job_id | stato), compresi i loop L-…. Se ti fermi, al mio "continua" riprendi dal primo asset non completato.
+```
+
+### Seguito per la chat "imad — suoni e video"
+
+```text
+Higgsfield ha un limite di lavori contemporanei: l'errore 429 vuol dire "troppi lavori insieme", non è un problema di crediti. Nuove regole da ora (quelle di prima restano: use_unlim: true sempre, mai crediti, niente voci, parole, musica o recitazioni):
+1. In questa chat al massimo UN suono e UN video attivi alla volta. Invia il successivo solo quando quello prima è completato o fallito.
+2. Se ricevi 429, aspetta controllando lo stato del lavoro attivo e poi reinvia lo stesso asset. Non saltarlo e non passare mai ai crediti.
+3. S06 e V-TARIQ-V sono già partiti: non reinviarli.
+4. Video: dopo V-TARIQ-V invia V-TARIQ-H. Poi basta video in questa chat.
+5. Suoni in quest'ordine: S07, S05, S04, S01, S08, S09, S10, A-NOTTE, S03, S02, S11, A-TORINO, A-ALQUDS, A-GAZA, A-FES, A-ISTANBUL, A-SAMARCANDA, A-KYOTO, A-CUSCO, A-BATTIR.
+6. Ogni 5 asset completati scrivimi la tabella aggiornata in un blocco di codice (ID | job_id | stato). Se ti fermi, al mio "continua" riprendi dal primo asset non completato.
+```
+
+## Messaggio 3 — reel e loop di giorno (lo preparo io)
+
+I loop di notte delle città li fa già la chat delle immagini. Il resto (loop di giorno, versioni orizzontali, reel per Instagram) lo scrivo quando incolli in Claude Code le tabelle: uso le immagini approvate come primo e ultimo fotogramma dei video e metto io i job ID.
