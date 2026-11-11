@@ -18,7 +18,7 @@ import Intro, { type IntroEventName } from "@/components/intro/Intro";
 import type { AstrolabeEventName, AstrolabeHandle } from "@/components/astrolabe/types";
 import type { AstroSection, Observer } from "@/lib/astro/types";
 import type { SectionMeta } from "@/lib/sections";
-import type { SkyState } from "@/lib/media";
+import { useMedia, type SkyState } from "@/lib/media";
 import { getSound } from "@/lib/sound";
 import type { SectionAnchor } from "./anchors";
 import CityBackdrop from "./CityBackdrop";
@@ -127,9 +127,20 @@ const Backdrop = memo(CityBackdrop);
 
 type SkyLib = typeof import("./sky");
 
-function LiveBackdrop({ city, time, sky }: { city: HomeCity; time: TimeStore; sky: SkyLib | null }) {
+function LiveBackdrop({
+  city,
+  time,
+  sky,
+  onSky,
+}: {
+  city: HomeCity;
+  time: TimeStore;
+  sky: SkyLib | null;
+  onSky?: (s: SkyState) => void;
+}) {
   const { date } = useShownTime(time);
   const state: SkyState = sky ? sky.skyStateAt(date, city.lat, city.lon) : "notte";
+  useEffect(() => onSky?.(state), [state, onSky]);
   return <Backdrop city={city.id} sky={state} />;
 }
 
@@ -173,7 +184,9 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
   const [qibla, setQibla] = useState<{ bearing: number; here: boolean } | null>(null);
   const [observer, setObserver] = useState<Observer | null>(null);
   const [inset, setInset] = useState({ bottom: 0, right: 0 });
+  const [sky, setSky] = useState<SkyState>("notte");
   const geoAsked = useRef(false);
+  const media = useMedia();
 
   const city = cities.find((c) => c.id === cityId) ?? cities[0];
 
@@ -323,9 +336,11 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
 
   const changeCity = useCallback((id: string) => setCityId(id), []);
 
+  // l'ambiente sonoro: quello della città, se c'è; altrimenti la notte, quando è notte
+  const ambience = media.has(`amb/${cityId}.mp3`) ? cityId : sky !== "giorno" && media.has("amb/notte.mp3") ? "notte" : null;
   useEffect(() => {
-    if (live) sound.setAmbience(cityId);
-  }, [live, cityId, sound]);
+    if (live) sound.setAmbience(ambience);
+  }, [live, ambience, sound]);
 
   const toNow = useCallback(() => {
     api?.resetNow();
@@ -469,7 +484,11 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
   return (
     <ShellActionsProvider value={actions}>
       <main className={`${t.vars} ${h.home}`} data-home="" data-live={live ? "" : undefined}>
-        {mounted && city ? <LiveBackdrop city={city} time={time} sky={skyLib} /> : null}
+        <h1 className="sr-only" lang="en">
+          hello, imad’s world
+        </h1>
+
+        {mounted && city ? <LiveBackdrop city={city} time={time} sky={skyLib} onSky={setSky} /> : null}
 
         <div
           ref={stageRef}
@@ -495,6 +514,7 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
             skip={skipIntro}
             onDone={onIntroDone}
             onEvent={onIntroEvent}
+            headingAs="p"
             className={h.intro}
             style={{ opacity: live ? 0 : 1 }}
           />

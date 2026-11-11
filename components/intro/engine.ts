@@ -1695,13 +1695,15 @@ export class IntroEngine {
     for (let y = 0; y < bh; y++) {
       const dy = (y - cy) * 1.08;
       const dy2 = dy * dy;
-      const hy = Math.imul(y, 0x85ebca6b);
       for (let x = 0; x < bw; x++, o++) {
         const dx = x - cx;
         let q = (dx * dx + dy2) * inv;
         if (q > 1) q = 1;
         const k = lut[(q * NL) | 0];
-        const n = noise[(Math.imul(x, 0x9e3779b1) ^ hy) >>> 20];
+        // murmur3 finaliser of the pixel index: no visible structure in the dither
+        let hh = Math.imul(o ^ (o >>> 16), 0x85ebca6b);
+        hh = Math.imul(hh ^ (hh >>> 13), 0xc2b2ae35);
+        const n = noise[(hh ^ (hh >>> 16)) >>> 20];
         px[o] =
           0xff000000 |
           (((b0 + db * k + n) | 0) << 16) |
