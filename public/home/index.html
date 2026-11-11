@@ -4,36 +4,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>imad.chat</title>
-<meta name="description" content="hello, imad's world: il Corano, le città adesso, la Palestina, il cielo vero sopra Torino, un cubo di Rubik.">
+<meta name="description" content="imad.chat, il sito di Imad Chatraoui: il Corano, le città adesso, la Palestina, il cielo vero sopra Torino, un cubo di Rubik.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="imad.chat">
 <meta property="og:title" content="imad.chat">
-<meta property="og:description" content="hello, imad's world">
+<meta property="og:description" content="Il sito di Imad Chatraoui">
 <meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
 <script>
-/* tema, carattere e apertura decisi prima del primo disegno, per non lampeggiare */
+/* la nuova apertura: la home resta nascosta finché l'intro non la apre.
+   Non parte con «meno movimento», se la pagina si apre già su un riquadro, o per le fotografie (shot=1 senza seek=1). */
 (function () {
-  var q = new URLSearchParams(location.search), r = document.documentElement, s = {};
-  try { s = JSON.parse(localStorage.getItem("imad.anteprima.widget") || "{}") || {}; } catch (e) {}
-  var th = q.get("theme") || s.theme;
+  var q = new URLSearchParams(location.search), r = document.documentElement;
+  var th = q.get("theme");
   if (th === "light" || th === "dark") r.setAttribute("data-theme", th);
-  var F = { inter: '"Inter"', geist: '"Geist"', manrope: '"Manrope"', instrument: '"Instrument Sans"', sistema: "" };
-  var f = q.get("font") || s.font;
-  if (f && F.hasOwnProperty(f)) {
-    r.setAttribute("data-font", f);
-    r.style.setProperty("--font-sans", (F[f] ? F[f] + ", " : "") + '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-  }
-  var shot = q.get("shot") === "1";
+  var shot = q.get("shot") === "1", seek = q.get("seek") === "1";
   if (shot) r.classList.add("is-shot");
-  /* apertura: una volta per sessione, oppure con ?intro=1; mai con «meno movimento» o con un riquadro già aperto */
-  var seen = false;
-  try { seen = sessionStorage.getItem("imad.intro.widget") === "1"; } catch (e) {}
+  try { sessionStorage.setItem("imad.intro.widget", "1"); } catch (e) {}   /* spegne la vecchia apertura */
+  window.__introStarted = true;
   var calm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  if (!calm && !q.get("open") && !location.hash && (q.get("intro") === "1" || (!shot && !seen))) {
-    r.classList.add("is-intro", "is-pre", "is-locked");
-    /* se lo script principale non parte, la pagina non resta coperta */
-    setTimeout(function () { if (!window.__introStarted) r.classList.remove("is-intro", "is-pre", "is-locked"); }, 5000);
+  if (seek || (!shot && !calm && !q.get("open") && !location.hash)) {
+    r.classList.add("ni-on", "is-locked");
+    /* se lo script dell'intro non parte, la pagina non resta coperta */
+    setTimeout(function () { if (!window.__niStarted) r.classList.remove("ni-on", "is-locked"); }, 5000);
   }
 })();
 </script>
@@ -41,11 +34,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Geist:wght@400..800&family=Geist+Mono:wght@400..600&family=Instrument+Sans:wght@400..700&family=Inter:wght@400..800&family=Manrope:wght@400..800&display=swap">
 <link rel="stylesheet" href="/home/style.css">
-<style>
-/* online: niente barra dell'anteprima, niente numeri di esempio, niente pulsante senza indirizzo */
-.pv, .me__link, .btn[data-nolink], .saluti .count, .legend span:has(> i.g) { display: none !important; }
-.sal__top { visibility: hidden !important; } /* lo spazio resta: lì si accende la stella del visitatore */
-</style>
+<link rel="stylesheet" href="/home/intro.css">
 </head>
 <body>
 <!-- sfondo vivo: campi di colore presi dal cielo di Torino adesso, più la grana -->
@@ -205,7 +194,10 @@
   </div>
 </div>
 
-<!-- barra dell'anteprima: non fa parte del design -->
+<!-- la nuova apertura: una tela sopra la pagina -->
+<canvas class="ni" id="ni" aria-hidden="true"></canvas>
+
+<!-- barra della vecchia anteprima: resta nel codice, qui è nascosta -->
 <aside class="pv" id="pv" aria-label="Strumenti dell'anteprima">
   <span class="pv__tag">anteprima</span>
   <label class="pv__f"><span>Tema</span>
@@ -216,7 +208,10 @@
 </aside>
 
 <script src="/home/data.js"></script>
+<script>window.IMAD_DATA.sampleStars = 0; /* come online: nessun saluto di esempio */</script>
 <script src="/home/astro-lite.js"></script>
 <script src="/home/app.js"></script>
+<script>window.__niMedia = "/home/media/";</script>
+<script src="/home/intro.js"></script>
 </body>
 </html>

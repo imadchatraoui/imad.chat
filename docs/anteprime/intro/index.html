@@ -8,17 +8,22 @@
 <meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
 <script>
-/* anteprima della nuova apertura: la home resta nascosta finché l'intro non la apre */
+/* la nuova apertura: la home resta nascosta finché l'intro non la apre.
+   Non parte con «meno movimento», se la pagina si apre già su un riquadro, o per le fotografie (shot=1 senza seek=1). */
 (function () {
   var q = new URLSearchParams(location.search), r = document.documentElement;
   var th = q.get("theme");
   if (th === "light" || th === "dark") r.setAttribute("data-theme", th);
-  if (q.get("shot") === "1") r.classList.add("is-shot");
+  var shot = q.get("shot") === "1", seek = q.get("seek") === "1";
+  if (shot) r.classList.add("is-shot");
   try { sessionStorage.setItem("imad.intro.widget", "1"); } catch (e) {}   /* spegne la vecchia apertura */
   window.__introStarted = true;
-  r.classList.add("ni-on", "is-locked");
-  /* se lo script dell'intro non parte, la pagina non resta coperta */
-  setTimeout(function () { if (!window.__niStarted) r.classList.remove("ni-on", "is-locked"); }, 7000);
+  var calm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (seek || (!shot && !calm && !q.get("open") && !location.hash)) {
+    r.classList.add("ni-on", "is-locked");
+    /* se lo script dell'intro non parte, la pagina non resta coperta */
+    setTimeout(function () { if (!window.__niStarted) r.classList.remove("ni-on", "is-locked"); }, 5000);
+  }
 })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">

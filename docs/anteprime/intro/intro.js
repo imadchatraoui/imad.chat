@@ -14,8 +14,21 @@
   const SEEK = Q.get("seek") === "1";
   const VERSIONS = ["stella", "cursore"];
   let version = "stella";
-  try { const s = localStorage.getItem("imad.anteprima.intro"); if (VERSIONS.includes(s)) version = s; } catch (e) { /* senza memoria va bene lo stesso */ }
+  if (doc.getElementById("nbar")) { try { const s = localStorage.getItem("imad.anteprima.intro"); if (VERSIONS.includes(s)) version = s; } catch (e) { /* senza memoria va bene lo stesso */ } }
   if (VERSIONS.includes(Q.get("v"))) version = Q.get("v");
+  const MEDIA = window.__niMedia || "media/";
+
+  /* la scritta nell'hero: nove caratteri e il cursore da terminale */
+  function prepareWord() {
+    const w = doc.querySelector(".hero__word");
+    if (w && !w.querySelector(".ch")) {
+      w.setAttribute("aria-label", "imad.chat");
+      w.innerHTML = "imad.chat".split("").map((ch) => `<span class="ch${ch === "." ? " dot" : ""}" aria-hidden="true">${ch}</span>`).join("") + '<i class="cur" aria-hidden="true"></i>';
+    }
+    return w;
+  }
+  /* niente intro (meno movimento, pagina aperta su un riquadro, fotografie): la pagina è già nello stato finale */
+  if (!root.classList.contains("ni-on")) { prepareWord(); root.setAttribute("data-ni", version); root.classList.add("ni-done"); window.__niDone = true; window.__niReady = true; return; }
 
   const MONO = '"Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace';
   const SANS = 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
@@ -71,7 +84,7 @@
   /* ------------------------------------------------------------------ immagini e scene vive */
   const IMG = {};
   const loadImages = () => Promise.all(["kaaba", "kaaba-2", "marocco", "marocco-2", "torino", "viaggio"].map((n) => new Promise((res) => {
-    const im = new Image(); im.onload = () => { IMG[n] = im; res(); }; im.onerror = () => res(); im.src = "media/" + n + ".jpg";
+    const im = new Image(); im.onload = () => { IMG[n] = im; res(); }; im.onerror = () => res(); im.src = MEDIA + n + ".jpg";
   })));
   const SW = 360, SH = 450, SC = {};
   for (const n of ["flag", "term", "cube", "sky", "night"]) { const c = doc.createElement("canvas"); c.width = SW; c.height = SH; SC[n] = c; }
@@ -170,12 +183,13 @@
   };
 
   /* ------------------------------------------------------------------ misure */
+  let DPRCAP = 2;       /* densità della tela: scende da sola se il telefono fatica */
   let W = 0, H = 0, DPR = 1, fm = 26, adv = 16, xA = 0, anchorY = 0, baseM = 0, rM = 2.5, fb = 40, sBig = 500, sFit = 66, cell = 100, gap = 9, gridX = 0, gridY = 0, tw = 120;
   const EM = { e: [], a: [], E: 0 };
   const SQ = [];        /* i nove quadrati: dove atterrano */
   let heroEl = null, barEl = null, footEl = null, wordEl = null, chars = [], curEl = null;
   function measure() {
-    W = window.innerWidth; H = window.innerHeight; DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight; DPR = Math.min(window.devicePixelRatio || 1, DPRCAP);
     cvs.width = win.width = Math.round(W * DPR); cvs.height = win.height = Math.round(H * DPR);
     fm = clamp(W * 0.082, 24, 40);
     ctx.font = `500 ${fm}px ${MONO}`; adv = ctx.measureText("m").width;
@@ -471,11 +485,7 @@
   function setup() {
     root.classList.remove("ni-done"); root.classList.add("ni-on", "is-locked"); root.setAttribute("data-ni", version);
     window.scrollTo(0, 0);
-    heroEl = doc.getElementById("hero"); barEl = doc.getElementById("bar"); footEl = doc.querySelector(".foot"); wordEl = doc.querySelector(".hero__word");
-    if (wordEl && !wordEl.querySelector(".ch")) {
-      wordEl.setAttribute("aria-label", NAME);
-      wordEl.innerHTML = NAME.split("").map((ch) => `<span class="ch${ch === "." ? " dot" : ""}" aria-hidden="true">${ch}</span>`).join("") + '<i class="cur" aria-hidden="true"></i>';
-    }
+    heroEl = doc.getElementById("hero"); barEl = doc.getElementById("bar"); footEl = doc.querySelector(".foot"); wordEl = prepareWord();
     chars = wordEl ? Array.from(wordEl.querySelectorAll(".ch")) : []; curEl = wordEl ? wordEl.querySelector(".cur") : null;
     measure();
   }
@@ -485,8 +495,14 @@
     root.classList.remove("ni-on", "is-locked"); root.classList.add("ni-done");
     window.__niDone = true;
   }
-  function loop(now) { const t = now - t0; if (t >= T.end) { finish(); return; } frame(t); raf = requestAnimationFrame(loop); }
-  function play() { cancelAnimationFrame(raf); window.__niDone = false; setup(); sNight(SC.night.getContext("2d"), SW, SH); playing = true; t0 = performance.now(); raf = requestAnimationFrame(loop); }
+  let lastNow = 0, slow = 0;
+  function loop(now) {
+    const t = now - t0; if (t >= T.end) { finish(); return; }
+    /* se i fotogrammi arrivano tardi nella parte pesante, la tela si alleggerisce (il tempo dell'animazione non cambia) */
+    if (lastNow && t > T.zoom0 && t < T.fly1) { if (now - lastNow > 30) { if (++slow >= 5 && DPRCAP > 1) { DPRCAP = Math.max(1, DPRCAP - 0.5); slow = 0; measure(); } } else if (slow > 0) slow--; }
+    lastNow = now; frame(t); raf = requestAnimationFrame(loop);
+  }
+  function play() { cancelAnimationFrame(raf); window.__niDone = false; lastNow = 0; slow = 0; setup(); sNight(SC.night.getContext("2d"), SW, SH); playing = true; t0 = performance.now(); raf = requestAnimationFrame(loop); }
   function seek(ms) { if (!ready) return false; cancelAnimationFrame(raf); playing = false; if (!root.classList.contains("ni-on") || !chars.length) { setup(); sNight(SC.night.getContext("2d"), SW, SH); } if (ms >= T.end) { frame(T.end); finish(); } else frame(ms); return true; }
   window.addEventListener("resize", () => { if (playing) measure(); });
 
@@ -496,7 +512,8 @@
   paint();
 
   const fonts = doc.fonts && doc.fonts.load ? [doc.fonts.load(`500 26px ${MONO}`, TEXT + "_."), doc.fonts.load(`800 60px ${SANS}`, NAME)] : [];
-  const wait = Promise.race([Promise.all([loadImages(), Promise.all(fonts).catch(() => 0)]), new Promise((r) => setTimeout(r, 3500))]);
+  const pics = loadImages();
+  const wait = SEEK ? Promise.race([Promise.all([pics, Promise.all(fonts).catch(() => 0)]), new Promise((r) => setTimeout(r, 6000))]) : Promise.race([Promise.all(fonts).catch(() => 0), new Promise((r) => setTimeout(r, 1500))]);
   wait.then(() => { ready = true; window.__niReady = true; if (SEEK) { setup(); sNight(SC.night.getContext("2d"), SW, SH); frame(0); } else play(); });
   window.__ni = { seek, play, T, get version() { return version; }, set version(v) { if (VERSIONS.includes(v)) { version = v; paint(); } } };
 })();
