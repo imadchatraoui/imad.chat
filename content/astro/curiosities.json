@@ -1,6 +1,434 @@
 {
-  "placeholder": true,
   "items": [
-    { "id": "esempio", "title": "", "text": "", "tags": [], "sources": [] }
+    {
+      "id": "libro-stelle-fisse",
+      "title": "Il Libro delle stelle fisse",
+      "text": "Verso il 964, a Shiraz, l’astronomo persiano ʿAbd al-Raḥmān al-Ṣūfī scrisse in arabo il Libro delle figure delle stelle. Unì il catalogo di Tolomeo alla tradizione araba e disegnò ogni costellazione due volte: come appare guardando il cielo e come si vede su un globo celeste. Fu copiato per secoli in tutto il mondo islamico.",
+      "tags": [
+        "stelle",
+        "nomi-arabi",
+        "storia"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/The_Book_of_Fixed_Stars",
+        "https://www.metmuseum.org/art/collection/search/446297",
+        "https://collectionapi.metmuseum.org/public/collection/v1/objects/446297"
+      ]
+    },
+    {
+      "id": "nuvoletta-andromeda",
+      "title": "Una piccola nuvola",
+      "text": "Nello stesso libro, al-Ṣūfī descrisse una «piccola nuvola» nella costellazione di Andromeda. È la prima menzione storica della galassia di Andromeda, e la più antica di una galassia diversa dalla nostra. Nelle notti buie si vede a occhio nudo, anche se la sua luce è partita circa due milioni e mezzo di anni fa.",
+      "tags": [
+        "stelle",
+        "storia",
+        "scienza"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Andromeda_Galaxy"
+      ]
+    },
+    {
+      "id": "cielo-arabo",
+      "title": "Un cielo che parla arabo",
+      "text": "Aldebaran, Altair, Vega, Deneb, Rigel: nell’astronomia occidentale la maggior parte dei nomi propri delle stelle è di origine araba. Molti nacquero come descrizioni dell’Almagesto di Tolomeo tradotte in arabo, «il piede del gigante», «la bocca del pesce», e arrivarono in Europa con le traduzioni latine medievali, spesso storpiati lungo la strada.",
+      "tags": [
+        "stelle",
+        "nomi-arabi",
+        "parole"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/List_of_Arabic_star_names"
+      ]
+    },
+    {
+      "id": "betelgeuse-punti",
+      "title": "Questione di punti",
+      "text": "Betelgeuse viene da yad al-jawzāʾ, «la mano di al-Jawzāʾ», cioè di Orione. Nel Medioevo i copisti latini lessero la y iniziale come una b: in arabo le due lettere hanno la stessa forma e cambiano solo per i punti, due sotto la y, uno sotto la b. Da lì, trascrizione dopo trascrizione, nacque Betelgeuse.",
+      "tags": [
+        "stelle",
+        "nomi-arabi",
+        "parole"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Betelgeuse"
+      ]
+    },
+    {
+      "id": "astrolabio-calcolatore",
+      "title": "Un calcolatore d’ottone",
+      "text": "L’astrolabio è una mappa del cielo e insieme un calcolatore analogico: girando la rete sulla piastra della propria latitudine si leggono l’ora e l’altezza degli astri e si riconoscono stelle e pianeti. Nel mondo islamico serviva anche a stabilire gli orari della preghiera e la direzione della qibla.",
+      "tags": [
+        "astrolabio",
+        "scienza",
+        "qibla"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Astrolabe"
+      ]
+    },
+    {
+      "id": "al-fazari",
+      "title": "Il primo astrolabio dell’Islam",
+      "text": "Nell’VIII secolo, per ordine del califfo al-Manṣūr, Muḥammad ibn Ibrāhīm al-Fazārī contribuì a tradurre in arabo un grande testo astronomico indiano, il Brāhmasphuṭasiddhānta di Brahmagupta. A lui viene attribuito il primo astrolabio costruito nel mondo islamico; scrisse anche un trattato sull’astrolabio.",
+      "tags": [
+        "astrolabio",
+        "storia"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Muḥammad_ibn_Ibrāhīm_al-Fazārī"
+      ]
+    },
+    {
+      "id": "al-ijliyya",
+      "title": "L’astrolabista di Aleppo",
+      "text": "Nel X secolo una donna, al-ʿIjliyya, figlia dell’astrolabista al-ʿIjlī, costruiva astrolabi ad Aleppo per l’emiro Sayf al-Dawla. La conosciamo da una sola fonte, Ibn al-Nadīm. Oggi è spesso chiamata Mariam al-Asṭurlābiyya, ma il nome Mariam in quella fonte non compare.",
+      "tags": [
+        "astrolabio",
+        "storia"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Al-ʻIjliyyah"
+      ]
+    },
+    {
+      "id": "chaucer",
+      "title": "Un trattato per Lewis",
+      "text": "Nel 1391 Geoffrey Chaucer scrisse un trattato sull’astrolabio per il figlio Lewis, che aveva dieci anni. È considerato la più antica opera in inglese dedicata a uno strumento scientifico complesso, e conserva nomi arabi di stelle: Sirio vi si chiama Alhabor, da al-ʿabūr, e Arturo Alramih, da al-rāmiḥ.",
+      "tags": [
+        "astrolabio",
+        "storia",
+        "nomi-arabi"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/A_Treatise_on_the_Astrolabe",
+        "https://en.wikipedia.org/wiki/Sirius",
+        "https://en.wikipedia.org/wiki/Arcturus"
+      ]
+    },
+    {
+      "id": "astrolabi-al-met",
+      "title": "Due astrolabi a New York",
+      "text": "Il Metropolitan Museum conserva un astrolabio d’ottone intarsiato d’argento datato 690 dell’Egira, il 1291: il costruttore indicato è ʿUmar ibn Yūsuf, principe rasulide che regnò sullo Yemen nel 1295-96. Accanto c’è un astrolabio persiano del 1654-55, attribuito a Mashhad, opera di Muhammad Zaman al-Munajjim al-Asturlabi: «l’astronomo, il fabbricante di astrolabi».",
+      "tags": [
+        "astrolabio",
+        "storia"
+      ],
+      "sources": [
+        "https://www.metmuseum.org/art/collection/search/444408",
+        "https://collectionapi.metmuseum.org/public/collection/v1/objects/444408",
+        "https://www.metmuseum.org/art/collection/search/451699",
+        "https://collectionapi.metmuseum.org/public/collection/v1/objects/451699"
+      ]
+    },
+    {
+      "id": "rete-di-tudela",
+      "title": "Ventisei stelle a Tudela",
+      "text": "Un astrolabio dorato firmato da Aḥmad ibn Abī ʿAbd Allāh al-Qurṭubī, datato 1336-37 e attribuito a Tudela, porta sulla rete ventisei stelle con i loro nomi arabi: al-ʿabūr per Sirio, al-dabarān, qalb al-ʿaqrab, al-wāqiʿ per Vega. La rete ha due rosette decorative che non compaiono su nessun altro astrolabio noto.",
+      "tags": [
+        "astrolabio",
+        "stelle",
+        "nomi-arabi"
+      ],
+      "sources": [
+        "https://www.sothebys.com/buy/86364273-70b2-47b4-a90e-ea891dbd2657/lots/6f4448ae-8290-433f-ab77-585fd76c2433"
+      ]
+    },
+    {
+      "id": "al-muqaddasi",
+      "title": "Al-Muqaddasi, il gerosolimitano",
+      "text": "Nato a Gerusalemme verso il 946, il geografo al-Muqaddasi viaggiò per tutto il mondo islamico e scrisse La migliore divisione per la conoscenza delle regioni. Racconta di aver ricevuto trentasei soprannomi diversi durante i viaggi: i primi due erano Muqaddasi, «gerosolimitano», e Filastini, «palestinese».",
+      "tags": [
+        "palestina",
+        "al-quds",
+        "storia"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Al-Maqdisi"
+      ]
+    },
+    {
+      "id": "tatreez",
+      "title": "Il tatreez",
+      "text": "Il tatreez è il ricamo palestinese a punto croce che orna i thob, gli abiti tradizionali. Motivi e colori cambiano da villaggio a villaggio e da famiglia a famiglia. Secondo le interpretazioni più diffuse il cipresso è l’albero della vita, simbolo di lunga durata e di tenacia, e la palma la fertilità. Dal 2021 è patrimonio immateriale UNESCO.",
+      "tags": [
+        "palestina",
+        "tatreez",
+        "folklore"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Tatreez"
+      ]
+    },
+    {
+      "id": "raccolta-olive",
+      "title": "La raccolta delle olive",
+      "text": "Da metà settembre, per circa due mesi, in Palestina intere famiglie si ritrovano tra gli ulivi: più generazioni insieme a raccogliere, con feste, musica tradizionale e danze. Gli ulivi occupano più della metà della terra coltivata, e l’olio è uno dei pochi prodotti che il paese riesce a esportare.",
+      "tags": [
+        "palestina",
+        "ulivi",
+        "folklore"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Olive_cultivation_in_Palestine"
+      ]
+    },
+    {
+      "id": "battir",
+      "title": "La settimana di otto giorni",
+      "text": "Sulle terrazze di Battir, vicino a Betlemme, l’acqua di sette sorgenti scorre ancora in un sistema di irrigazione di epoca romana. Le otto famiglie principali del villaggio si danno il turno, un giorno ciascuna, per irrigare i campi: per questo si dice che a Battir la settimana duri otto giorni. Dal 2014 è patrimonio UNESCO.",
+      "tags": [
+        "palestina",
+        "ulivi",
+        "folklore"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Battir"
+      ]
+    },
+    {
+      "id": "il-mare-di-gaza",
+      "title": "Il mare di Gaza",
+      "text": "Per gran parte della sua storia Gaza fu un porto e un emporio sulla via costiera tra l’Africa e il Levante, tappa della rotta delle spezie che risaliva dal Mar Rosso. Quando nell’Ottocento il suo porto fu superato da quelli di Giaffa e Haifa, la città conservò la sua flotta di pescatori.",
+      "tags": [
+        "palestina",
+        "gaza",
+        "mare"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Gaza_City"
+      ]
+    },
+    {
+      "id": "stessa-luna",
+      "title": "La stessa Luna",
+      "text": "La fase della Luna dipende soltanto dalle posizioni del Sole, della Terra e della Luna. Per questo, nello stesso istante, sopra Torino e sopra Gaza, lontane circa 2.760 km, la parte illuminata è la stessa: cambia appena l’inclinazione con cui la si vede, che dipende dalla latitudine.",
+      "tags": [
+        "luna",
+        "torino",
+        "gaza"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Lunar_phase"
+      ]
+    },
+    {
+      "id": "at-tariq-chi-bussa",
+      "title": "Colui che bussa di notte",
+      "text": "Ṭāriq è chi arriva di notte: gli arabi chiamavano così ogni visitatore notturno. Secondo al-Māwardī, citato da al-Qurṭubī, la radice indica il bussare, come in miṭraqa, «martello». Quanto ad al-thāqib, per Ibn ʿAbbās significa «luminoso», per Mujāhid «ardente», per ʿIkrima «che trafigge».",
+      "tags": [
+        "corano",
+        "at-tariq",
+        "parole"
+      ],
+      "sources": [
+        "https://quran.com/at-tariq/1/tafsirs/ar-tafseer-al-qurtubi",
+        "https://quran.com/at-tariq/3/tafsirs/ar-tafsir-al-tabari"
+      ]
+    },
+    {
+      "id": "at-tariq-quale-stella",
+      "title": "Quale stella è at-Ṭāriq?",
+      "text": "Gli esegeti classici non sono d’accordo. Per Qatāda è ogni stella, che appare di notte e si nasconde di giorno; al-Qurṭubī riporta anche Saturno e, da Ibn Zayd, le Pleiadi, e cita al-Qushayrī: per i più è un nome generico, riferito a tutte le stelle. Il versetto non la nomina, e la domanda resta aperta.",
+      "tags": [
+        "corano",
+        "at-tariq",
+        "stelle"
+      ],
+      "sources": [
+        "https://quran.com/at-tariq/1/tafsirs/ar-tafseer-al-qurtubi",
+        "https://quran.com/at-tariq/1/tafsirs/ar-tafsir-al-tabari",
+        "https://quran.com/at-tariq/1/tafsirs/en-tafisr-ibn-kathir"
+      ]
+    },
+    {
+      "id": "al-shira",
+      "title": "La stella nominata nel Corano",
+      "text": "Sirio è l’unica stella chiamata per nome nel Corano: al-Shiʿrā, in 53:49. Ibn Kathīr riporta da Ibn ʿAbbās, Mujāhid, Qatāda e Ibn Zayd che al-Shiʿrā è la stella brillante detta anche Mirzam al-Jawzāʾ, e che un gruppo di arabi la adorava.",
+      "tags": [
+        "corano",
+        "stelle",
+        "nomi-arabi"
+      ],
+      "sources": [
+        "https://quran.com/an-najm/49",
+        "https://quran.com/an-najm/49/tafsirs/en-tafisr-ibn-kathir"
+      ]
+    },
+    {
+      "id": "prima-qibla",
+      "title": "La prima qibla",
+      "text": "Nei primi tempi a Medina, il Profeta e i suoi compagni pregavano rivolti verso Gerusalemme. Nel secondo anno dell’Egira alcuni versetti del Corano, tra cui 2:144, indicarono la Kaʿba della Mecca, che da allora è la qibla di ogni preghiera.",
+      "tags": [
+        "qibla",
+        "al-quds",
+        "corano"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Qibla",
+        "https://quran.com/al-baqarah/144"
+      ]
+    },
+    {
+      "id": "kaaba-e-canopo",
+      "title": "La Kaʿba e Canopo",
+      "text": "È stato osservato che l’asse maggiore della Kaʿba è allineato con il punto in cui sorge Canopo, Suhayl, verso cui guarda la sua parete meridionale. L’asse minore segue invece, all’incirca, l’alba del solstizio d’estate e il tramonto di quello d’inverno.",
+      "tags": [
+        "qibla",
+        "stelle"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Kaaba"
+      ]
+    },
+    {
+      "id": "qible-del-cielo",
+      "title": "Qible scritte nel cielo",
+      "text": "Prima dei calcoli degli astronomi, molte comunità orientavano la preghiera con il cielo: in Yemen la Stella Polare, in Siria il sorgere di Suhayl, cioè Canopo, in Iraq il tramonto d’inverno. Al Cairo, racconta al-Maqrīzī, convivevano almeno sette qible diverse, una delle quali puntava al sorgere di Canopo.",
+      "tags": [
+        "qibla",
+        "stelle",
+        "storia"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Qibla"
+      ]
+    },
+    {
+      "id": "polare-guida",
+      "title": "La stella che guida",
+      "text": "Commentando 16:16, al-Ṭabarī identifica la stella che guida i viaggiatori nella notte con al-Jady, la Polare, e con le due Farqad dell’Orsa Minore. Ibn al-ʿArabī, citato da al-Qurṭubī, spiega che girano intorno al polo fisso e guidano per terra, per mare e verso la qibla: a grandi linee, basta tenere il polo dietro la spalla sinistra.",
+      "tags": [
+        "corano",
+        "qibla",
+        "stelle"
+      ],
+      "sources": [
+        "https://quran.com/an-nahl/16/tafsirs/ar-tafsir-al-tabari",
+        "https://quran.com/an-nahl/16/tafsirs/ar-tafseer-al-qurtubi"
+      ]
+    },
+    {
+      "id": "dimore-della-luna",
+      "title": "Le dimore della Luna",
+      "text": "In 10:5 e 36:39 alla Luna sono assegnate delle manāzil, «stazioni» o «dimore»: Piccardo traduce «fasi», e al-Ṭabarī le spiega come le tappe con cui la Luna cala dopo il plenilunio. Con la stessa parola l’astronomia araba chiamava le 28 dimore lunari, mentre il calendario più antico, quello degli anwāʾ, cominciava con le Pleiadi.",
+      "tags": [
+        "luna",
+        "corano",
+        "stelle"
+      ],
+      "sources": [
+        "https://quran.com/ya-sin/39/tafsirs/ar-tafsir-al-tabari",
+        "https://en.wikipedia.org/wiki/Lunar_station",
+        "https://en.wikipedia.org/wiki/Pleiades"
+      ]
+    },
+    {
+      "id": "zenit-nadir-azimut",
+      "title": "Zenit, nadir, azimut",
+      "text": "Sono parole arabe. Azimut viene da al-sumūt, «le direzioni»; zenit da samt al-raʾs, «la direzione sopra la testa», letto male dai copisti latini; nadir da naẓīr, «l’opposto». Viaggiarono in Europa con i trattati di astronomia, e sulle piastre degli astrolabi sono incise le linee di altezza e di azimut.",
+      "tags": [
+        "parole",
+        "astrolabio",
+        "scienza"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Azimuth",
+        "https://en.wikipedia.org/wiki/Zenith",
+        "https://en.wikipedia.org/wiki/Nadir",
+        "https://en.wikipedia.org/wiki/Astrolabe"
+      ]
+    },
+    {
+      "id": "averroe-e-canopo",
+      "title": "Averroè va a vedere Canopo",
+      "text": "Da Cordova Canopo non si vede. Nel 1153 Ibn Rushd, Averroè, andò a Marrakech per osservarlo e usò la diversa visibilità delle stelle alle varie latitudini per sostenere, con Aristotele, che la Terra è una sfera e neppure troppo grande.",
+      "tags": [
+        "stelle",
+        "storia",
+        "scienza"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Canopus"
+      ]
+    },
+    {
+      "id": "stelle-polari",
+      "title": "Le stelle polari cambiano",
+      "text": "L’asse della Terra descrive lentamente un cono in circa 26.000 anni: è la precessione. Per questo la stella polare cambia. Tra il IV e il II millennio a.C. era Thuban, nel Dragone; oggi è la Polare; intorno all’anno 13.700 sarà Vega, che lo era già verso il 12.000 a.C.",
+      "tags": [
+        "stelle",
+        "scienza"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Vega",
+        "https://en.wikipedia.org/wiki/Thuban"
+      ]
+    },
+    {
+      "id": "tanabata",
+      "title": "Vega e Altair, gli innamorati",
+      "text": "In Giappone, il settimo giorno del settimo mese, si festeggia Tanabata: la principessa tessitrice Orihime, cioè Vega, e il bovaro Hikoboshi, cioè Altair, separati dal fiume celeste della Via Lattea, possono incontrarsi una sola notte all’anno. La festa deriva dalla Qixi cinese.",
+      "tags": [
+        "stelle",
+        "kyoto",
+        "folklore"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Tanabata"
+      ]
+    },
+    {
+      "id": "yakana",
+      "title": "Il lama nella Via Lattea",
+      "text": "Gli Inca non disegnavano costellazioni soltanto con le stelle: vedevano figure nelle nubi scure della Via Lattea, che in quechua si chiama Mayu, «fiume». La più grande è Yakana, il lama, che ha per occhi Alfa e Beta Centauri; sotto di lei c’è il piccolo Uñallamita, il suo cucciolo.",
+      "tags": [
+        "stelle",
+        "cusco",
+        "folklore"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Andean_dark_constellations",
+        "https://en.wikipedia.org/wiki/Yakana"
+      ]
+    },
+    {
+      "id": "mole-sinagoga",
+      "title": "La Mole che doveva essere una sinagoga",
+      "text": "Nel 1863 la comunità ebraica di Torino avviò con l’architetto Alessandro Antonelli la costruzione di una sinagoga. Il progetto crebbe tanto che la comunità si ritirò; su richiesta dei torinesi il Comune subentrò e in cambio le diede un terreno per una nuova sinagoga. La Mole, completata nel 1889, oggi ospita il Museo Nazionale del Cinema.",
+      "tags": [
+        "torino",
+        "storia"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Mole_Antonelliana"
+      ]
+    },
+    {
+      "id": "torino-magica",
+      "title": "Torino magica",
+      "text": "Secondo alcuni esoteristi, a Torino convivono luce e tenebre: piazza Castello sarebbe il polo «bianco», piazza Statuto quello «nero». La leggenda la colloca anche al vertice di due triangoli magici, con Lione e Praga e con Londra e San Francisco. È folklore, ma fa parte del racconto della città.",
+      "tags": [
+        "torino",
+        "folklore"
+      ],
+      "sources": [
+        "https://it.wikipedia.org/wiki/Esoterismo_a_Torino"
+      ]
+    },
+    {
+      "id": "ulugh-beg",
+      "title": "Il principe astronomo",
+      "text": "Ulugh Beg, sovrano timuride, negli anni 1420 costruì a Samarcanda un osservatorio con un sestante gigantesco, in parte scavato nella roccia. Il suo catalogo stellare, lo Zij-i Sultani completato nel 1437, è considerato il più importante tra quello di Tolomeo e quello di Tycho Brahe.",
+      "tags": [
+        "samarcanda",
+        "stelle",
+        "storia"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Ulugh_Beg",
+        "https://en.wikipedia.org/wiki/Ulugh_Beg_Observatory"
+      ]
+    }
   ]
 }

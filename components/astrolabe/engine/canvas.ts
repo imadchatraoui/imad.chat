@@ -18,18 +18,25 @@ export class Burin {
   /** pixel per unità */
   readonly k: number;
 
+  readonly cx: number;
+  readonly cy: number;
+
   constructor(
     readonly canvas: HTMLCanvasElement,
     half: number,
+    cx = 0,
+    cy = 0,
   ) {
     this.ctx = canvas.getContext("2d", { willReadFrequently: false })!;
     this.size = canvas.width;
     this.half = half;
+    this.cx = cx;
+    this.cy = cy;
     this.k = canvas.width / (2 * half);
   }
 
-  X = (x: number) => (x + this.half) * this.k;
-  Y = (y: number) => (this.half - y) * this.k;
+  X = (x: number) => (x - this.cx + this.half) * this.k;
+  Y = (y: number) => (this.cy + this.half - y) * this.k;
   /** Lunghezza in unità → pixel, mai sotto `min` pixel. */
   L = (u: number, min = 0) => Math.max(min, u * this.k);
 

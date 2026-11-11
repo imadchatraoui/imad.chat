@@ -31,6 +31,8 @@ Quindi: immagini al massimo **2k**, video al massimo **720p**. Niente 4k, niente
 
 ## Dove finisce ogni asset nel sito
 
+I job arrivati sono registrati in `scripts/media/jobs.json`. `python3 -I scripts/media/import.py` li scarica, li converte (JPEG/PNG ridimensionati, SVG ripuliti, MP3 rifilati e normalizzati, MP4 H.264 senza audio) e aggiorna `public/media/manifest.json`, che il sito legge per sapere cosa c'è.
+
 | ID | File nel sito |
 |---|---|
 | T01–T06 | `public/media/tex/<id>.jpg` |

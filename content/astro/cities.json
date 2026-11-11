@@ -1,7 +1,195 @@
 {
-  "placeholder": true,
   "items": [
-    { "id": "torino", "name": "Torino", "nameLocal": "", "country": "Italia", "lat": 45.0703, "lon": 7.6869, "tz": "Europe/Rome", "motif": "liberty", "blurb": "", "facts": [], "sources": [] },
-    { "id": "al-quds", "name": "Al-Quds", "nameLocal": "القدس", "country": "Palestina", "lat": 31.7767, "lon": 35.2345, "tz": "Asia/Jerusalem", "motif": "tatreez", "blurb": "", "facts": [], "sources": [] }
+    {
+      "id": "torino",
+      "name": "Torino",
+      "nameLocal": "",
+      "country": "Italia",
+      "lat": 45.0792,
+      "lon": 7.6761,
+      "tz": "Europe/Rome",
+      "motif": "liberty",
+      "blurb": "Torino sta sulla riva occidentale del Po, chiusa tra l’arco delle Alpi e la collina di Superga. Fu la prima capitale del Regno d’Italia, dal 1861 al 1865, e sopra i suoi tetti si alza la guglia della Mole Antonelliana.",
+      "facts": [
+        "La Mole Antonelliana, iniziata nel 1863, fu concepita come sinagoga; oggi ospita il Museo Nazionale del Cinema ed è considerata il museo più alto del mondo.",
+        "Il Museo Egizio, fondato nel 1824, è il più antico museo al mondo dedicato interamente all’antico Egitto.",
+        "Il gianduiotto, a base di cacao e nocciole, secondo la tradizione fu presentato al Carnevale del 1865 dalla maschera torinese Gianduja, da cui prende il nome.",
+        "Una leggenda esoterica vuole Torino vertice di due triangoli: della magia bianca con Lione e Praga, della magia nera con Londra e San Francisco."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Turin",
+        "https://en.wikipedia.org/wiki/Mole_Antonelliana",
+        "https://en.wikipedia.org/wiki/Museo_Egizio",
+        "https://it.wikipedia.org/wiki/Gianduiotto",
+        "https://it.wikipedia.org/wiki/Esoterismo_a_Torino",
+        "https://www.wikidata.org/wiki/Q495"
+      ]
+    },
+    {
+      "id": "al-quds",
+      "name": "Al-Quds",
+      "nameLocal": "القدس",
+      "country": "Palestina",
+      "lat": 31.7767,
+      "lon": 35.2342,
+      "tz": "Asia/Jerusalem",
+      "motif": "tatreez",
+      "blurb": "Al-Quds significa «la Santa»; il suo nome più antico in arabo è Bayt al-Maqdis, «la Casa della Santità». Per i musulmani è la città della prima qibla e del Viaggio notturno, e la sua Città Vecchia è patrimonio dell’umanità dal 1981.",
+      "facts": [
+        "Fu la prima qibla: fino alla rivelazione di 2:144, nel secondo anno dell’Egira, i musulmani di Medina pregavano rivolti verso Gerusalemme.",
+        "La Cupola della Roccia, costruita nel 691-692, è la più antica opera di architettura islamica giunta fino a noi.",
+        "Il geografo al-Muqaddasi, nato qui verso il 946, prese il nome dalla città e ne descrisse mura, vie e mercati; a chi lo credeva egiziano rispondeva di essere palestinese.",
+        "Il tatreez, il ricamo palestinese a punto croce, è dal 2021 patrimonio immateriale UNESCO: i suoi motivi distinguono villaggi, regioni e perfino famiglie."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Jerusalem",
+        "https://en.wikipedia.org/wiki/Dome_of_the_Rock",
+        "https://en.wikipedia.org/wiki/Qibla",
+        "https://en.wikipedia.org/wiki/Al-Maqdisi",
+        "https://en.wikipedia.org/wiki/Tatreez",
+        "https://www.wikidata.org/wiki/Q1218"
+      ]
+    },
+    {
+      "id": "gaza",
+      "name": "Gaza",
+      "nameLocal": "غزة",
+      "country": "Palestina",
+      "lat": 31.5075,
+      "lon": 34.4597,
+      "tz": "Asia/Gaza",
+      "motif": "sea",
+      "blurb": "Gaza guarda il Mediterraneo da cinquemila anni: è una delle città più antiche del mondo, sulla via costiera tra l’Africa e il Levante e tappa della rotta delle spezie. Il mare è nella sua cucina, dalla sayyadiya ai gamberi cotti nella terracotta.",
+      "facts": [
+        "Nel 767 vi nacque Muhammad ibn Idris al-Shafi’i, fondatore di una delle quattro grandi scuole giuridiche sunnite.",
+        "Secondo la tradizione islamica vi è sepolto Hashim ibn ʿAbd Manaf, bisnonno del Profeta Muhammad.",
+        "Nel XIII secolo il sultano Baybars dotò la Grande Moschea di Gaza di una biblioteca di oltre 20.000 manoscritti.",
+        "Nella Città Vecchia molti edifici di epoca mamelucca alternano filari di pietra rossa e bianca: è lo stile detto ablaq."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Gaza_City",
+        "https://en.wikipedia.org/wiki/Al-Shafi'i",
+        "https://www.wikidata.org/wiki/Q47492"
+      ]
+    },
+    {
+      "id": "fes",
+      "name": "Fès",
+      "nameLocal": "فاس",
+      "country": "Marocco",
+      "lat": 34.0433,
+      "lon": -5.0033,
+      "tz": "Africa/Casablanca",
+      "motif": "zellige",
+      "blurb": "Fès el-Bali, la città vecchia fondata dagli Idrisidi tra il 789 e l’808, è una delle aree urbane senza automobili più grandi del mondo. Tra i suoi vicoli c’è al-Qarawiyyin, nata come moschea per volontà di una donna, Fatima al-Fihri.",
+      "facts": [
+        "Al-Qarawiyyin, fondata nell’857-859, è indicata dall’UNESCO e dal Guinness dei primati come la più antica istituzione di studi superiori ancora in attività.",
+        "La medina di Fès è patrimonio dell’umanità UNESCO dal 1981.",
+        "Alla conceria Chouara, attiva fin dalla fondazione della città, le pelli si tingono in vasche di pietra piene di colori.",
+        "Lo zellige, mosaico di piccole tessere smaltate tagliate a mano, riveste le madrase marinidi della città."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fez,_Morocco",
+        "https://en.wikipedia.org/wiki/Fes_el_Bali",
+        "https://en.wikipedia.org/wiki/University_of_al-Qarawiyyin",
+        "https://en.wikipedia.org/wiki/Chouara_Tannery",
+        "https://en.wikipedia.org/wiki/Zellij",
+        "https://www.wikidata.org/wiki/Q80985"
+      ]
+    },
+    {
+      "id": "istanbul",
+      "name": "Istanbul",
+      "nameLocal": "İstanbul",
+      "country": "Turchia",
+      "lat": 41.0136,
+      "lon": 28.955,
+      "tz": "Europe/Istanbul",
+      "motif": "iznik",
+      "blurb": "Istanbul sta su due continenti, divisa dal Bosforo tra Europa e Asia. Per quasi sedici secoli, da Costantinopoli all’impero ottomano, fu capitale di quattro imperi.",
+      "facts": [
+        "Santa Sofia, completata nel 537, era allora il più grande spazio interno del mondo.",
+        "Nel 1577 l’astronomo Taqi al-Din vi fondò uno dei più grandi osservatori dell’età premoderna, per rivaleggiare con quello di Samarcanda; fu distrutto già nel 1580.",
+        "Le maioliche di Iznik, blu cobalto sotto vetrina e poi rosso bolo, rivestono gli edifici di Mimar Sinan; l’ultimo grande edificio decorato con esse fu la Moschea Blu, completata nel 1616."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Istanbul",
+        "https://en.wikipedia.org/wiki/Hagia_Sophia",
+        "https://en.wikipedia.org/wiki/Constantinople_observatory_of_Taqi_ad-Din",
+        "https://en.wikipedia.org/wiki/Iznik_pottery",
+        "https://www.wikidata.org/wiki/Q406"
+      ]
+    },
+    {
+      "id": "samarcanda",
+      "name": "Samarcanda",
+      "nameLocal": "Samarqand",
+      "country": "Uzbekistan",
+      "lat": 39.6547,
+      "lon": 66.9758,
+      "tz": "Asia/Samarkand",
+      "motif": "girih",
+      "blurb": "Tra le città abitate più antiche dell’Asia centrale, Samarcanda fu un nodo della Via della Seta e il cuore della civiltà sogdiana. Alessandro Magno la conquistò nel 329 a.C., quando si chiamava Marakanda.",
+      "facts": [
+        "Negli anni 1420 Ulugh Beg vi costruì un osservatorio con un enorme sestante in parte scavato nella roccia; lo Zij-i Sultani, completato nel 1437, cataloga quasi mille stelle.",
+        "Il Registan è una piazza chiusa su tre lati da tre madrase: Ulugh Beg, Tilla-Kari e Sher-Dor.",
+        "Dal 2001 è patrimonio dell’umanità UNESCO come «Samarcanda, crocevia di culture»."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Samarkand",
+        "https://en.wikipedia.org/wiki/Ulugh_Beg_Observatory",
+        "https://en.wikipedia.org/wiki/Ulugh_Beg",
+        "https://en.wikipedia.org/wiki/Registan",
+        "https://www.wikidata.org/wiki/Q5753"
+      ]
+    },
+    {
+      "id": "kyoto",
+      "name": "Kyoto",
+      "nameLocal": "京都",
+      "country": "Giappone",
+      "lat": 35.0116,
+      "lon": 135.7681,
+      "tz": "Asia/Tokyo",
+      "motif": "seigaiha",
+      "blurb": "Scelta nel 794 dall’imperatore Kanmu, Kyoto fu la sede della corte imperiale per oltre mille anni, fino al 1869. Il suo nome significa «città capitale», e la pianta a scacchiera ricalca quella dell’antica capitale cinese Chang’an.",
+      "facts": [
+        "I monumenti storici dell’antica Kyoto, diciassette luoghi tra Kyoto, Uji e Otsu, sono patrimonio dell’umanità UNESCO dal 1994.",
+        "Il Gion Matsuri, che dura tutto il mese di luglio, nacque nell’869 come rito di purificazione durante un’epidemia.",
+        "A Tanabata, la «festa delle stelle», si celebra l’incontro di Orihime e Hikoboshi, cioè Vega e Altair, che la Via Lattea separa per il resto dell’anno."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Kyoto",
+        "https://en.wikipedia.org/wiki/Historic_Monuments_of_Ancient_Kyoto_(Kyoto,_Uji_and_Otsu_Cities)",
+        "https://en.wikipedia.org/wiki/Gion_Matsuri",
+        "https://en.wikipedia.org/wiki/Tanabata",
+        "https://www.wikidata.org/wiki/Q34600"
+      ]
+    },
+    {
+      "id": "cusco",
+      "name": "Cusco",
+      "nameLocal": "Qusqu",
+      "country": "Perù",
+      "lat": -13.5169,
+      "lon": -71.9786,
+      "tz": "America/Lima",
+      "motif": "inca",
+      "blurb": "A quasi 3.400 metri sulle Ande, Cusco fu la capitale dell’Impero inca; gli spagnoli la rifondarono nel 1534 costruendo sopra i monumenti inca. In quechua si chiama Qusqu.",
+      "facts": [
+        "Il Qorikancha, il tempio del Sole, aveva le pareti coperte di lamine d’oro; sulle sue mura sorge oggi il convento di Santo Domingo.",
+        "L’Inti Raymi, la festa inca del Sole, celebrava il solstizio d’inverno australe e l’inizio del nuovo anno; nel 1944 ne fu messa in scena una ricostruzione storica.",
+        "Gli Inca vedevano figure anche nelle macchie scure della Via Lattea, il fiume celeste Mayu: la più grande è Yakana, il lama, che ha per occhi Alfa e Beta Centauri.",
+        "Il centro storico è patrimonio dell’umanità UNESCO dal 1983."
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Cusco",
+        "https://en.wikipedia.org/wiki/Coricancha",
+        "https://en.wikipedia.org/wiki/Inti_Raymi",
+        "https://en.wikipedia.org/wiki/Andean_dark_constellations",
+        "https://en.wikipedia.org/wiki/Yakana",
+        "https://www.wikidata.org/wiki/Q5582862"
+      ]
+    }
   ]
 }
