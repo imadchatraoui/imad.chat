@@ -250,16 +250,8 @@ const SYNONYMS: Record<string, string> = {
   olivo: "oliva",
 };
 
-const BY_CITY: Record<string, string> = {
-  torino: "liberty",
-  "al-quds": "tatreez",
-  gaza: "waves",
-  fes: "zellige",
-  istanbul: "tulip",
-  samarcanda: "girih",
-  kyoto: "seigaiha",
-  cusco: "tocapu",
-};
+// Nessuna città ha più un motivo suo (niente ornamenti): tutte ricevono la fascia neutra, la guilloche.
+const BY_CITY: Record<string, string> = {};
 
 /** Il motivo di una città: dal campo `motif` del JSON, o dalla città, o una guilloche. */
 export function motifFor(motif: string | undefined, cityId: string | undefined): string {

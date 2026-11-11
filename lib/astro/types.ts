@@ -36,8 +36,8 @@ export interface CityItem {
   lon: number;
   /** Fuso IANA, es. "Europe/Rome". */
   tz: string;
-  /** Motivo ornamentale della piastra, es. "tatreez". */
-  motif: string;
+  /** Non più usato: le città non hanno ornamenti. Resta facoltativo solo perché il vecchio astrolabio compili. */
+  motif?: string;
   blurb: string;
   facts: unknown[];
   sources: AstroSource[];

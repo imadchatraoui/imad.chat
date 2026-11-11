@@ -33,8 +33,8 @@ export const PLACEHOLDERS = {
   curiosities: !!curiositiesFile.placeholder,
 } as const;
 
-/** L'ordine delle piastre richiesto da Imad; le città che il JSON non ha ancora restano fuori. */
-export const CITY_ORDER = ["torino", "al-quds", "gaza", "fes", "istanbul", "samarcanda", "kyoto", "cusco"] as const;
+/** Le cinque città scelte da Imad, nel loro ordine; quelle che il JSON non ha ancora restano fuori. */
+export const CITY_ORDER = ["torino", "gaza", "medina", "makkah", "casablanca"] as const;
 
 export function getCity(id: string | undefined | null): CityItem | undefined {
   if (!id) return undefined;
