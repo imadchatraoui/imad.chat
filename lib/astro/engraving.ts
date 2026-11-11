@@ -2,8 +2,8 @@
 // (lo script di verifica controlla che coincidano).
 
 export const RETE_SOURCE = `export function reteAngle(date: Date, lon: number) {
-  const gast = SiderealTime(date); // ore, a Greenwich
-  const giri = (gast + lon / 15) / 24; // giri, sul posto
+  const gast = SiderealTime(date); // ore
+  const giri = (gast + lon / 15) / 24;
   return (giri % 1) * 2 * Math.PI;
 }`;
 

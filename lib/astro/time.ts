@@ -8,8 +8,8 @@ export const SIDEREAL_DAY_MS = 86164090.5;
 
 /** La rete gira con il cielo: questo è l'angolo, dal tempo siderale locale. */
 export function reteAngle(date: Date, lon: number) {
-  const gast = SiderealTime(date); // ore, a Greenwich
-  const giri = (gast + lon / 15) / 24; // giri, sul posto
+  const gast = SiderealTime(date); // ore
+  const giri = (gast + lon / 15) / 24;
   return (giri % 1) * 2 * Math.PI;
 }
 
