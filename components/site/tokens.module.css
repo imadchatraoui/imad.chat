@@ -1,6 +1,7 @@
 /*
   La cornice dell'astrolabio: una vetrina di museo, quieta e precisa.
-  Le parole in serif (Newsreader), i dati veri in monospace (Geist Mono), l'arabo in Amiri.
+  Le parole in serif (Cormorant Garamond, lo stesso dell'intro), i dati veri in monospace
+  (JetBrains Mono), l'arabo in Amiri. I caratteri arrivano da next/font (app/layout.tsx).
   Ogni linea è un'incisione: filetti d'ottone di un pixel, niente vetri sfocati, niente ombre grigie.
 
   .vars sta sulla radice di ogni componente della cornice, così ognuno porta con sé i suoi colori
@@ -17,9 +18,9 @@
   --hair: rgb(201 162 91 / 0.28);
   --hair-strong: rgb(201 162 91 / 0.55);
 
-  --serif: var(--font-newsreader, "Newsreader"), "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --arabic: var(--font-amiri, "Amiri"), "Noto Naskh Arabic", "Geeza Pro", "Times New Roman", serif;
-  --mono: var(--font-geist-mono, "Geist Mono"), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --serif: var(--font-serif-intro, "Cormorant Garamond"), "Cormorant Garamond", Garamond, "Iowan Old Style", Georgia, serif;
+  --arabic: var(--font-amiri, "Amiri"), "Amiri", "Noto Naskh Arabic", "Geeza Pro", "Times New Roman", serif;
+  --mono: var(--font-mono-intro, "JetBrains Mono"), "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --cjk: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "Noto Serif CJK JP", serif;
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
