@@ -72,6 +72,8 @@ export interface EngineInit {
   initialState: "assembled" | "exploded" | "hidden";
   /** Margini liberi attorno allo strumento, in frazioni del contenitore. */
   framing: { top: number; bottom: number; side: number };
+  /** "auto": se il manifesto ha video/tariq-*.mp4 at-Tariq è quel video; "procedural": sempre la versione disegnata. */
+  tariqVideo?: "auto" | "procedural";
   callbacks: EngineCallbacks;
 }
 
@@ -130,6 +132,8 @@ export class AstrolabeEngine {
   private invalidate: () => void;
   private cb: EngineCallbacks;
   private framing: EngineInit["framing"];
+  private manifest: MediaManifest;
+  private tariqVideo: "auto" | "procedural";
 
   // tempo
   private timeOffset = 0; // ms rispetto all'orologio vero
@@ -213,6 +217,8 @@ export class AstrolabeEngine {
     this.invalidate = init.invalidate;
     this.cb = init.callbacks;
     this.framing = init.framing;
+    this.manifest = init.manifest;
+    this.tariqVideo = init.tariqVideo ?? "auto";
     this.city = init.city;
     this.observer = init.observer ?? null;
     this.plateLat = init.city.lat;
@@ -597,15 +603,64 @@ export class AstrolabeEngine {
     return qiblaBearing(o.lat, o.lon);
   }
 
-  /** At-Tariq: tre colpi luminosi e poi un raggio che trafigge il buio. */
+  /**
+   * At-Tariq (86:1-3): tre colpi luminosi e poi un raggio che trafigge il buio.
+   * Quale stella sia "il nottambulo, la stella che trafigge" lo discutono gli esegeti: qui non è
+   * nessuna stella del catalogo, è un punto di luce nel cielo sopra lo strumento.
+   * Se il manifesto ha il video (video/tariq-v.mp4 o -h.mp4), è quel video a fare il momento.
+   */
   triggerTariq() {
+    const aspect = this.dom.clientWidth / Math.max(1, this.dom.clientHeight);
+    const vid =
+      this.tariqVideo === "auto"
+        ? this.manifest.first(aspect < 1 ? "video/tariq-v.mp4" : "video/tariq-h.mp4", "video/tariq-v.mp4", "video/tariq-h.mp4")
+        : null;
+    if (vid) {
+      this.emit("tariq");
+      this.sky.playVideo(this.manifest.url(vid)).then((dur) => {
+        if (!dur) return this.tariqProcedural(true);
+        this.tariqWithVideo(Math.min(dur, 15));
+      });
+      return;
+    }
+    this.tariqProcedural(false);
+  }
+
+  private tariqWithVideo(total: number) {
+    const envFrom = this.envIntensity;
+    // i colpi e il raggio, per i suoni, alle stesse proporzioni della versione disegnata
+    const marks = [0.14, 0.27, 0.4].map((f) => f * total);
+    const pierce = 0.56 * total;
+    const fired = new Set<number>();
+    this.tween("tariq", total, (tt) => {
+      const T = tt * total;
+      const mix = Math.min(clamp01(T / 0.9), clamp01((total - T) / 1.2));
+      this.sky.setVideoMix(mix);
+      this.envIntensity = envFrom * (1 - 0.35 * mix);
+      marks.forEach((k, i) => {
+        if (T >= k && !fired.has(i)) {
+          fired.add(i);
+          this.emit("tariq-knock");
+        }
+      });
+      if (T >= pierce && !fired.has(9)) {
+        fired.add(9);
+        this.emit("tariq-pierce");
+      }
+    }, () => {
+      this.sky.stopVideo();
+      this.envIntensity = envFrom;
+    });
+  }
+
+  private tariqProcedural(alreadyEmitted: boolean) {
     const m = this.tariq.material.uniforms;
     const aspect = this.dom.clientWidth / Math.max(1, this.dom.clientHeight);
     m.uAspect.value = aspect;
     // la stella sta nel cielo sopra lo strumento (in verticale) o di lato (in orizzontale)
     m.uCenter.value.set(aspect < 1 ? 0.0 : 0.62, aspect < 1 ? 0.86 : 0.66);
     this.tariq.mesh.visible = true;
-    this.emit("tariq");
+    if (!alreadyEmitted) this.emit("tariq");
     const knocks = [0.9, 1.75, 2.6];
     const pierce = 3.6;
     const total = 6.4;

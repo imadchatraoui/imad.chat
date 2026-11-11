@@ -21,12 +21,13 @@ export interface SceneProps {
   callbacks: React.RefObject<EngineCallbacks>;
   onEngine: (e: AstrolabeEngine | null) => void;
   lowEnd: boolean;
+  tariqVideo: "auto" | "procedural";
 }
 
-function Engine({ city, observer, sections, initialState, framing, callbacks, onEngine, lowEnd }: SceneProps) {
+function Engine({ city, observer, sections, initialState, framing, callbacks, onEngine, lowEnd, tariqVideo }: SceneProps) {
   const { scene, camera, gl, invalidate } = useThree();
   const [engine, setEngine] = useState<AstrolabeEngine | null>(null);
-  const first = useRef({ city, observer, sections, initialState, framing });
+  const first = useRef({ city, observer, sections, initialState, framing, tariqVideo });
 
   useEffect(() => {
     let alive = true;
@@ -53,6 +54,7 @@ function Engine({ city, observer, sections, initialState, framing, callbacks, on
         pixelRatio: gl.getPixelRatio(),
         initialState: init.initialState,
         framing: init.framing,
+        tariqVideo: init.tariqVideo,
         callbacks: {
           onEvent: (n) => callbacks.current?.onEvent?.(n),
           onStarSelect: (id) => callbacks.current?.onStarSelect?.(id),

@@ -42,6 +42,7 @@ export default function Astrolabe(props: AstrolabeProps) {
     initialState = "assembled",
     framing,
     forceFallback,
+    tariqVideo = "auto",
     ref,
   } = props;
   const [mode, setMode] = useState<"pending" | "3d" | "2d">("pending");
@@ -151,6 +152,7 @@ export default function Astrolabe(props: AstrolabeProps) {
             callbacks={callbacks}
             onEngine={onEngine}
             lowEnd={lowEnd}
+            tariqVideo={tariqVideo}
           />
         </Suspense>
       )}

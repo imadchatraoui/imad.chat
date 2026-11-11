@@ -60,6 +60,9 @@ uniform vec3 uDayHorizon;
 uniform vec3 uGlow;
 uniform vec3 uGround;
 uniform float uOpacity;
+uniform sampler2D uVideo;
+uniform float uVideoMix;
+uniform vec2 uVideoScale;
 varying vec2 vNdc;
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -83,6 +86,12 @@ void main() {
   } else {
     float t = smoothstep(0.0, 0.22, -up);
     col = mix(hor * 0.55, uGround, t);
+  }
+  if (uVideoMix > 0.001) {
+    // il video riempie lo schermo come una copertina ("cover"), centrato
+    vec2 vuv = (vNdc * 0.5) * uVideoScale + 0.5;
+    vec3 v = texture2D(uVideo, vuv).rgb;
+    col = mix(col, v, uVideoMix);
   }
   col += (hash(gl_FragCoord.xy) - 0.5) / 255.0;
   gl_FragColor = vec4(col, uOpacity);
@@ -207,6 +216,9 @@ export class SkyLayer {
         uGlow: { value: new THREE.Color("#e2a35a") },
         uGround: { value: new THREE.Color("#03050b") },
         uOpacity: { value: 1 },
+        uVideo: { value: null },
+        uVideoMix: { value: 0 },
+        uVideoScale: { value: new THREE.Vector2(1, 1) },
       },
       // opaco: si disegna per primo, nel passaggio dei solidi, e non scrive la profondità
       depthTest: false,
@@ -333,11 +345,71 @@ export class SkyLayer {
     }
   }
 
+  private video: HTMLVideoElement | null = null;
+  private videoTex: THREE.VideoTexture | null = null;
+
+  /** Fa partire un video come cielo (at-Tariq). Ritorna la durata in secondi, o 0 se non parte. */
+  async playVideo(url: string): Promise<number> {
+    try {
+      if (!this.video || this.video.dataset.src !== url) {
+        this.stopVideo();
+        const v = document.createElement("video");
+        v.src = url;
+        v.dataset.src = url;
+        v.muted = true;
+        v.playsInline = true;
+        v.preload = "auto";
+        v.crossOrigin = "anonymous";
+        this.video = v;
+        this.videoTex = new THREE.VideoTexture(v);
+        this.videoTex.colorSpace = THREE.SRGBColorSpace;
+        this.skyMat.uniforms.uVideo.value = this.videoTex;
+      }
+      const v = this.video;
+      v.currentTime = 0;
+      await v.play();
+      if (!v.videoWidth) await new Promise((r) => v.addEventListener("loadedmetadata", r, { once: true }));
+      this.fitVideo();
+      return Number.isFinite(v.duration) ? v.duration : 10;
+    } catch {
+      return 0;
+    }
+  }
+
+  private fitVideo() {
+    const v = this.video;
+    if (!v || !v.videoWidth) return;
+    const aspect = this.uniforms.uAspect.value as number;
+    const va = v.videoWidth / v.videoHeight;
+    // cover: si ritaglia il lato in eccesso
+    if (aspect > va) this.skyMat.uniforms.uVideoScale.value.set(1, va / aspect);
+    else this.skyMat.uniforms.uVideoScale.value.set(aspect / va, 1);
+  }
+
+  setVideoMix(m: number) {
+    this.skyMat.uniforms.uVideoMix.value = m;
+    if (m > 0) this.fitVideo();
+  }
+
+  stopVideo() {
+    this.skyMat.uniforms.uVideoMix.value = 0;
+    if (this.video) {
+      this.video.pause();
+      this.video.removeAttribute("src");
+      this.video.load();
+    }
+    this.videoTex?.dispose();
+    this.video = null;
+    this.videoTex = null;
+    this.skyMat.uniforms.uVideo.value = null;
+  }
+
   setOpacity(o: number) {
     this.skyMat.uniforms.uOpacity.value = o;
   }
 
   dispose() {
+    this.stopVideo();
     for (const d of this.disposables) d.dispose();
   }
 }

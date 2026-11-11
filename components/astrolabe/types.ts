@@ -58,6 +58,8 @@ export interface AstrolabeProps {
   initialState?: "assembled" | "exploded" | "hidden";
   /** Spazio da lasciare libero attorno allo strumento, in frazioni del contenitore. */
   framing?: { top?: number; bottom?: number; side?: number };
+  /** at-Tariq: "auto" usa video/tariq-v|h.mp4 se il manifesto li elenca, "procedural" sempre la versione disegnata. */
+  tariqVideo?: "auto" | "procedural";
   /** Forza la versione 2D (per prova). */
   forceFallback?: boolean;
   ref?: Ref<AstrolabeHandle>;

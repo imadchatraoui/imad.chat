@@ -122,6 +122,7 @@ export default function AstrolabeLab() {
           sections={SECTIONS}
           initialState={state}
           forceFallback={params.get("fallback") === "1"}
+          tariqVideo={params.get("tariq") === "procedural" ? "procedural" : "auto"}
           framing={framing}
           onReady={onReady}
           onEvent={onEvent}
