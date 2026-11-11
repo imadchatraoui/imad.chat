@@ -354,7 +354,8 @@ export function paintLimb(b: Burin, sections: readonly AstroSection[], fonts: En
   for (let d = 0; d < 360; d += 10) {
     const a = d * DEG;
     const rr = (r2 + r3) / 2 + 0.004;
-    b.text(String(d), Math.sin(a) * rr, Math.cos(a) * rr, 0.046, fonts.serif, a, {});
+    const lower = Math.cos(a) < -0.001;
+    b.text(String(d), Math.sin(a) * rr, Math.cos(a) * rr, 0.046, fonts.serif, lower ? a + Math.PI : a, {});
   }
   // le ventiquattro ore, con mezzogiorno in alto: sotto la regola che segue il Sole si legge l'ora solare
   for (let h = 0; h < 24; h++) {
@@ -369,7 +370,8 @@ export function paintLimb(b: Burin, sections: readonly AstroSection[], fonts: En
     b.line(Math.sin(a) * r4, Math.cos(a) * r4, Math.sin(a) * r3, Math.cos(a) * r3);
     const label = String(h === 0 ? 24 : h);
     const at = a + 7.5 * DEG;
-    b.text(label, Math.sin(at) * rr, Math.cos(at) * rr, 0.04, fonts.serif, at, { style: "italic" });
+    const lowerH = Math.cos(at) < -0.001;
+    b.text(label, Math.sin(at) * rr, Math.cos(at) * rr, 0.04, fonts.serif, lowerH ? at + Math.PI : at, { style: "italic" });
   }
   c.restore();
 
@@ -530,11 +532,11 @@ export function paintBack(b: Burin, fonts: EngraveFonts, code: string, sunLongit
   // il codice inciso, in alto: la funzione vera che fa girare la rete
   const lines = code.split("\n");
   const maxLen = Math.max(...lines.map((l) => l.length));
-  const width = 1.56;
+  const width = 1.46;
   const size = (width / maxLen) * 1.62; // il monospazio è largo circa 0,6 em
   const lh = size * 1.42;
   const blockH = lh * lines.length;
-  const cy = 0.43;
+  const cy = 0.36;
   const y0 = cy + blockH / 2 - lh / 2;
   c.lineWidth = b.L(0.002, 1);
   const pad = 0.045;
@@ -718,12 +720,11 @@ export function kursiOutline(b: Burin) {
       ["M", 0, 0.9],
       ["L", 0.62 * s, 0.9],
       ["L", 0.74 * s, 1.0],
-      // voluta del piede
-      ["C", 0.8 * s, 1.03, 0.86 * s, 1.08, 0.83 * s, 1.14],
-      ["C", 0.8 * s, 1.2, 0.71 * s, 1.18, 0.71 * s, 1.12],
-      ["C", 0.71 * s, 1.08, 0.76 * s, 1.08, 0.765 * s, 1.11],
+      // voluta del piede: un lobo tondo con l'occhio traforato
+      ["C", 0.82 * s, 1.02, 0.87 * s, 1.1, 0.82 * s, 1.16],
+      ["C", 0.78 * s, 1.2, 0.72 * s, 1.17, 0.7 * s, 1.14],
       // fianco concavo
-      ["C", 0.66 * s, 1.12, 0.6 * s, 1.22, 0.53 * s, 1.29],
+      ["C", 0.64 * s, 1.17, 0.6 * s, 1.23, 0.53 * s, 1.29],
       // spalla a lobo
       ["C", 0.55 * s, 1.35, 0.47 * s, 1.41, 0.41 * s, 1.37],
       // collo
@@ -767,20 +768,20 @@ export function kursiHoles(b: Burin) {
   const P = (x: number, y: number): [number, number] => [b.X(x), b.Y(y)];
   // arco trilobato al centro
   c.beginPath();
-  c.moveTo(...P(-0.075, 1.2));
-  c.lineTo(...P(-0.075, 1.31));
-  c.bezierCurveTo(...P(-0.11, 1.33), ...P(-0.1, 1.39), ...P(-0.055, 1.385));
-  c.bezierCurveTo(...P(-0.06, 1.43), ...P(-0.02, 1.45), ...P(0, 1.47));
-  c.bezierCurveTo(...P(0.02, 1.45), ...P(0.06, 1.43), ...P(0.055, 1.385));
-  c.bezierCurveTo(...P(0.1, 1.39), ...P(0.11, 1.33), ...P(0.075, 1.31));
-  c.lineTo(...P(0.075, 1.2));
+  c.moveTo(...P(-0.07, 1.31));
+  c.lineTo(...P(-0.07, 1.4));
+  c.bezierCurveTo(...P(-0.105, 1.415), ...P(-0.095, 1.47), ...P(-0.052, 1.466));
+  c.bezierCurveTo(...P(-0.056, 1.505), ...P(-0.02, 1.525), ...P(0, 1.545));
+  c.bezierCurveTo(...P(0.02, 1.525), ...P(0.056, 1.505), ...P(0.052, 1.466));
+  c.bezierCurveTo(...P(0.095, 1.47), ...P(0.105, 1.415), ...P(0.07, 1.4));
+  c.lineTo(...P(0.07, 1.31));
   c.closePath();
   c.fill();
   for (const s of [-1, 1]) {
     // goccia inclinata
     c.save();
-    c.translate(...P(0.33 * s, 1.21));
-    c.rotate(s * 0.7);
+    c.translate(...P(0.3 * s, 1.335));
+    c.rotate(s * 0.75);
     c.beginPath();
     const k = b.k;
     c.moveTo(0, -0.07 * k);
@@ -790,24 +791,24 @@ export function kursiHoles(b: Burin) {
     c.restore();
     // occhio della voluta
     c.beginPath();
-    c.arc(...P(0.792 * s, 1.135), 0.017 * b.k, 0, Math.PI * 2);
+    c.arc(...P(0.79 * s, 1.105), 0.019 * b.k, 0, Math.PI * 2);
     c.fill();
     // forellini in alto
     c.beginPath();
-    c.arc(...P(0.155 * s, 1.47), 0.022 * b.k, 0, Math.PI * 2);
+    c.arc(...P(0.16 * s, 1.5), 0.019 * b.k, 0, Math.PI * 2);
     c.fill();
     c.beginPath();
     c.arc(...P(0.46 * s, 1.335), 0.016 * b.k, 0, Math.PI * 2);
     c.fill();
     // mezzaluna sotto la spalla
     c.beginPath();
-    c.arc(...P(0.55 * s, 1.18), 0.04 * b.k, 0, Math.PI * 2);
-    c.arc(...P(0.565 * s, 1.195), 0.034 * b.k, 0, Math.PI * 2, true);
+    c.arc(...P(0.565 * s, 1.215), 0.032 * b.k, 0, Math.PI * 2);
+    c.arc(...P(0.578 * s, 1.228), 0.027 * b.k, 0, Math.PI * 2, true);
     c.fill();
   }
   // il foro del perno della maniglia
   c.beginPath();
-  c.arc(...P(0, 1.6), 0.016 * b.k, 0, Math.PI * 2);
+  c.arc(...P(0, 1.625), 0.015 * b.k, 0, Math.PI * 2);
   c.fill();
 }
 

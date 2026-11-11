@@ -20,6 +20,8 @@ export class Burin {
 
   readonly cx: number;
   readonly cy: number;
+  /** Metà dell'altezza coperta, in unità (uguale a half per un canvas quadrato). */
+  readonly halfY: number;
 
   constructor(
     readonly canvas: HTMLCanvasElement,
@@ -33,10 +35,11 @@ export class Burin {
     this.cx = cx;
     this.cy = cy;
     this.k = canvas.width / (2 * half);
+    this.halfY = canvas.height / (2 * this.k);
   }
 
   X = (x: number) => (x - this.cx + this.half) * this.k;
-  Y = (y: number) => (this.cy + this.half - y) * this.k;
+  Y = (y: number) => (this.cy + this.halfY - y) * this.k;
   /** Lunghezza in unità → pixel, mai sotto `min` pixel. */
   L = (u: number, min = 0) => Math.max(min, u * this.k);
 
@@ -215,17 +218,19 @@ export const BRASS = {
 
 /** Riempie con l'ottone: tinta di base, patina a macchie, graffi sottili. */
 export function fillBrass(b: Burin, opts: { seed?: number; patina?: number; scratches?: number; tint?: string } = {}) {
-  const { ctx, size } = b;
+  const { ctx } = b;
+  const size = b.canvas.width;
+  const height = b.canvas.height;
   const seed = opts.seed ?? 1;
   ctx.save();
   ctx.globalCompositeOperation = "source-over";
   ctx.fillStyle = opts.tint ?? BRASS.base;
-  ctx.fillRect(0, 0, size, size);
+  ctx.fillRect(0, 0, size, height);
   // patina a grandi macchie (moltiplica) e lucentezza (schiarisce)
   const n = getNoise();
   ctx.globalAlpha = 0.22 * (opts.patina ?? 1);
   ctx.globalCompositeOperation = "multiply";
-  ctx.drawImage(n, 0, 0, size, size);
+  ctx.drawImage(n, 0, 0, size, height);
   ctx.globalAlpha = 0.12 * (opts.patina ?? 1);
   ctx.save();
   ctx.translate(size / 2, size / 2);
@@ -235,7 +240,7 @@ export function fillBrass(b: Burin, opts: { seed?: number; patina?: number; scra
   ctx.restore();
   ctx.globalCompositeOperation = "screen";
   ctx.globalAlpha = 0.08;
-  ctx.drawImage(n, 0, 0, size / 3, size / 3, 0, 0, size, size);
+  ctx.drawImage(n, 0, 0, size / 3, size / 3, 0, 0, size, height);
   // graffi sottili, come su un oggetto usato per secoli
   ctx.globalCompositeOperation = "source-over";
   const count = Math.round((opts.scratches ?? 1) * 220 * (size / 1024));
@@ -247,7 +252,7 @@ export function fillBrass(b: Burin, opts: { seed?: number; patina?: number; scra
   ctx.lineCap = "round";
   for (let i = 0; i < count; i++) {
     const x = rnd() * size;
-    const y = rnd() * size;
+    const y = rnd() * height;
     const a = rnd() * Math.PI;
     const l = (0.01 + rnd() * 0.05) * size;
     ctx.globalAlpha = 0.05 + rnd() * 0.08;

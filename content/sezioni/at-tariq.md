@@ -9,10 +9,10 @@ La sura 86 prende il nome dalla parola con cui si apre: aṭ-Ṭāriq.
 
 {{verse:86:1-3}}
 
-In arabo ṭāriq è chi arriva di notte, il viandante che bussa quando tutti dormono. Secondo al-Māwardī, citato da al-Qurṭubī, la radice indica proprio il bussare, come in miṭraqa, «martello». Il terzo versetto lo spiega: al-najm al-thāqib. Per Ibn ʿAbbās, riferito da al-Ṭabarī, thāqib vuol dire «luminoso»; per Mujāhid «ardente»; per ʿIkrima «che trafigge».
+In arabo ṭāriq è chi arriva di notte: un visitatore che, per entrare, deve bussare. Secondo al-Māwardī, citato da al-Qurṭubī, la radice indica proprio il bussare, come in miṭraqa, «martello». Il terzo versetto lo spiega: al-najm al-thāqib. Per Ibn ʿAbbās, riferito da al-Ṭabarī, thāqib vuol dire «luminoso»; per Mujāhid «ardente»; per ʿIkrima «che trafigge».
 
 Quale stella sia, gli esegeti non lo dicono con una voce sola. Qatāda pensava a ogni stella, perché tutte si mostrano di notte e si nascondono di giorno; altri, ricorda al-Qurṭubī, a Saturno o alle Pleiadi, che gli arabi chiamavano semplicemente «la Stella». Al-Qushayrī riferisce che per i più si tratta di un nome generico. Il testo non la nomina, e la domanda resta aperta.
 
-Quando questo momento si apre, una stella bussa tre volte e poi attraversa il buio: è un'immagine, non un'identificazione.
+Quando questo momento si apre, una stella bussa tre volte e poi attraversa il buio: è un’immagine, non un’identificazione.
 
 Fonti: i commenti di [al-Ṭabarī](https://quran.com/at-tariq/3/tafsirs/ar-tafsir-al-tabari), [al-Qurṭubī](https://quran.com/at-tariq/1/tafsirs/ar-tafseer-al-qurtubi) e [Ibn Kathīr](https://quran.com/at-tariq/1/tafsirs/en-tafisr-ibn-kathir) su quran.com.

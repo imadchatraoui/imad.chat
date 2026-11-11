@@ -32,5 +32,5 @@ export const BOUNDS = {
   minX: -DIMS.mater,
   maxX: DIMS.mater,
   minY: -DIMS.mater,
-  maxY: DIMS.kursiTop + 0.36,
+  maxY: DIMS.kursiTop + 0.4,
 } as const;
