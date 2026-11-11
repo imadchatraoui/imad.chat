@@ -31,6 +31,7 @@ html = swap(html, '<link rel="stylesheet" href="style.css">', `<link rel="styles
 </style>`, "index.html");
 for (const f of ["data.js", "astro-lite.js", "app.js"]) html = swap(html, `<script src="${f}"></script>`, `<script src="/home/${f}"></script>`, "index.html");
 html = swap(html, '<span><b class="js-count num">128</b> saluti nel cielo</span>', "<span>Lascia un saluto</span>", "index.html");
+html = swap(html, '<span><b class="js-count num">128</b> saluti nel cielo</span>', '<span><b class="js-count num"></b></span>', "index.html");
 
 let app = read("app.js");
 app = swap(app, "function wordStars() {", 'function wordStars() { return ""; }\n  function wordStarsEsempio() {', "app.js");
