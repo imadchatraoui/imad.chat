@@ -1,12 +1,12 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
-  // Pagine del diario e font per le anteprime sono file letti dal filesystem:
-  // li includiamo esplicitamente nel bundle delle funzioni serverless.
+  // Le sezioni (content/sezioni/*.md) si leggono dal filesystem sul server (lib/sections.ts):
+  // le includiamo nel bundle delle funzioni, nel caso una di queste pagine venga resa su richiesta.
   outputFileTracingIncludes: {
-    "/api/chat": ["./content/**/*"],
-    "/opengraph-image": ["./assets/fonts/**/*"],
-    "/diario/[slug]/opengraph-image": ["./assets/fonts/**/*", "./content/**/*"],
+    "/": ["./content/sezioni/**/*"],
+    "/sezioni/*": ["./content/sezioni/**/*"],
+    "/sitemap.xml": ["./content/sezioni/**/*"],
   },
   poweredByHeader: false,
   // Permette più server di sviluppo in parallelo sullo stesso progetto (NEXT_DIST_DIR=.next-xyz).
