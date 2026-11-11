@@ -166,6 +166,7 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
   const [twoD, setTwoD] = useState<boolean | null>(null);
   const [failed3d, setFailed3d] = useState(false);
   const [skyLib, setSkyLib] = useState<SkyLib | null>(null);
+  const [earlyAstro, setEarlyAstro] = useState(false);
 
   // l'intro e il passaggio di consegne
   const [run, setRun] = useState(0);
@@ -206,6 +207,7 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
   useEffect(() => {
     setTwoD(reducedMotion() || !webglAvailable());
     if (readSeen()) setSkipIntro(true);
+    setEarlyAstro(/[?&]astro=early/.test(window.location.search));
     setMounted(true);
     // i calcoli del cielo (astronomy-engine) arrivano dopo il primo disegno
     let alive = true;
@@ -516,7 +518,7 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
           style={shift ? { transform: `translate3d(${shift}px, 0, 0)` } : undefined}
           onKeyDown={onStageKey}
         >
-          {mounted && framing && twoD !== null && introDone ? (
+          {mounted && framing && twoD !== null && (introDone || earlyAstro) ? (
             mode2d ? (
               <AstrolabeFallback key={`2d-${run}`} {...astroProps} />
             ) : (

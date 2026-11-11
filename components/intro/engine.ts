@@ -585,6 +585,7 @@ export class IntroEngine {
   private disposed = false;
   private skipMode = 0; // a skip waiting for ready: 1 crossfade, 2 instant
   private skipAt = -1;
+  private final = false; // in the final state (skip, startFinal, reduced motion)
   private fadeAtSkip: [number, number] = [1, 1];
   private snapMain: HTMLCanvasElement | null = null;
   private snapText: HTMLCanvasElement | null = null;
@@ -752,7 +753,7 @@ export class IntroEngine {
 
   /** Jump to the final state with a 400 ms crossfade (no-op once done). */
   skip() {
-    if (this.disposed || this.halted || this.doneFired || this.skipAt >= 0 || this.reduced) return;
+    if (this.disposed || this.halted || this.doneFired || this.final || this.reduced) return;
     if (!this.ready) {
       if (!this.skipMode) this.skipMode = 1;
       if (this.stage > 0) this.guard(() => this.runStages()); // the fonts are in: finish preparing now
@@ -793,6 +794,7 @@ export class IntroEngine {
 
   private enterFinal(crossfade: boolean) {
     this.skipMode = 0;
+    this.final = true;
     if (crossfade) {
       this.snapMain = this.snapshot(this.canvas);
       this.snapText = this.textPhase > 0 ? this.snapshot(this.textCv) : null;
@@ -1058,7 +1060,7 @@ export class IntroEngine {
   private lateFontsArrived() {
     if (!this.webFonts || this.disposed || this.failed) return;
     const s = this.t - this.T0;
-    if (this.skipAt < 0 && (!this.ready || !(s >= this.timeline.type[0] - 0.05))) {
+    if (!this.final && (!this.ready || !(s >= this.timeline.type[0] - 0.05))) {
       // nothing typed yet: prepare again in the real faces, the script keeps its start
       this.fonts = this.webFonts;
       this.webFonts = null;
@@ -1301,7 +1303,7 @@ export class IntroEngine {
    * The text layer keeps DPR 2, so the name stays sharp.
    */
   private adaptDpr(s: number) {
-    if (this.manual || this.dprChecks >= 2 || !this.ready || this.skipAt >= 0) return;
+    if (this.manual || this.dprChecks >= 2 || !this.ready || this.final) return;
     const first = this.dprChecks === 0;
     if (!(s >= (first ? -0.12 : this.timeline.cond0 - 0.15))) return;
     this.dprChecks++;
@@ -2194,7 +2196,7 @@ export class IntroEngine {
     let i = 0;
     if (this.ready) while (i < ev.length && ev[i][0] <= s) i++;
     this.evIdx = i;
-    if (this.skipAt < 0) this.tDone = this.T0 + tl.done;
+    if (!this.final) this.tDone = this.T0 + tl.done;
   }
 
   // -------------------------------------------------------------------------
@@ -2207,7 +2209,7 @@ export class IntroEngine {
     if (!L) return;
     const tl = this.timeline;
     const ready = this.ready;
-    const final = this.skipAt >= 0;
+    const final = this.final;
     const skipK = final ? clamp01((t - this.skipAt) / SKIP_FADE) : 1;
     let s = ready ? t - this.T0 : -Infinity;
     if (ready && (final || this.reduced)) s = Math.max(s, tl.done + 1);

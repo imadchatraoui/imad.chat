@@ -25,7 +25,7 @@ import s from "./QuranBook.module.css";
 type Phase = "closed" | "opening" | "open" | "closing";
 type Mode = "spread" | "single";
 type SlotSide = "left" | "right" | "single";
-type SlotPart = "rest" | "front" | "back" | "under-in" | "under-out";
+type SlotPart = "rest" | "front" | "back" | "under-in" | "under-out" | "idle";
 
 interface Turn {
   dir: 1 | -1;
@@ -96,8 +96,14 @@ function geoFor(mode: Mode, dir: 1 | -1, reduced: boolean): TurnGeo {
   return mode === "spread" ? { kind: "spread", dir } : { kind: "single", dir };
 }
 
+/** Le pagine accanto a una vista: si tengono pronte, nascoste, così un giro non deve impaginare niente. */
+function neighborsOf(view: number, mode: Mode, count: number): number[] {
+  const all = mode === "spread" ? [2 * view - 2, 2 * view - 1, 2 * view + 2, 2 * view + 3] : [view - 1, view + 1];
+  return all.filter((i) => i >= 0 && i < count);
+}
+
 /** Le pagine da mostrare e il ruolo di ognuna, in ordine di indice (così i nodi non si spostano). */
-function slotsFor(mode: Mode, view: number, count: number, turn: Turn | null, phase: Phase, reduced: boolean): Slot[] {
+function slotsFor(mode: Mode, view: number, count: number, turn: Turn | null, phase: Phase, reduced: boolean, warm: number[]): Slot[] {
   const slot = (i: number, side: SlotSide, part: SlotPart): Slot => {
     const ok = i >= 0 && i < count;
     return { key: ok ? `p${i}` : `blank-${side}`, index: ok ? i : null, side, part };
@@ -122,6 +128,13 @@ function slotsFor(mode: Mode, view: number, count: number, turn: Turn | null, ph
   else if (turn && (reduced || turn.dir === 1)) out = [slot(turn.from, "single", "front"), slot(turn.to, "single", "under-in")];
   else if (turn) out = [slot(turn.from, "single", "under-out"), slot(turn.to, "single", "front")];
   else out = [slot(view, "single", "rest")];
+  // le vicine già pronte restano montate, nascoste
+  if (phase === "open") {
+    const near = neighborsOf(turn ? turn.from : view, mode, count);
+    for (const i of warm) {
+      if (near.includes(i) && !out.some((x) => x.index === i)) out.push(slot(i, mode === "single" ? "single" : i % 2 ? "left" : "right", "idle"));
+    }
+  }
   return out.sort((a, b) => (a.index ?? 1e6) - (b.index ?? 1e6));
 }
 
@@ -157,6 +170,7 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
   const [turn, setTurn] = useState<Turn | null>(null);
   const [bookmark, setBookmark] = useState<number | null>(null);
   const [pill, setPill] = useState(false);
+  const [warm, setWarm] = useState<number[]>([]);
   const [announcement, setAnnouncement] = useState("");
 
   const safePage = count ? Math.min(Math.max(page, 0), count - 1) : 0;
@@ -346,15 +360,17 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
       anims = [dialog.animate([{ opacity: 1 }, { opacity: 0 }], { duration: reduced ? 180 : 220, easing: "ease-in", fill: "both" })];
     } else {
       book.style.transformOrigin = f.origin;
-      const turnMs = mode === "spread" ? 600 : 460;
-      const flyAt = turnMs - 90;
+      // dopo un'azione si va più svelti: il velo si alza subito e l'astrolabio si vede già
+      const turnMs = (mode === "spread" ? 600 : 460) * (fast ? 0.8 : 1);
+      const flyAt = turnMs * (fast ? 0.55 : 0.8);
+      const flyMs = fast ? 380 : 420;
       anims = [
         ...chrome.map((el) => el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: "ease-out", fill: "both" })),
         ...animateFrames(book, geo, 1, 0, { duration: turnMs, easing: EASE_TURN, fill: "both" }),
-        book.animate([{ transform: "none" }, { transform: f.transform }], { duration: 420, delay: flyAt, easing: EASE_FLY_OUT, fill: "both" }),
+        book.animate([{ transform: "none" }, { transform: f.transform }], { duration: flyMs, delay: flyAt, easing: EASE_FLY_OUT, fill: "both" }),
         backdrop.animate([{ opacity: 1 }, { opacity: 0 }], {
-          duration: fast ? 380 : 420,
-          delay: fast ? 0 : flyAt - 60,
+          duration: fast ? 300 : 420,
+          delay: fast ? 0 : turnMs * 0.45,
           easing: "ease-in-out",
           fill: "both",
         }),
@@ -706,7 +722,9 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
             <svg viewBox="0 0 20 20" aria-hidden="true" className={s.pillIcon}>
               <path d="M8 5 4 9l4 4M4.5 9H12a4 4 0 0 1 0 8h-1.5" />
             </svg>
-            <span>Torna a {marked.verse.surahName}</span>
+            <span>
+              Torna {marked.verse.ayahs.length > 1 ? "ai versetti" : "al versetto"} {marked.ref}
+            </span>
           </button>
         ) : null}
         <button
@@ -768,6 +786,7 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
               className={s.book}
               data-mode={mode}
               data-turning={turn ? "" : undefined}
+              data-fade={turn && reduced ? "" : undefined}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerEnd}

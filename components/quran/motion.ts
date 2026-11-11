@@ -49,8 +49,9 @@ export function frameAt(geo: TurnGeo, raw: number): Frame {
       "under-out": { shade: 0.32 * Math.pow(p, 1.6) },
     };
   }
-  // movimento ridotto: le pagine vecchie sfumano sopra le nuove
-  return { front: { opacity: 1 - p } };
+  // movimento ridotto: una dissolvenza attraverso la carta bianca. Le pagine vecchie spariscono del
+  // tutto prima che compaiano le nuove: due testi arabi non si sovrappongono mai, neanche per un attimo.
+  return { front: { opacity: clamp01(1 - 2 * p) }, "under-in": { opacity: clamp01(2 * p - 1) } };
 }
 
 function partEls(book: HTMLElement, part: Part): HTMLElement[] {

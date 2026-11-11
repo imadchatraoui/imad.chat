@@ -7,6 +7,7 @@
 
   Colori
     --q-backdrop        il velo sulla pagina quando il libro è aperto
+    --q-night           lo stesso colore, pieno (la fascia del titolo in alto)
     --q-paper           la carta
     --q-paper-shade     la carta in ombra (bordi delle pagine, angolo piegato)
     --q-gutter          l'ombra della piega
@@ -51,7 +52,8 @@
 */
 
 .root {
-  --_backdrop: var(--q-backdrop, rgb(4 6 14 / 0.84));
+  --_backdrop: var(--q-backdrop, rgb(5 7 15 / 0.93));
+  --_night: var(--q-night, #05070f);
   --_paper: var(--q-paper, #f4eddc);
   --_paper-shade: var(--q-paper-shade, #ddd0b2);
   --_gutter: var(--q-gutter, rgb(92 66 30 / 0.2));
@@ -336,8 +338,13 @@
   container-type: size;
   color: var(--_chrome);
   outline: none;
-  --_top-h: calc(56px + env(safe-area-inset-top, 0px));
-  --_bottom-h: calc(50px + env(safe-area-inset-bottom, 0px));
+  --_top-h: calc(52px + env(safe-area-inset-top, 0px));
+  --_bottom-h: calc(46px + env(safe-area-inset-bottom, 0px));
+}
+
+.dialog[data-mode="spread"] {
+  --_top-h: calc(60px + env(safe-area-inset-top, 0px));
+  --_bottom-h: calc(54px + env(safe-area-inset-bottom, 0px));
 }
 
 .backdrop {
@@ -358,6 +365,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  /* una fascia piena: quello che sta dietro (loghi, titoli del sito) non si mescola al titolo */
+  background: linear-gradient(180deg, var(--_night) 0%, var(--_night) 62%, color-mix(in srgb, var(--_night) 0%, transparent) 100%);
 }
 
 .title {
@@ -433,7 +442,7 @@
   position: relative;
   touch-action: pan-y pinch-zoom;
   perspective: 2600px;
-  --_avail-h: calc(100cqh - var(--_top-h) - var(--_bottom-h) - 16px);
+  --_avail-h: calc(100cqh - var(--_top-h) - var(--_bottom-h) - 10px);
 }
 
 .book[data-mode="spread"] {
@@ -447,6 +456,17 @@
   width: var(--_pw);
   height: min(var(--_avail-h), calc(var(--_pw) * 1.78));
   perspective: 1500px;
+}
+
+/* la carta bianca sotto le pagine, solo per la dissolvenza del movimento ridotto */
+.book[data-fade]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--_radius-page);
+  background: var(--_texture), var(--_paper);
+  box-shadow: var(--_shadow-page);
 }
 
 .slot {
@@ -595,19 +615,97 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: clamp(20px, 7.4cqw, 46px) clamp(20px, 8.6cqw, 50px) 4px;
+  padding: clamp(22px, 7cqw, 44px) clamp(18px, 6.4cqw, 48px) 14px;
   text-align: center;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--_ink) 22%, transparent) transparent;
 }
 
+/* il numero di pagina, piccolo, nell'angolo esterno in alto */
+.folio {
+  position: absolute;
+  top: clamp(10px, 3cqw, 16px);
+  z-index: 1;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--_ink-soft);
+  font-variant-numeric: lining-nums tabular-nums;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.slot[data-side="left"] .folio,
+.slot[data-side="single"] .folio {
+  left: clamp(14px, 4cqw, 22px);
+}
+
+.slot[data-side="right"] .folio {
+  right: clamp(14px, 4cqw, 22px);
+}
+
+/* il piede resta in vista: la freccina (se sopra c'è ancora testo), la riga verso il cielo, il bottone */
+.foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 2.6cqw, 12px);
+  padding: 0 clamp(18px, 6.4cqw, 48px) clamp(12px, 3.6cqw, 22px);
+  text-align: center;
+}
+
+/* il bordo della parte che scorre: un filo con una freccina sopra, solo se sotto c'è altro testo.
+   Sta nel piede, fuori dal testo: non lo copre mai. */
+.more {
+  position: relative;
+  display: block;
+  align-self: stretch;
+  height: 14px;
+  margin-bottom: clamp(0px, 1cqw, 6px);
+  color: var(--_ink-soft);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.more::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--_ink) 20%, transparent) 18%, color-mix(in srgb, var(--_ink) 20%, transparent) 82%, transparent);
+}
+
+.more svg {
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 26px;
+  height: 14px;
+  margin-left: -13px;
+  padding: 0 4px;
+  background: var(--_paper);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.page[data-more] .more {
+  opacity: 1;
+}
+
 .pageHead {
-  margin-bottom: clamp(12px, 4.6cqw, 26px);
+  flex: none;
+  margin-bottom: clamp(10px, 4cqw, 24px);
 }
 
 .surah {
   margin: 0;
-  font-size: clamp(22px, 6.8cqw, 32px);
+  font-size: clamp(22px, 6.4cqw, 32px);
   font-weight: var(--_w-strong);
   line-height: 1.08;
   letter-spacing: 0.005em;
@@ -615,16 +713,18 @@
 }
 
 .ref {
-  margin: 5px 0 0;
-  font-size: clamp(15px, 4.2cqw, 17.5px);
+  margin: 4px 0 0;
+  font-size: clamp(15px, 4.1cqw, 17.5px);
   line-height: 1.25;
   color: var(--_ink-soft);
   font-variant-numeric: lining-nums;
 }
 
+/* il versetto sta in mezzo allo spazio libero; se non c'è spazio, i margini automatici spariscono */
 .verse {
+  flex: none;
   width: 100%;
-  margin: 0;
+  margin: auto 0;
 }
 
 .quote {
@@ -649,7 +749,7 @@
   padding: 0.12em 0.15em;
   background: var(--_arabic-surface);
   font-size: var(--_ar-size, 30px);
-  line-height: 2.1;
+  line-height: 2.05;
   color: var(--_ink);
   text-align: center;
   text-wrap: balance;
@@ -664,7 +764,7 @@
 }
 
 .page[data-size="m"] {
-  --_ar-size: clamp(27px, 8.8cqw, 41px);
+  --_ar-size: clamp(26px, 8.2cqw, 41px);
 }
 
 .page[data-size="l"] {
@@ -694,13 +794,13 @@
   display: block;
   width: 40px;
   height: 1px;
-  margin: clamp(12px, 4cqw, 20px) auto;
+  margin: clamp(10px, 3.4cqw, 20px) auto;
   background: color-mix(in srgb, var(--_ink) 24%, transparent);
 }
 
 .it {
   margin: 0;
-  font-size: clamp(17.5px, 5.3cqw, 21.5px);
+  font-size: clamp(17.5px, 5.1cqw, 21.5px);
   line-height: 1.42;
   font-weight: var(--_w-ui);
   color: var(--_ink);
@@ -709,7 +809,7 @@
 }
 
 .credit {
-  margin: clamp(10px, 3.4cqw, 16px) 0 0;
+  margin: clamp(8px, 3cqw, 16px) 0 0;
   font-size: clamp(14.5px, 3.9cqw, 16px);
   line-height: 1.45;
   color: var(--_ink-soft);
@@ -750,16 +850,6 @@
   stroke-linejoin: round;
 }
 
-/* il cielo: una riga e il bottone, in fondo alla pagina */
-.sky {
-  margin-top: auto;
-  padding-top: clamp(16px, 5cqw, 28px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(10px, 3.2cqw, 14px);
-}
-
 .bridge {
   margin: 0;
   max-width: 28em;
@@ -769,12 +859,13 @@
   text-wrap: balance;
 }
 
+/* il bottone sta nella stessa fascia degli angoli da girare, in mezzo: non li tocca */
 .action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  max-width: 100%;
+  max-width: calc(100cqw - 108px);
   min-height: 46px;
   padding: 8px 18px 8px 22px;
   border: var(--_border-w) solid var(--_border-c);
@@ -820,26 +911,14 @@
   stroke-linejoin: round;
 }
 
-.folio {
-  flex: none;
-  height: 42px;
-  margin: 0;
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  line-height: 1;
-  color: var(--_ink-soft);
-  font-variant-numeric: lining-nums tabular-nums;
-}
-
 /* --- gli angoli da girare -------------------------------------------------------------------------- */
 
 .corner {
   position: absolute;
   bottom: 0;
   z-index: 6;
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 64px;
   padding: 0;
   border: 0;
   background: none;
@@ -974,6 +1053,7 @@
 @media (prefers-reduced-motion: reduce) {
   .dockBook,
   .dockCover,
+  .more,
   .ribbon,
   .corner,
   .corner::before,
