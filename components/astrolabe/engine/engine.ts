@@ -771,9 +771,14 @@ export class AstrolabeEngine {
     this.cb.onTimeChange?.(this.simDate(), this.nowMode);
   }
 
+  /** Fotogrammi disegnati e ultimo dt, per il banco di prova. */
+  stats = { frames: 0, lastDt: 0 };
+
   /** Avanza di dt secondi. Ritorna true se serve un altro fotogramma. */
   update(dt: number): boolean {
     if (this.disposed) return false;
+    this.stats.frames++;
+    this.stats.lastDt = dt;
     dt = Math.min(dt, 1 / 20);
     this.clock += dt;
     let animating = false;

@@ -62,6 +62,10 @@ function Engine({ city, observer, sections, initialState, framing, callbacks, on
       });
       setEngine(made);
       onEngine(made);
+      // per il banco di prova: ?debug=1 espone il motore nella console
+      if (typeof window !== "undefined" && /[?&]debug=1/.test(window.location.search)) {
+        (window as unknown as { __astroEngine?: AstrolabeEngine }).__astroEngine = made;
+      }
       invalidate();
     });
     return () => {

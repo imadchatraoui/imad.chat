@@ -96,9 +96,10 @@ export function paintPlate(b: Burin, opts: PlatePaintOptions) {
   const c = b.ctx;
   const S = b.size / 2048; // scala dei tratti rispetto alla risoluzione piena
   fillBrass(b, { seed: opts.seed ?? 3, patina: 1.2, tint: BRASS.plate });
-  const thin = 0.0016;
-  const mid = 0.0024;
-  const bold = 0.0036;
+  // tratti pensati per restare leggibili anche su un telefono (la piastra è larga ~300 px)
+  const thin = 0.0028;
+  const mid = 0.004;
+  const bold = 0.0062;
 
   // fascia ornata fuori dal Capricorno
   c.save();
@@ -170,7 +171,7 @@ export function paintPlate(b: Burin, opts: PlatePaintOptions) {
     for (const h of plate.hours) {
       // il numero sta sulla linea, poco dentro il Capricorno
       const p = h.points[1] ?? h.points[0];
-      b.text(String(h.n), p.x * 0.955, p.y * 0.955, 0.026, fonts.serif, 0, { style: "italic" });
+      b.text(String(h.n), p.x * 0.95, p.y * 0.95, 0.034, fonts.serif, 0, { style: "italic" });
     }
 
     // orizzonte, forte
@@ -191,14 +192,14 @@ export function paintPlate(b: Burin, opts: PlatePaintOptions) {
       if (a.alt % 12 !== 0) continue;
       const p = meridianLabelPoint(a.alt, plate.lat);
       if (Math.hypot(p.x, p.y) > 0.97) continue;
-      b.text(String(a.alt), p.x + 0.028, p.y - 0.014, 0.024, fonts.mono, 0);
+      b.text(String(a.alt), p.x + 0.034, p.y - 0.016, 0.03, fonts.mono, 0);
     }
 
     // oriente e occidente sull'orizzonte
     const e = horizonPoint(90, plate.lat);
     const w = horizonPoint(270, plate.lat);
-    b.text("oriente", e.x - 0.085, e.y + 0.03, 0.03, fonts.serif, -0.05, { style: "italic" });
-    b.text("occidente", w.x + 0.1, w.y + 0.03, 0.03, fonts.serif, 0.05, { style: "italic" });
+    b.text("oriente", e.x - 0.1, e.y + 0.036, 0.04, fonts.serif, -0.05, { style: "italic" });
+    b.text("occidente", w.x + 0.12, w.y + 0.036, 0.04, fonts.serif, 0.05, { style: "italic" });
 
     paintCartouche(b, plate, city, fonts, opts);
   }

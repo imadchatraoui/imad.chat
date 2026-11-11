@@ -105,9 +105,9 @@ void main() {
   // sotto l'orizzonte niente stelle; vicino all'orizzonte l'aria le spegne
   float ext = smoothstep(-0.01, 0.12, d.z);
   float night = 1.0 - smoothstep(-14.0, -4.0, uSunAlt);
-  vAlpha = clamp(1.25 - 0.2 * aMag, 0.18, 1.0) * ext * (0.1 + 0.9 * night) * step(abs(p.x), 1.2);
+  vAlpha = clamp(1.3 - 0.18 * aMag, 0.38, 1.0) * ext * (0.1 + 0.9 * night) * step(abs(p.x), 1.2);
   vColor = aColor;
-  gl_PointSize = clamp(5.2 - 0.9 * aMag, 1.6, 8.0) * uPixelRatio;
+  gl_PointSize = clamp(5.6 - 0.85 * aMag, 2.2, 8.5) * uPixelRatio;
   gl_Position = vec4(p, 0.9998, 1.0);
 }
 `;

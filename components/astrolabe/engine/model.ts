@@ -70,7 +70,41 @@ function sharedRoughness(): THREE.Texture {
   return t;
 }
 
+let anisoTex: THREE.Texture | null = null;
+
+/** La spazzolatura al tornio: direzione tangente ai cerchi, per i pezzi tondi (piastre, lembo, retro). */
+function sharedAnisotropy(): THREE.Texture {
+  if (anisoTex) return anisoTex;
+  const size = 256;
+  const c = makeCanvas(size);
+  const ctx = c.getContext("2d")!;
+  const img = ctx.createImageData(size, size);
+  for (let j = 0; j < size; j++) {
+    for (let i = 0; i < size; i++) {
+      const dx = (i + 0.5) / size - 0.5;
+      const dy = 0.5 - (j + 0.5) / size;
+      const r = Math.hypot(dx, dy) || 1e-6;
+      const tx = -dy / r;
+      const ty = dx / r;
+      const k = (j * size + i) * 4;
+      img.data[k] = Math.round((tx * 0.5 + 0.5) * 255);
+      img.data[k + 1] = Math.round((ty * 0.5 + 0.5) * 255);
+      img.data[k + 2] = Math.round(Math.min(1, r / 0.06) * 255);
+      img.data[k + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.NoColorSpace;
+  t.generateMipmaps = false;
+  t.minFilter = THREE.LinearFilter;
+  anisoTex = t;
+  return t;
+}
+
 export interface BrassOptions {
+  /** Spazzolatura concentrica (0..1), per i pezzi tondi. */
+  turned?: number;
   map?: THREE.Texture | null;
   roughness?: number;
   color?: THREE.ColorRepresentation;
@@ -93,6 +127,10 @@ export function brassMaterial(o: BrassOptions = {}): THREE.MeshPhysicalMaterial 
     clearcoatRoughness: 0.32,
     envMapIntensity: o.env ?? 1,
   });
+  if (o.turned) {
+    m.anisotropy = o.turned;
+    m.anisotropyMap = sharedAnisotropy();
+  }
   if (o.map) {
     m.onBeforeCompile = (shader) => {
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -292,7 +330,7 @@ export class AstrolabeModel {
     this.limbCanvas = makeCanvas(texSize);
     P.paintLimb(new Burin(this.limbCanvas, R), this.opts.sections, fonts);
     this.limbTexture = this.track(canvasTexture(this.limbCanvas, anisotropy));
-    const limbMat = this.track(brassMaterial({ map: this.limbTexture, roughness: 0.4 }));
+    const limbMat = this.track(brassMaterial({ map: this.limbTexture, roughness: 0.4, turned: 0.55 }));
     const limbGeo = this.track(new THREE.RingGeometry(DIMS.limbIn + 0.006, R - bev, 192, 1));
     planarUV(limbGeo, 0, 0, R);
     const limbFace = new THREE.Mesh(limbGeo, limbMat);
@@ -322,7 +360,7 @@ export class AstrolabeModel {
     const floorCanvas = makeCanvas(Math.max(512, texSize / 2));
     P.paintFloor(new Burin(floorCanvas, DIMS.limbIn), cities, fonts);
     const floorTex = this.track(canvasTexture(floorCanvas, anisotropy));
-    const floorMat = this.track(brassMaterial({ map: floorTex, roughness: 0.5 }));
+    const floorMat = this.track(brassMaterial({ map: floorTex, roughness: 0.5, turned: 0.5 }));
     const floorGeo = this.track(new THREE.CircleGeometry(DIMS.limbIn, 128));
     planarUV(floorGeo, 0, 0, DIMS.limbIn);
     const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -336,7 +374,7 @@ export class AstrolabeModel {
       return SunPosition(d).elon;
     });
     const backTex = this.track(canvasTexture(backCanvas, anisotropy));
-    const backMat = this.track(brassMaterial({ map: backTex, roughness: 0.42 }));
+    const backMat = this.track(brassMaterial({ map: backTex, roughness: 0.42, turned: 0.5 }));
     const backGeo = this.track(new THREE.CircleGeometry(R - bev, 192));
     planarUV(backGeo, 0, 0, R);
     const back = new THREE.Mesh(backGeo, backMat);
@@ -431,8 +469,8 @@ export class AstrolabeModel {
     const group = new THREE.Group();
     const canvas = makeCanvas(texSize);
     const texture = this.track(canvasTexture(canvas, anisotropy));
-    const faceMat = this.track(brassMaterial({ map: texture, roughness: 0.46, bump: 0.32 }));
-    const faceMat2 = this.track(brassMaterial({ map: texture, roughness: 0.46, bump: 0.32 }));
+    const faceMat = this.track(brassMaterial({ map: texture, roughness: 0.44, bump: 0.3, turned: 0.6 }));
+    const faceMat2 = this.track(brassMaterial({ map: texture, roughness: 0.44, bump: 0.3, turned: 0.6 }));
     const split = 0.656;
     const innerGeo = this.track(new THREE.CircleGeometry(split, 128));
     planarUV(innerGeo, 0, 0, DIMS.plate);
