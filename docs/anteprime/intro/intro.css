@@ -5,7 +5,6 @@
 .ni-on .bar, .ni-on .tile, .ni-on .foot { opacity: 0; transition: none !important; }
 
 /* la scritta nell'hero: battuta a macchina, con il cursore da terminale che resta a lampeggiare */
-.hero__hello { display: none; }
 .hero__word .ch { display: inline-block; }
 .hero__word .cur { display: inline-block; width: .44em; height: .088em; margin-left: .075em; border-radius: .02em; background: currentColor; transform: translateY(.035em); box-shadow: 0 4px 30px rgba(6, 10, 44, .32); }
 .ni-done .hero__word .cur { animation: ni-blink 1.06s steps(1, end) infinite; }
