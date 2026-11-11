@@ -34,16 +34,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    ".next-astro/types/**/*.ts",
-    ".next-astro/dev/types/**/*.ts",
-    ".next-shell/types/**/*.ts",
-    ".next-shell/dev/types/**/*.ts",
-    ".next-shell-design/types/**/*.ts",
-    ".next-shell-design/dev/types/**/*.ts",
-    ".next-shell-a11y/types/**/*.ts",
-    ".next-shell-a11y/dev/types/**/*.ts",
-    ".next-styles/types/**/*.ts",
-    ".next-styles/dev/types/**/*.ts"
+    ".next-int/types/**/*.ts",
+    ".next-int/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

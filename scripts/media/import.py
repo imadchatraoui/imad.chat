@@ -106,7 +106,8 @@ def main():
         if os.path.exists(out) and not FORCE and not job.get("provisional_replaced"):
             done.append(rel); continue
         src_ext = os.path.splitext(job["url"].split("?")[0])[1] or ".bin"
-        src = os.path.join(CACHE, f"{job['id']}{src_ext}")
+        # la cache è per lavoro (job), non per asset: se un asset viene rifatto, si riscarica
+        src = os.path.join(CACHE, f"{job.get('job') or job['id']}{src_ext}")
         download(job["url"], src)
         convert(src, out, job["kind"])
         done.append(rel)

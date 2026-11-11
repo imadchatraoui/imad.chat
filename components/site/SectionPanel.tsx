@@ -29,6 +29,8 @@ export interface SectionPanelProps {
   titleId?: string;
   /** I versetti disponibili (predefiniti: content/astro/verses.json). */
   verses?: readonly VerseItem[];
+  /** Il livello del titolo: 2 nel foglio (predefinito), 1 sulla pagina della sezione. */
+  headingLevel?: 1 | 2;
 }
 
 const DEFAULT_VERSES: readonly VerseItem[] = (versesJson as unknown as { items: VerseItem[] }).items ?? [];
@@ -83,13 +85,20 @@ const components: Components = {
   h2: ({ node: _n, ...rest }) => <h3 {...rest} />,
 };
 
-export default function SectionPanel({ section, action, titleId = titleIds.section(section.id), verses = DEFAULT_VERSES }: SectionPanelProps) {
+export default function SectionPanel({
+  section,
+  action,
+  titleId = titleIds.section(section.id),
+  verses = DEFAULT_VERSES,
+  headingLevel = 2,
+}: SectionPanelProps) {
   const parts = splitVerses(section.body ?? "");
+  const Title = headingLevel === 1 ? "h1" : "h2";
   return (
     <article className={ps.panel} aria-labelledby={titleId}>
-      <h2 id={titleId} className={ps.title}>
+      <Title id={titleId} className={ps.title}>
         {section.title}
-      </h2>
+      </Title>
       {section.summary ? <p className={ps.lede}>{section.summary}</p> : null}
       {action}
       <div className={`${ps.prose} ${ps.sectionBody}`}>

@@ -20,6 +20,8 @@ export interface SiteChromeProps {
   soundToggle?: boolean;
   /** Dove porta il logo. */
   homeHref?: string;
+  /** Il file del logo (public/logo.svg), se c'è; altrimenti il segno inciso. */
+  logo?: string | null;
   /** Nasconde la barra (es. durante l'intro), con una dissolvenza. */
   hidden?: boolean;
   /** Durante l'intro: solo l'interruttore del suono; logo e Sezioni entrano dopo, con una dissolvenza. */
@@ -34,6 +36,7 @@ export default function SiteChrome({
   sectionsOpen = false,
   soundToggle = true,
   homeHref = "/",
+  logo = null,
   hidden = false,
   intro = false,
   onHeight,
@@ -64,7 +67,7 @@ export default function SiteChrome({
       inert={hidden}
     >
       <div className={c.lead} inert={intro}>
-        <LogoSlot href={homeHref} />
+        <LogoSlot href={homeHref} src={logo} />
       </div>
       <div className={c.actions}>
         {soundToggle ? <SoundToggle /> : null}

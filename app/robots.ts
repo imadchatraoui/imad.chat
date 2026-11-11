@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
-import { site } from "@/site.config";
+import { SITE_URL } from "@/lib/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: "*", allow: "/", disallow: "/api/" },
-    sitemap: `${site.url}/sitemap.xml`,
+    // i banchi di prova (/lab) servono solo a chi sviluppa
+    rules: { userAgent: "*", allow: "/", disallow: "/lab/" },
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

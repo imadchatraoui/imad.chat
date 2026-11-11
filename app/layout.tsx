@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Amiri, Cormorant_Garamond, JetBrains_Mono } from "next/font/google";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 // Tre caratteri, ognuno col suo compito:
@@ -32,15 +33,12 @@ const arabic = Amiri({
   variable: "--font-amiri",
 });
 
-// Il dominio pubblico del progetto: imad.chat quando è collegato, altrimenti l'indirizzo vercel.app,
-// così le anteprime condivise funzionano da subito.
-const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || "imad.chat";
-
 const description =
   "hello, imad’s world: un astrolabio d’ottone che legge il cielo vero, in questo momento. Stelle dai nomi arabi, versetti del Corano, la qibla, Torino e la Palestina.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(`https://${productionHost}`),
+  // imad.chat quando il dominio è collegato, altrimenti l'indirizzo vercel.app: le anteprime funzionano da subito
+  metadataBase: new URL(SITE_URL),
   title: { default: "imad.chat", template: "%s · imad.chat" },
   description,
   applicationName: "imad.chat",

@@ -1,12 +1,12 @@
 /*
-  I pannelli dentro il foglio. Una sola famiglia per le parole (Newsreader), il monospace solo
-  per i dati veri, Amiri per l'arabo. I dati stanno in un cartellino da museo: etichette in corsivo,
+  I pannelli dentro il foglio. Una sola famiglia per le parole (Cormorant Garamond, al peso 500:
+  sul lapislazzuli il 400 è troppo esile), il monospace solo per i dati veri, Amiri per l'arabo. I dati stanno in un cartellino da museo: etichette in corsivo,
   valori in monospace, tra due filetti d'ottone.
 */
 
 .panel {
   font-family: var(--serif);
-  font-optical-sizing: auto;
+  font-weight: 500;
   color: var(--cream);
   padding-top: 2px;
 }
@@ -16,10 +16,10 @@
 .title {
   margin: 0;
   font-family: var(--serif);
-  font-weight: 400;
-  font-size: 2.05rem;
-  line-height: 1.08;
-  letter-spacing: -0.012em;
+  font-weight: 500;
+  font-size: 2.45rem;
+  line-height: 1.04;
+  letter-spacing: -0.006em;
   color: var(--brass-light);
   text-wrap: balance;
 }
@@ -27,8 +27,8 @@
 .lede {
   margin: 10px 0 0;
   font-style: italic;
-  font-size: 1.125rem;
-  line-height: 1.5;
+  font-size: 1.3rem;
+  line-height: 1.42;
   color: rgb(239 230 210 / 0.84);
   text-wrap: pretty;
 }
@@ -36,8 +36,8 @@
 /* --- testo ------------------------------------------------------------------------------------ */
 
 .prose {
-  font-size: 1.0625rem;
-  line-height: 1.64;
+  font-size: 1.21rem;
+  line-height: 1.52;
   color: var(--cream);
   overflow-wrap: break-word;
   hyphens: manual;
@@ -95,18 +95,18 @@
 
 .prose h2,
 .prose h3 {
-  font-weight: 400;
+  font-weight: 500;
   color: var(--brass-light);
   line-height: 1.25;
   margin-top: 1.5em;
 }
 
 .prose h2 {
-  font-size: 1.4rem;
+  font-size: 1.6rem;
 }
 
 .prose h3 {
-  font-size: 1.18rem;
+  font-size: 1.36rem;
   font-style: italic;
 }
 
@@ -155,7 +155,7 @@
 
 /* le fonti in fondo alle sezioni: più piccole e quiete */
 .small {
-  font-size: 0.9375rem;
+  font-size: 1.06rem;
   color: rgb(239 230 210 / 0.78);
 }
 
@@ -175,7 +175,7 @@
 
 .plate dt {
   font-style: italic;
-  font-size: 0.875rem;
+  font-size: 1rem;
   line-height: 1.35;
   color: var(--muted);
 }
@@ -197,7 +197,7 @@
 .plate dd .soft {
   font-family: var(--serif);
   font-style: italic;
-  font-size: 0.92rem;
+  font-size: 1.05rem;
   line-height: 1.3;
   letter-spacing: 0;
   color: var(--muted);
@@ -233,15 +233,15 @@
 .translit {
   margin: 0;
   font-style: italic;
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   line-height: 1.3;
   color: var(--cream);
 }
 
 .starName {
-  margin: 6px 0 0;
-  font-weight: 400;
-  font-size: 0.98rem;
+  margin: 4px 0 0;
+  font-weight: 500;
+  font-size: 1.14rem;
   line-height: 1.4;
   letter-spacing: 0.02em;
   color: var(--muted);
@@ -249,8 +249,8 @@
 
 .starNameLarge {
   margin: 0;
-  font-weight: 400;
-  font-size: 2.3rem;
+  font-weight: 500;
+  font-size: 2.6rem;
   line-height: 1.15;
   color: var(--brass-light);
 }
@@ -260,7 +260,7 @@
   max-width: 30ch;
   text-align: center;
   font-style: italic;
-  font-size: 1.0625rem;
+  font-size: 1.25rem;
   line-height: 1.5;
   color: rgb(239 230 210 / 0.86);
   text-wrap: balance;
@@ -279,8 +279,8 @@
 .curioTitle {
   margin: 0 0 6px;
   font-style: italic;
-  font-weight: 400;
-  font-size: 1.15rem;
+  font-weight: 500;
+  font-size: 1.36rem;
   line-height: 1.3;
   color: var(--brass-light);
 }
@@ -323,16 +323,16 @@
   margin: 14px auto 0;
   max-width: 34ch;
   font-style: italic;
-  font-size: 1.0625rem;
-  line-height: 1.6;
+  font-size: 1.25rem;
+  line-height: 1.5;
   color: var(--cream);
   text-wrap: pretty;
 }
 
 .verseCite {
   margin: 14px auto 0;
-  max-width: 34ch;
-  font-size: 0.84rem;
+  max-width: 36ch;
+  font-size: 1rem;
   line-height: 1.55;
   color: var(--muted);
 }
@@ -379,13 +379,13 @@
 
 .cityLocal:not([lang="ar"]):not([lang="ja"]) {
   font-style: italic;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
 }
 
 .country {
   margin: 4px 0 0;
   font-style: italic;
-  font-size: 1rem;
+  font-size: 1.15rem;
   color: var(--muted);
 }
 
@@ -400,7 +400,7 @@
 .moonText {
   margin: 0;
   font-style: italic;
-  font-size: 1.0625rem;
+  font-size: 1.25rem;
   line-height: 1.5;
   color: var(--cream);
   text-wrap: pretty;
@@ -419,8 +419,8 @@
 .facts li {
   position: relative;
   padding-left: 20px;
-  font-size: 1rem;
-  line-height: 1.6;
+  font-size: 1.15rem;
+  line-height: 1.5;
   color: rgb(239 230 210 / 0.92);
 }
 
@@ -462,13 +462,16 @@
   padding: 14px 4px 15px 0;
   text-align: left;
   border-radius: 4px;
+  color: inherit;
+  text-decoration: none;
+  -webkit-touch-callout: none;
 }
 
 .menuDeg {
   grid-row: 1 / span 2;
   font-family: var(--mono);
   font-size: 0.72rem;
-  line-height: 1.95rem;
+  line-height: 2.05rem;
   color: var(--brass);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -476,8 +479,8 @@
 }
 
 .menuName {
-  font-size: 1.32rem;
-  line-height: 1.3;
+  font-size: 1.55rem;
+  line-height: 1.25;
   color: var(--cream);
   transition: color 0.2s ease;
 }
@@ -485,8 +488,8 @@
 .menuSummary {
   grid-column: 2;
   margin-top: 3px;
-  font-size: 0.95rem;
-  line-height: 1.45;
+  font-size: 1.1rem;
+  line-height: 1.4;
   color: var(--muted);
   text-wrap: pretty;
 }
@@ -509,7 +512,8 @@
   border: 1px solid var(--hair-strong);
   border-radius: 999px;
   font-family: var(--serif);
-  font-size: 1rem;
+  font-weight: 500;
+  font-size: 1.16rem;
   color: var(--brass-light);
   transition:
     background-color 0.2s ease,
@@ -525,9 +529,32 @@
   flex: 0 0 auto;
 }
 
+/* in fondo al menu: rivedere l'intro */
+.menuFoot {
+  margin: 22px 0 0;
+  text-align: center;
+}
+
+.replay {
+  min-height: 44px;
+  padding: 0 12px;
+  font-style: italic;
+  font-size: 1.12rem;
+  color: rgb(239 230 210 / 0.78);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--hair-strong);
+  text-underline-offset: 4px;
+  transition: color 0.2s ease;
+}
+
+.replay:hover {
+  color: var(--brass-light);
+}
+
 @media (min-width: 900px) {
   .title {
-    font-size: 2.3rem;
+    font-size: 2.7rem;
   }
 
   .arName {

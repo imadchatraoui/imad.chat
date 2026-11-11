@@ -52,6 +52,8 @@ export interface HomeProps {
   sectionPanels: Record<string, ReactNode>;
   /** La piastra di partenza. */
   defaultCity?: string;
+  /** Il file del logo (public/logo.svg), se c'è. */
+  logo?: string | null;
 }
 
 type SheetState =
@@ -140,7 +142,7 @@ function LiveControlBar({ time, ...rest }: BarProps) {
 
 // --- la pagina -------------------------------------------------------------------------------
 
-export default function Home({ cities, sections, sectionPanels, defaultCity = "torino" }: HomeProps) {
+export default function Home({ cities, sections, sectionPanels, defaultCity = "torino", logo = null }: HomeProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const sound = useMemo(() => getSound(), []);
   const time = useMemo(() => createTimeStore(), []);
@@ -199,10 +201,6 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
     };
   }, []);
 
-  // con ?debug=1 lo strumento si comanda dalla console (window.__astrolabe), come nel banco di prova
-  useEffect(() => {
-    if (api && /[?&]debug=1/.test(window.location.search)) (window as unknown as { __astrolabe?: AstrolabeHandle }).__astrolabe = api;
-  }, [api]);
 
   // --- inquadratura: lo strumento sta tra la barra in alto e i comandi in basso -----------------
 
@@ -236,6 +234,15 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
     const c = measured && predicted && Math.abs(measured.r - predicted.r) < predicted.r * 0.08 ? measured : predicted;
     return c ? { cx: Math.round(c.cx * 10) / 10, cy: Math.round(c.cy * 10) / 10, r: Math.round(c.r * 10) / 10 } : undefined;
   }, [measured, predicted]);
+
+  // con ?debug=1 lo strumento si comanda dalla console (window.__astrolabe), come nel banco di prova,
+  // e window.__imadStage dice dove l'intro incide il suo cerchio
+  useEffect(() => {
+    if (!/[?&]debug=1/.test(window.location.search)) return;
+    const w = window as unknown as { __astrolabe?: AstrolabeHandle | null; __imadStage?: unknown };
+    w.__astrolabe = api;
+    w.__imadStage = { predicted, measured, target, framing, mode2d, introDone, live };
+  }, [api, predicted, measured, target, framing, mode2d, introDone, live]);
 
   // --- il passaggio di consegne ------------------------------------------------------------
 
@@ -508,6 +515,7 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
           onOpenSections={() => openSheet({ kind: "menu" })}
           sectionsOpen={sheet?.kind === "menu"}
           soundToggle
+          logo={logo}
           intro={!live}
           onHeight={setHeaderH}
         />

@@ -2,6 +2,7 @@ import Home, { type HomeCity } from "@/components/site/Home";
 import SectionAnchorAction from "@/components/site/SectionAnchorAction";
 import SectionPanel from "@/components/site/SectionPanel";
 import { citiesInOrder } from "@/lib/astro/data";
+import { logoSrc } from "@/lib/logo";
 import { getSections, sectionMetas } from "@/lib/sections";
 
 // La pagina si costruisce una volta, alla build: le sezioni e le città sono file del repository.
@@ -17,5 +18,5 @@ export default function Page() {
     sections.map((s) => [s.id, <SectionPanel key={s.id} section={s} action={<SectionAnchorAction anchor={s.anchor} />} />]),
   );
 
-  return <Home cities={cities} sections={sectionMetas(sections)} sectionPanels={sectionPanels} />;
+  return <Home cities={cities} sections={sectionMetas(sections)} sectionPanels={sectionPanels} logo={logoSrc()} />;
 }
