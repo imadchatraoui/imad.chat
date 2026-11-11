@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next";
 import QuranLab from "@/components/quran/QuranLab";
 import data from "@/content/astro/verses.json";
 
-// Banco di prova del mushaf interattivo. ?k=2:144 apre a quella pagina, ?open=1 parte col libro aperto.
+// Banco di prova del mushaf interattivo. ?k=2:144 apre a quella pagina, ?open=1 parte col libro aperto,
+// ?uncontrolled=1 lascia che il libro decida da sé se è aperto.
 
 export const metadata: Metadata = {
   title: "Laboratorio del Corano",
@@ -17,5 +18,5 @@ export const viewport: Viewport = {
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const q = await searchParams;
   const key = typeof q.k === "string" ? q.k : undefined;
-  return <QuranLab verses={data.items} initialKey={key} startOpen={q.open === "1"} />;
+  return <QuranLab verses={data.items} initialKey={key} startOpen={q.open === "1"} uncontrolled={q.uncontrolled === "1"} />;
 }

@@ -21,7 +21,7 @@ let warming: Promise<unknown> | null = null;
 export function warmQuranFont(sample: string): Promise<unknown> {
   if (typeof document === "undefined" || !("fonts" in document)) return Promise.resolve();
   if (!warming) {
-    warming = document.fonts.load(`400 32px ${quranFont.style.fontFamily}`, sample || "۝").catch(() => undefined);
+    warming = document.fonts.load(`400 32px ${quranFont.style.fontFamily}`, sample || "\u06DD").catch(() => undefined);
   }
   return warming;
 }

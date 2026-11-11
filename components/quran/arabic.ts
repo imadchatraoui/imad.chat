@@ -5,7 +5,7 @@
 //   viene da una tabella verificata: quante parole (separate da spazi) ha ogni versetto, contate sul
 //   testo uthmani di quran.com (api.quran.com, novembre 2026), più l'impronta FNV-1a del testo intero.
 //   Se il testo cambia, o i conti non tornano, il blocco si mostra intero, senza segni.
-// - Il segno ۝ (U+06DD) seguito dal numero in cifre arabo-indiane non fa parte del testo: è un
+// - Il segno di fine versetto (U+06DD) seguito dal numero in cifre arabo-indiane non fa parte del testo: è un
 //   elemento a parte, accanto all'ultima parola del versetto.
 // - I segni di pausa (waqf, U+06D6–U+06DC) nel testo stanno dopo uno spazio: per non lasciarli soli
 //   all'inizio di una riga, la parola che li precede, lo spazio e il segno stanno in un gruppo che
@@ -14,9 +14,9 @@
 import type { Verse } from "./types";
 
 /** ARABIC END OF AYAH. */
-export const END_OF_AYAH = "۝";
+export const END_OF_AYAH = "\u06DD";
 
-/** Le cifre arabo-indiane (U+0660–U+0669) di un numero: 144 → ١٤٤. */
+/** Le cifre arabo-indiane (U+0660–U+0669) di un numero: 144 → U+0661 U+0664 U+0664. */
 export function arabicIndicDigits(n: number): string {
   return String(Math.trunc(Math.abs(n))).replace(/[0-9]/g, (d) => String.fromCharCode(0x0660 + Number(d)));
 }
@@ -88,4 +88,4 @@ export function keepTogether(text: string): string[] {
 }
 
 /** C'è almeno una lettera araba? (per i controlli: nessun arabo fuori dai blocchi del Corano). */
-export const ARABIC_CHAR = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+export const ARABIC_CHAR = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;

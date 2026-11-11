@@ -15,9 +15,10 @@
  *   zenith mark last.
  *
  * Layers, back to front (the engine adds them next to the canvas it is given):
- *   backdrop  the dithered radial night (static) and the milky band (its own canvas, turned by a
- *             CSS transform with the sky): nothing full-screen is blitted per frame;
- *   canvas    stars, motes and glows, redrawn every frame at DPR ≤ 2 (1.5 on a slow device);
+ *   backdrop  the dithered radial night with the milky band baked in at the sky's resting angle:
+ *             one static, opaque layer; nothing full-screen is drawn per frame;
+ *   canvas    stars, motes and glows, redrawn every frame at DPR ≤ 2 (1.5, then 1.25, when the
+ *             device cannot keep up);
  *   text      the typed line, the gold name and the limb, at DPR ≤ 3, sized to the limb's box,
  *             redrawn only while something in it changes.
  *
@@ -75,7 +76,7 @@ const SLOW_FRAME_MS = 21;
 const VERY_SLOW_FRAME_MS = 30;
 const NB = 16; // alpha buckets for batching
 const SKY_SCALE = 1.18; // sky square side / max(w, h)
-const BAND_ALPHA = 0.11; // CSS opacity of the band layer (source-over ≈ the old 0.1 additive)
+const BAND_ALPHA = 0.1; // the band, added onto the night
 const SKIP_FADE = 0.4;
 const FONT_TIMEOUT_MS = 3000;
 const SKIP_FONT_WAIT_MS = 600; // after a skip, the fonts get at most this much longer
@@ -586,7 +587,7 @@ export class IntroEngine {
   private skipMode = 0; // a skip waiting for ready: 1 crossfade, 2 instant
   private skipAt = -1;
   private final = false; // in the final state (skip, startFinal, reduced motion)
-  private fadeAtSkip: [number, number] = [1, 1];
+  private fadeAtSkip = 1;
   private snapMain: HTMLCanvasElement | null = null;
   private snapText: HTMLCanvasElement | null = null;
   private snapTextAt = 0;
@@ -630,7 +631,7 @@ export class IntroEngine {
   private textPhase = -1;
   private frameMs = new Float32Array(16);
   private frameN = 0;
-  private dprChecks = 0;
+  private dprSteps = 0;
 
   private L: Layout | null = null;
   private metrics: Metrics | null = null;
@@ -655,9 +656,8 @@ export class IntroEngine {
   private tctx: CanvasRenderingContext2D | null = null;
   private bandN = 0;
   private bgDithered = false;
-  private lastTh = NaN;
+  private bakedTheta = NaN; // the sky angle the band was baked at
   private lastBgA = -1;
-  private lastBandA = -1;
   private sprites: HTMLCanvasElement[] = [];
   private pSprites: HTMLCanvasElement[] = [];
   private spark: HTMLCanvasElement | null = null;
@@ -708,8 +708,8 @@ export class IntroEngine {
     this.createLayers();
     this.applyResize();
     if (this.manual || this.reduced) {
-      this.makeBackground();
       this.makeBand(); // otherwise on the first frames, while the night is still fading in
+      this.makeBackground();
     }
     this.render(this.t); // the night, before anything else
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.onVisibility);
@@ -731,7 +731,7 @@ export class IntroEngine {
     this.timers = [];
     this.hurryFonts = null;
     if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.onVisibility);
-    for (const cv of [this.canvas, this.bg, this.band, this.textCv]) cv?.removeEventListener('contextrestored', this.onRestore);
+    for (const cv of [this.canvas, this.bg, this.textCv]) cv?.removeEventListener('contextrestored', this.onRestore);
     release(this.snapMain);
     release(this.snapText);
     release(this.spark);
@@ -799,7 +799,7 @@ export class IntroEngine {
       this.snapMain = this.snapshot(this.canvas);
       this.snapText = this.textPhase > 0 ? this.snapshot(this.textCv) : null;
       this.snapTextAt = this.t;
-      this.fadeAtSkip = [this.bgAlpha(this.t), this.bandFade(this.t)];
+      this.fadeAtSkip = this.bgAlpha(this.t);
       this.skipAt = this.t;
       this.tDone = this.t + SKIP_FADE;
     } else {
@@ -958,12 +958,11 @@ export class IntroEngine {
       this.sprites.forEach(release);
       this.sprites = [];
       this.makeSprites();
-      this.makeBackground();
       this.makeBand();
+      this.makeBackground();
       if (this.stage >= 5) this.makeGlows();
       this.textDirty = true;
-      this.lastBgA = this.lastBandA = -1;
-      this.lastTh = NaN;
+      this.lastBgA = -1;
       this.kick();
     });
   };
@@ -1042,6 +1041,11 @@ export class IntroEngine {
         this.ready = true;
         if (this.reduced) this.enterFinal(false);
         else if (this.skipMode) this.enterFinal(this.skipMode === 1);
+        // the script's real start moves the resting angle a little: bake the band there again
+        if (Math.abs(this.restTheta() - this.bakedTheta) > 0.004) {
+          if (this.looping) this.layersStale = true;
+          else this.makeBackground();
+        }
         break;
       case 4:
         this.makeGlows();
@@ -1134,16 +1138,7 @@ export class IntroEngine {
       display: 'block',
       opacity: '0',
     });
-    const band = document.createElement('canvas');
-    Object.assign(band.style, {
-      position: 'absolute',
-      left: '0',
-      top: '0',
-      display: 'block',
-      opacity: '0',
-      willChange: 'transform, opacity',
-    });
-    back.append(bg, band);
+    back.append(bg);
     parent.insertBefore(back, cv);
     const text = document.createElement('canvas');
     text.setAttribute('aria-hidden', 'true');
@@ -1151,45 +1146,33 @@ export class IntroEngine {
     parent.insertBefore(text, cv.nextSibling);
     this.backdrop = back;
     this.bg = bg;
-    this.band = band;
+    this.band = document.createElement('canvas'); // offscreen: painted once, baked into the night
     this.textCv = text;
     this.tctx = ctx2d(text, { alpha: true });
-    for (const c of [cv, bg, band, text]) c.addEventListener('contextrestored', this.onRestore);
+    for (const c of [cv, bg, text]) c.addEventListener('contextrestored', this.onRestore);
   }
 
   private bgAlpha(t: number) {
     return this.reduced ? 1 : smoothstep(0, 0.9, t);
   }
 
-  private bandFade(t: number) {
-    return this.reduced ? 1 : smoothstep(0.1, 1.8, t);
-  }
-
-  /** The backdrop costs no drawing per frame: only an opacity and a rotation for the compositor. */
-  private updateBackdrop(t: number, th: number, final: boolean, skipK: number) {
+  /** The backdrop costs no drawing per frame: only its opacity, while the night fades in. */
+  private updateBackdrop(t: number, final: boolean, skipK: number) {
     const bg = this.bg;
-    const band = this.band;
-    if (!bg || !band) return;
+    if (!bg) return;
     let a = this.bgAlpha(t);
-    let f = this.bandFade(t);
-    if (final) {
-      const e = easeOutCubic(skipK);
-      a = Math.max(a, lerp(this.fadeAtSkip[0], 1, e));
-      f = Math.max(f, lerp(this.fadeAtSkip[1], 1, e));
-    }
+    if (final) a = Math.max(a, lerp(this.fadeAtSkip, 1, easeOutCubic(skipK)));
     if (Math.abs(a - this.lastBgA) > 0.002 || (a === 1 && this.lastBgA !== 1)) {
       this.lastBgA = a;
       bg.style.opacity = a >= 1 ? '1' : a.toFixed(4);
     }
-    const ba = BAND_ALPHA * f;
-    if (Math.abs(ba - this.lastBandA) > 0.0004 || (f === 1 && this.lastBandA !== ba)) {
-      this.lastBandA = ba;
-      band.style.opacity = ba.toFixed(4);
-    }
-    if (!(Math.abs(th - this.lastTh) < 1e-7)) {
-      this.lastTh = th;
-      band.style.transform = 'rotate(' + th.toFixed(7) + 'rad)';
-    }
+  }
+
+  /** The sky's angle once it has settled after the intro: the band is baked into the night there. */
+  private restTheta() {
+    if (this.reduced) return 0;
+    const tRest = isFinite(this.tDone) ? this.tDone : (isFinite(this.T0) ? this.T0 : T0_MIN) + (this.timeline.done || 6.4);
+    return -OMEGA * (tRest + DECEL_TAU);
   }
 
   // -------------------------------------------------------------------------
@@ -1266,7 +1249,6 @@ export class IntroEngine {
     if (!this.stars) this.makeStars();
     this.makeSprites();
     this.recomputeStarSizes();
-    this.placeBand();
     this.placeTextLayer();
     // the background is stretched by CSS until the size has settled, then painted again
     if (full) this.makeBackground(true);
@@ -1298,49 +1280,35 @@ export class IntroEngine {
   }
 
   /**
-   * Twice (before typing, while the stars are still fading in; before the gathering): if frames are
-   * slow, the sky is drawn at DPR 1.5, or at 1.25 if far too slow (one step at most the second time).
-   * The text layer keeps DPR 2, so the name stays sharp.
+   * A rolling check (median of the last 16 frames) from just before typing until the limb closes:
+   * if frames are slow the sky is drawn at DPR 1.5, then 1.25 (straight to 1.25 if far too slow
+   * before typing, while the stars are still fading in). Two steps at most, never back up. The
+   * text layer keeps DPR 2, so the name stays sharp.
    */
   private adaptDpr(s: number) {
-    if (this.manual || this.dprChecks >= 2 || !this.ready || this.final) return;
-    const first = this.dprChecks === 0;
-    if (!(s >= (first ? -0.12 : this.timeline.cond0 - 0.15))) return;
-    this.dprChecks++;
-    const n = Math.min(this.frameN, this.frameMs.length);
-    if (n < 8) return;
-    const med = median(this.frameMs, n);
+    if (this.manual || this.dprSteps >= 2 || !this.ready || this.final || this.doneFired) return;
+    if (!(s >= -0.12) || s > this.timeline.done) return;
+    if (this.frameN < 16 || this.frameN % 8 !== 0) return;
+    const med = median(this.frameMs, 16);
     let cap = this.maxSkyDpr;
-    if (first && med > VERY_SLOW_FRAME_MS) cap = LOWER_DPR_SKY;
+    if (this.dprSteps === 0 && s < 0 && med > VERY_SLOW_FRAME_MS) cap = LOWER_DPR_SKY;
     else if (med > SLOW_FRAME_MS) cap = cap > LOW_DPR_SKY ? LOW_DPR_SKY : LOWER_DPR_SKY;
     if (cap < this.maxSkyDpr && this.dpr > cap) {
       this.maxSkyDpr = cap;
       this.maxTextDpr = 2;
       this.pendingResize = true;
+      this.dprSteps++;
+      this.frameN = 0; // judge the new resolution on its own frames
     }
   }
 
   private rebuildLayers() {
-    this.makeBackground();
     const L = this.L;
     if (L && this.bandN) {
       const N = Math.max(128, Math.min(1024, Math.ceil(L.sky.L * 0.5)));
       if (Math.abs(N - this.bandN) > 0.25 * this.bandN) this.makeBand();
     }
-  }
-
-  private placeBand() {
-    const el = this.band;
-    const sky = this.L?.sky;
-    if (!el || !sky) return;
-    const left = sky.Cx - sky.L / 2;
-    const top = sky.Cy - sky.L / 2;
-    const s = el.style;
-    s.left = left + 'px';
-    s.top = top + 'px';
-    s.width = sky.L + 'px';
-    s.height = sky.L + 'px';
-    s.transformOrigin = sky.Px - left + 'px ' + (sky.Py - top) + 'px';
+    this.makeBackground();
   }
 
   /** The text layer covers the limb's box (on a 16 px grid, inside the viewport). */
@@ -1756,6 +1724,22 @@ export class IntroEngine {
       }
     }
     g.putImageData(img, 0, 0);
+    // the milky band, added at the angle the sky comes to rest at (the frame that stays, and the
+    // one the astrolabe takes over from); during the intro the stars drift past it by a few pixels
+    const band = this.band;
+    if (band && this.bandN) {
+      const sky = L.sky;
+      g.save();
+      g.setTransform(sc, 0, 0, sc, 0, 0);
+      g.translate(sky.Px, sky.Py);
+      this.bakedTheta = this.restTheta();
+      g.rotate(this.bakedTheta);
+      g.translate(sky.Cx - sky.Px, sky.Cy - sky.Py);
+      g.globalAlpha = BAND_ALPHA;
+      g.globalCompositeOperation = 'lighter';
+      g.drawImage(band, -sky.L / 2, -sky.L / 2, sky.L, sky.L);
+      g.restore();
+    }
   }
 
   /**
@@ -2219,7 +2203,7 @@ export class IntroEngine {
     }
 
     const th = this.theta(t);
-    this.updateBackdrop(t, th, final, skipK);
+    this.updateBackdrop(t, final, skipK);
 
     const ctx = this.ctx;
     ctx.setTransform(1, 0, 0, 1, 0, 0);

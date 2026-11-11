@@ -15,7 +15,7 @@
     --q-ink-soft        il testo secondario (versetti, crediti, numero di pagina)
     --q-accent          bottoni e collegamenti sulla carta
     --q-accent-ink      il testo sul bottone
-    --q-ayah-mark       il segno di fine versetto (۝ con il numero)
+    --q-ayah-mark       il segno di fine versetto (U+06DD con il numero)
     --q-cover           la copertina
     --q-cover-ink       il filetto della copertina
     --q-ribbon          il segnalibro
@@ -263,6 +263,7 @@
   font: inherit;
   font-size: 16px;
   line-height: 1.1;
+  font-variant-numeric: lining-nums;
   cursor: pointer;
   touch-action: manipulation;
   animation: pillIn 420ms var(--_ease) both;
@@ -338,8 +339,8 @@
   container-type: size;
   color: var(--_chrome);
   outline: none;
-  --_top-h: calc(52px + env(safe-area-inset-top, 0px));
-  --_bottom-h: calc(46px + env(safe-area-inset-bottom, 0px));
+  --_top-h: calc(50px + env(safe-area-inset-top, 0px));
+  --_bottom-h: calc(44px + env(safe-area-inset-bottom, 0px));
 }
 
 .dialog[data-mode="spread"] {
@@ -451,13 +452,16 @@
   --_avail-h: calc(100cqh - var(--_top-h) - var(--_bottom-h) - 10px);
 }
 
+/* sul desktop si legge più da lontano e la pagina è più bassa rispetto alla larghezza: caratteri un po' più piccoli */
 .book[data-mode="spread"] {
+  --_k: 0.86;
   --_ph: min(var(--_avail-h), 720px);
   height: var(--_ph);
   width: min(calc(var(--_ph) * 1.42), calc(100cqw - 112px));
 }
 
 .book[data-mode="single"] {
+  --_k: 1;
   --_pw: min(calc(100cqw - 24px), 470px);
   width: var(--_pw);
   height: min(var(--_avail-h), calc(var(--_pw) * 1.78));
@@ -627,19 +631,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: clamp(22px, 7cqw, 44px) clamp(18px, 6.4cqw, 48px) 14px;
+  padding: clamp(2px, 1.6cqw, 14px) clamp(18px, 6.4cqw, 48px) 8px;
   text-align: center;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--_ink) 22%, transparent) transparent;
 }
 
-/* il numero di pagina, piccolo, nell'angolo esterno in alto */
+/* il numero di pagina, piccolo, nell'angolo esterno in alto: in una fascia sua, così il testo che
+   scorre passa sotto il bordo della fascia e non sotto il numero */
 .folio {
-  position: absolute;
-  top: clamp(10px, 3cqw, 16px);
-  z-index: 1;
+  flex: none;
+  height: clamp(20px, 5.6cqw, 34px);
   margin: 0;
-  font-size: 14px;
+  padding: clamp(8px, 2.6cqw, 16px) clamp(14px, 4cqw, 22px) 0;
+  font-size: clamp(12.5px, 3.5cqw, 14px);
   line-height: 1;
   color: var(--_ink-soft);
   font-variant-numeric: lining-nums tabular-nums;
@@ -647,13 +652,8 @@
   pointer-events: none;
 }
 
-.slot[data-side="left"] .folio,
-.slot[data-side="single"] .folio {
-  left: clamp(14px, 4cqw, 22px);
-}
-
 .slot[data-side="right"] .folio {
-  right: clamp(14px, 4cqw, 22px);
+  text-align: right;
 }
 
 /* il piede resta in vista: la freccina (se sopra c'è ancora testo), la riga verso il cielo, il bottone */
@@ -663,6 +663,8 @@
   flex-direction: column;
   align-items: center;
   gap: clamp(8px, 2.6cqw, 12px);
+  /* almeno alto quanto gli angoli da girare: così non arrivano mai sul testo che scorre */
+  min-height: 64px;
   padding: 0 clamp(18px, 6.4cqw, 48px) clamp(12px, 3.6cqw, 22px);
   text-align: center;
 }
@@ -674,7 +676,7 @@
   display: block;
   align-self: stretch;
   height: 14px;
-  margin-bottom: clamp(0px, 1cqw, 6px);
+  margin-bottom: 0;
   color: var(--_ink-soft);
   opacity: 0;
   transition: opacity 220ms ease;
@@ -693,12 +695,10 @@
 .more svg {
   position: absolute;
   left: 50%;
-  top: -6px;
-  width: 26px;
-  height: 14px;
-  margin-left: -13px;
-  padding: 0 4px;
-  background: var(--_paper);
+  top: 3px;
+  width: 18px;
+  height: 11px;
+  margin-left: -9px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.6;
@@ -712,12 +712,12 @@
 
 .pageHead {
   flex: none;
-  margin-bottom: clamp(10px, 4cqw, 24px);
+  margin-bottom: clamp(8px, 3cqw, 24px);
 }
 
 .surah {
   margin: 0;
-  font-size: clamp(22px, 6.4cqw, 32px);
+  font-size: clamp(22px, calc(var(--_k, 1) * 6.4cqw), 32px);
   font-weight: var(--_w-strong);
   line-height: 1.08;
   letter-spacing: 0.005em;
@@ -761,7 +761,7 @@
   padding: 0.12em 0.15em;
   background: var(--_arabic-surface);
   font-size: var(--_ar-size, 30px);
-  line-height: 2.05;
+  line-height: 2;
   color: var(--_ink);
   text-align: center;
   text-wrap: balance;
@@ -772,19 +772,19 @@
 }
 
 .page[data-size="s"] {
-  --_ar-size: clamp(30px, 10.6cqw, 48px);
+  --_ar-size: clamp(30px, calc(var(--_k, 1) * 10.6cqw), 48px);
 }
 
 .page[data-size="m"] {
-  --_ar-size: clamp(26px, 8.2cqw, 41px);
+  --_ar-size: clamp(26px, calc(var(--_k, 1) * 8.2cqw), 41px);
 }
 
 .page[data-size="l"] {
-  --_ar-size: clamp(24px, 7.4cqw, 35px);
+  --_ar-size: clamp(24px, calc(var(--_k, 1) * 7.4cqw), 35px);
 }
 
 .page[data-size="xl"] {
-  --_ar-size: clamp(22px, 6.6cqw, 31px);
+  --_ar-size: clamp(22px, calc(var(--_k, 1) * 6.6cqw), 31px);
 }
 
 .page[data-size="l"] .ar,
@@ -806,13 +806,13 @@
   display: block;
   width: 40px;
   height: 1px;
-  margin: clamp(10px, 3.4cqw, 20px) auto;
+  margin: clamp(8px, 2.8cqw, 20px) auto;
   background: color-mix(in srgb, var(--_ink) 24%, transparent);
 }
 
 .it {
   margin: 0;
-  font-size: clamp(17.5px, 5.1cqw, 21.5px);
+  font-size: clamp(17.5px, calc(var(--_k, 1) * 5.1cqw), 21.5px);
   line-height: 1.42;
   font-weight: var(--_w-ui);
   color: var(--_ink);
@@ -821,7 +821,7 @@
 }
 
 .credit {
-  margin: clamp(8px, 3cqw, 16px) 0 0;
+  margin: clamp(6px, 2.4cqw, 14px) 0 0;
   font-size: clamp(14.5px, 3.9cqw, 16px);
   line-height: 1.45;
   color: var(--_ink-soft);
@@ -862,10 +862,13 @@
   stroke-linejoin: round;
 }
 
+/* la riga verso il cielo chiude il testo; lo spazio libero lo prende il versetto (margini automatici),
+   che così sta in mezzo, e la riga resta in fondo, sopra il bottone */
 .bridge {
   margin: 0;
+  padding-top: clamp(12px, 3.6cqw, 26px);
   max-width: 28em;
-  font-size: clamp(16.5px, 4.7cqw, 19px);
+  font-size: clamp(16.5px, calc(var(--_k, 1) * 4.7cqw), 19px);
   line-height: 1.38;
   color: var(--_ink);
   text-wrap: balance;

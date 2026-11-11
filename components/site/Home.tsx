@@ -4,9 +4,10 @@
 //
 // 1. L'intro (components/intro) scrive "hello, world", lo trasforma in "hello, imad’s world" e incide un
 //    cerchio graduato: proprio dove cadrà il lembo dell'astrolabio (stage.ts).
-// 2. Intanto si scarica il codice dell'astrolabio. Lo strumento si costruisce quando l'intro ha chiuso
-//    il cerchio (dipingere l'ottone e preparare WebGL occupa il filo principale: durante l'animazione la
-//    farebbe inciampare); poi l'intro sfuma e l'ottone si monta pezzo per pezzo sul cerchio (assemble).
+// 2. Intanto, dietro, l'astrolabio si costruisce nascosto (a piccoli passi, cedendo il filo principale
+//    all'intro). Quando l'intro ha chiuso il cerchio e lo strumento è pronto, l'intro sfuma e l'ottone si
+//    monta pezzo per pezzo sul cerchio (assemble). Costruirlo dopo, a intro finita, non conviene: dove
+//    WebGL è emulato dalla CPU il primo contesto può farsi attendere a lungo, e la pausa si vedrebbe.
 // 3. Poi la cornice: il logo e «Sezioni» in alto, la barra delle piastre e dei gesti in basso, i fogli
 //    con le stelle, le città e le sezioni. I suoni seguono gli eventi dell'intro e dello strumento.
 //
@@ -166,7 +167,6 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
   const [twoD, setTwoD] = useState<boolean | null>(null);
   const [failed3d, setFailed3d] = useState(false);
   const [skyLib, setSkyLib] = useState<SkyLib | null>(null);
-  const [earlyAstro, setEarlyAstro] = useState(false);
 
   // l'intro e il passaggio di consegne
   const [run, setRun] = useState(0);
@@ -207,7 +207,6 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
   useEffect(() => {
     setTwoD(reducedMotion() || !webglAvailable());
     if (readSeen()) setSkipIntro(true);
-    setEarlyAstro(/[?&]astro=early/.test(window.location.search));
     setMounted(true);
     // i calcoli del cielo (astronomy-engine) arrivano dopo il primo disegno
     let alive = true;
@@ -218,30 +217,13 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
   }, []);
 
 
-  // il codice dello strumento si scarica subito, quando il browser è libero (durante le prime stelle)
-  useEffect(() => {
-    if (twoD === null) return;
-    const load = () => {
-      if (twoD) void import("@/components/astrolabe/AstrolabeFallback");
-      else {
-        void import("@/components/astrolabe/Astrolabe");
-        void import("@/components/astrolabe/AstrolabeScene");
-      }
-    };
-    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
-    if (w.requestIdleCallback) {
-      const id = w.requestIdleCallback(load, { timeout: 1200 });
-      return () => w.cancelIdleCallback?.(id);
-    }
-    const id = window.setTimeout(load, 200);
-    return () => window.clearTimeout(id);
-  }, [twoD]);
-
   // --- inquadratura: lo strumento sta tra la barra in alto e i comandi in basso -----------------
 
   const framing = useMemo<Framing | undefined>(() => {
     if (!vp || !barH) return undefined;
-    const top = Math.min(0.24, (headerH + 4) / vp.h);
+    // telefono in orizzontale: il logo e «Sezioni» stanno negli angoli, lo strumento può salire fin sotto
+    const compact = vp.w > vp.h && vp.h <= 520;
+    const top = compact ? 6 / vp.h : Math.min(0.24, (headerH + 4) / vp.h);
     const bottom = Math.min(0.46, (barH + 6) / vp.h);
     return { top: round4(top), bottom: round4(bottom), side: vp.w < 640 ? 0.035 : 0.045 };
   }, [vp, headerH, barH]);
@@ -518,7 +500,7 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
           style={shift ? { transform: `translate3d(${shift}px, 0, 0)` } : undefined}
           onKeyDown={onStageKey}
         >
-          {mounted && framing && twoD !== null && (introDone || earlyAstro) ? (
+          {mounted && framing && twoD !== null ? (
             mode2d ? (
               <AstrolabeFallback key={`2d-${run}`} {...astroProps} />
             ) : (

@@ -19,13 +19,15 @@ export interface QuranLabProps {
   verses: Verse[];
   initialKey?: string;
   startOpen?: boolean;
+  /** il libro decide da sé se è aperto (senza la prop open) */
+  uncontrolled?: boolean;
 }
 
 function describe(a: QuranAction): string {
   return a.type === "star" ? `{ type: "star", id: "${a.id}" }` : `{ type: "${a.type}" }`;
 }
 
-export default function QuranLab({ verses, initialKey, startOpen = false }: QuranLabProps) {
+export default function QuranLab({ verses, initialKey, startOpen = false, uncontrolled = false }: QuranLabProps) {
   const [open, setOpen] = useState(startOpen);
   const [log, setLog] = useState<LogLine[]>([]);
   const [last, setLast] = useState<QuranAction | null>(null);
@@ -83,7 +85,15 @@ export default function QuranLab({ verses, initialKey, startOpen = false }: Qura
         <span>controlli (segnaposto)</span>
       </div>
 
-      <QuranBook verses={verses} initialKey={initialKey} open={open} onOpenChange={onOpenChange} onAction={onAction} onEvent={onEvent} className={s.book} />
+      <QuranBook
+        verses={verses}
+        initialKey={initialKey}
+        open={uncontrolled ? undefined : open}
+        onOpenChange={onOpenChange}
+        onAction={onAction}
+        onEvent={onEvent}
+        className={s.book}
+      />
     </main>
   );
 }

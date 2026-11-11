@@ -1,6 +1,6 @@
 // Una pagina del mushaf: la sura e i versetti, l'arabo, l'italiano con la sua fonte, una riga verso il
-// cielo e il bottone per l'astrolabio. Il piede (la riga e il bottone) resta sempre in vista; se il
-// versetto è lungo scorre solo la parte sopra, e una freccina in mezzo lo dice (senza coprire il testo).
+// cielo e il bottone per l'astrolabio. Il bottone resta sempre in vista, in fondo; se il versetto è
+// lungo scorre solo il testo sopra, e un filo con una freccina lo dice (senza coprire il testo).
 //
 // L'arabo arriva intatto da content/astro/verses.json (vedi arabic.ts): i nodi di testo dentro
 // [data-q-ayah-text], uniti da uno spazio, rifanno esattamente il campo `ar`; i segni di fine versetto
@@ -145,6 +145,7 @@ function QuranPage({ page, idBase, actionHintId, onAction }: QuranPageProps) {
             </span>
           </figcaption>
         </figure>
+        {meta ? <p className={s.bridge}>{meta.bridge}</p> : null}
       </div>
 
       <div className={s.foot}>
@@ -154,15 +155,12 @@ function QuranPage({ page, idBase, actionHintId, onAction }: QuranPageProps) {
           </svg>
         </span>
         {meta ? (
-          <>
-            <p className={s.bridge}>{meta.bridge}</p>
-            <button type="button" className={s.action} aria-describedby={actionHintId} onClick={() => onAction?.(page)}>
-              <span>{meta.label}</span>
-              <svg className={s.actionIcon} viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M4 10h11M11 5.5 15.5 10 11 14.5" />
-              </svg>
-            </button>
-          </>
+          <button type="button" className={s.action} aria-describedby={actionHintId} onClick={() => onAction?.(page)}>
+            <span>{meta.label}</span>
+            <svg className={s.actionIcon} viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M4 10h11M11 5.5 15.5 10 11 14.5" />
+            </svg>
+          </button>
         ) : null}
       </div>
     </article>

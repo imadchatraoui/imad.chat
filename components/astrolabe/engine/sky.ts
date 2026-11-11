@@ -139,11 +139,14 @@ const moonFrag = /* glsl */ `
 uniform vec2 uLight;      // direzione del Sole sullo schermo
 uniform float uPhase;     // angolo di fase (rad): 0 piena, π nuova
 uniform float uAlpha;
+uniform float uSunAlt;    // gradi: di giorno la parte in ombra non si vede (niente disco scuro nel cielo chiaro)
 varying vec2 vP;
 void main() {
   vec2 p = vP;
   float r2 = dot(p, p);
   float halo = exp(-max(r2 - 1.0, 0.0) * 5.0) * 0.18 * step(1.0, r2);
+  // di giorno l'alone è quello della parte accesa: una falce sottile quasi non ne ha
+  halo *= max(1.0 - smoothstep(-14.0, -4.0, uSunAlt), 0.5 + 0.5 * cos(uPhase));
   if (r2 > 1.0) {
     if (halo < 0.004) discard;
     gl_FragColor = vec4(vec3(0.85, 0.82, 0.7) * halo * uAlpha, halo * uAlpha);
@@ -158,7 +161,8 @@ void main() {
   vec3 earthshine = vec3(0.06, 0.07, 0.1);
   vec3 col = mix(earthshine, bright, lit);
   float edge = smoothstep(1.0, 0.94, r2);
-  gl_FragColor = vec4(col * uAlpha, uAlpha * edge);
+  float night = 1.0 - smoothstep(-14.0, -4.0, uSunAlt);
+  gl_FragColor = vec4(col * uAlpha, uAlpha * edge * mix(night, 1.0, lit));
   #include <colorspace_fragment>
 }
 `;
@@ -278,6 +282,7 @@ export class SkyLayer {
         uLight: { value: new THREE.Vector2(1, 0) },
         uPhase: { value: 0 },
         uAlpha: { value: 1 },
+        uSunAlt: { value: -30 },
       },
       depthTest: true,
       depthWrite: false,
@@ -339,6 +344,7 @@ export class SkyLayer {
       const q = this.project(m.clone().add(toward.multiplyScalar(0.05)).normalize());
       if (q) this.moonMat.uniforms.uLight.value.set((q.x - p.x) * aspect, q.y - p.y).normalize();
       this.moonMat.uniforms.uPhase.value = (s.moonPhaseAngle * Math.PI) / 180;
+      this.moonMat.uniforms.uSunAlt.value = s.sunAlt;
       this.moonMat.uniforms.uAlpha.value = THREE.MathUtils.smoothstep(m.z, -0.01, 0.05);
     } else {
       this.moon.visible = false;
