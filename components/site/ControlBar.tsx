@@ -230,15 +230,19 @@ export default function ControlBar({
   onHeight,
   className,
 }: ControlBarProps) {
+  const root = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
   const city = cities.find((c) => c.id === cityId) ?? cities[0];
 
   useLayoutEffect(() => {
+    const box = root.current;
     const el = inner.current;
-    if (!el || !onHeight) return;
-    const report = () => onHeight(Math.max(0, Math.round(window.innerHeight - el.getBoundingClientRect().top)));
+    if (!box || !el || !onHeight) return;
+    // misure di layout (offset*), non del disegno: la traslazione della dissolvenza non le cambia
+    const report = () => onHeight(Math.max(0, Math.round(box.offsetHeight - el.offsetTop)));
     report();
     const ro = new ResizeObserver(report);
+    ro.observe(box);
     ro.observe(el);
     window.addEventListener("resize", report);
     return () => {
@@ -248,7 +252,7 @@ export default function ControlBar({
   }, [onHeight]);
 
   return (
-    <div className={`${t.vars} ${b.bar} ${className ?? ""}`} data-hidden={hidden ? "" : undefined} inert={hidden}>
+    <div ref={root} className={`${t.vars} ${b.bar} ${className ?? ""}`} data-hidden={hidden ? "" : undefined} inert={hidden}>
       <div ref={inner} className={b.inner}>
         <div className={b.timeRow}>
           <TimeReadout

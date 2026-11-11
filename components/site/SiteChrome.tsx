@@ -1,9 +1,10 @@
 "use client";
 
 // La barra in alto: il logo a sinistra, il suono e il menu "Sezioni" a destra.
-// Non copre l'astrolabio: è trasparente e sfuma nella notte.
+// Non copre l'astrolabio: è trasparente e sfuma nella notte. Durante l'intro resta solo l'interruttore
+// del suono, così chi vuole sentire la battitura può accenderlo; il resto entra con l'astrolabio.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import LogoSlot from "./LogoSlot";
 import SoundToggle from "./SoundToggle";
 import { warmSiteFonts } from "./warmFonts";
@@ -21,6 +22,10 @@ export interface SiteChromeProps {
   homeHref?: string;
   /** Nasconde la barra (es. durante l'intro), con una dissolvenza. */
   hidden?: boolean;
+  /** Durante l'intro: solo l'interruttore del suono; logo e Sezioni entrano dopo, con una dissolvenza. */
+  intro?: boolean;
+  /** L'altezza della barra in px CSS (aree sicure comprese), per lasciare libero lo strumento. */
+  onHeight?: (px: number) => void;
   className?: string;
 }
 
@@ -30,6 +35,8 @@ export default function SiteChrome({
   soundToggle = true,
   homeHref = "/",
   hidden = false,
+  intro = false,
+  onHeight,
   className,
 }: SiteChromeProps) {
   const ref = useRef<HTMLElement>(null);
@@ -37,9 +44,28 @@ export default function SiteChrome({
     warmSiteFonts(ref.current);
   }, []);
 
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || !onHeight) return;
+    // offsetHeight non risente della traslazione della dissolvenza
+    const report = () => onHeight(el.offsetHeight);
+    report();
+    const ro = new ResizeObserver(report);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [onHeight]);
+
   return (
-    <header ref={ref} className={`${t.vars} ${c.bar} ${className ?? ""}`} data-hidden={hidden ? "" : undefined} inert={hidden}>
-      <LogoSlot href={homeHref} />
+    <header
+      ref={ref}
+      className={`${t.vars} ${c.bar} ${className ?? ""}`}
+      data-hidden={hidden ? "" : undefined}
+      data-intro={intro ? "" : undefined}
+      inert={hidden}
+    >
+      <div className={c.lead} inert={intro}>
+        <LogoSlot href={homeHref} />
+      </div>
       <div className={c.actions}>
         {soundToggle ? <SoundToggle /> : null}
         <button
@@ -48,6 +74,7 @@ export default function SiteChrome({
           aria-haspopup="dialog"
           aria-expanded={sectionsOpen}
           onClick={onOpenSections}
+          inert={intro}
         >
           Sezioni
         </button>

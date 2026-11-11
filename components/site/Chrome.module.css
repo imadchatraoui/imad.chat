@@ -26,6 +26,33 @@
   pointer-events: auto;
 }
 
+/* durante l'intro: niente velo, solo l'interruttore del suono, appena accennato */
+.bar[data-intro] {
+  background: none;
+}
+
+.lead,
+.sections {
+  transition: opacity 0.9s var(--ease-out) 0.35s;
+}
+
+.bar[data-intro] .lead,
+.bar[data-intro] .sections {
+  opacity: 0;
+  pointer-events: none;
+  transition-delay: 0s;
+}
+
+.bar[data-intro] .iconButton {
+  opacity: 0.62;
+}
+
+.lead {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .bar[data-hidden] > * {
   pointer-events: none;
 }
@@ -63,14 +90,14 @@
 .wordmark {
   font-family: var(--serif);
   font-style: italic;
-  font-weight: 400;
-  font-size: 20px;
+  font-weight: 500;
+  font-size: 23px;
   line-height: 1;
-  letter-spacing: 0.004em;
+  letter-spacing: 0.005em;
   color: var(--brass-light);
   white-space: nowrap;
-  /* l'occhio della n di Newsreader ha bisogno di mezzo pixel per stare sulla linea della stella */
-  transform: translateY(-0.5px);
+  /* la x di Cormorant è bassa: un pixel giù e la parola sta sulla linea mediana della stella */
+  transform: translateY(1px);
 }
 
 .actions {
@@ -108,7 +135,8 @@
   height: 44px;
   padding: 0 12px;
   font-family: var(--serif);
-  font-size: 17px;
+  font-weight: 500;
+  font-size: 20px;
   line-height: 44px;
   letter-spacing: 0.01em;
   color: var(--cream);
@@ -138,16 +166,18 @@
   }
 
   .wordmark {
-    font-size: 21px;
+    font-size: 24px;
   }
 
   .sections {
-    font-size: 18px;
+    font-size: 21px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bar {
+  .bar,
+  .lead,
+  .sections {
     transition: opacity 0.2s linear;
   }
 

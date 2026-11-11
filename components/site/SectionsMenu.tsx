@@ -17,14 +17,25 @@ export interface SectionsMenuProps {
   currentId?: string | null;
   /** id del titolo, per aria-labelledby del foglio. */
   titleId?: string;
+  /** Se c'è, in fondo compare «Rivedi l’intro». */
+  onReplayIntro?: () => void;
+  /** Il link alla pagina di ogni sezione (per condividerla): predefinito /sezioni/<id>. */
+  hrefFor?: (id: string) => string;
 }
 
-export default function SectionsMenu({ sections, onSelect, currentId, titleId = "sheet-title-sezioni" }: SectionsMenuProps) {
+export default function SectionsMenu({
+  sections,
+  onSelect,
+  currentId,
+  titleId = "sheet-title-sezioni",
+  onReplayIntro,
+  hrefFor = (id) => `/sezioni/${id}`,
+}: SectionsMenuProps) {
   const listRef = useRef<HTMLOListElement>(null);
 
   const onKeyDown = (e: KeyboardEvent<HTMLOListElement>) => {
-    const items = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>("button") ?? []);
-    const i = items.indexOf(document.activeElement as HTMLButtonElement);
+    const items = Array.from(listRef.current?.querySelectorAll<HTMLAnchorElement>("a") ?? []);
+    const i = items.indexOf(document.activeElement as HTMLAnchorElement);
     if (i < 0) return;
     let next = -1;
     if (e.key === "ArrowDown") next = (i + 1) % items.length;
@@ -46,21 +57,33 @@ export default function SectionsMenu({ sections, onSelect, currentId, titleId = 
       <ol ref={listRef} className={p.menuList} onKeyDown={onKeyDown}>
         {sections.map((s) => (
           <li key={s.id}>
-            <button
-              type="button"
-              className={`${t.button} ${p.menuItem}`}
+            {/* un vero link alla pagina della sezione: si apre qui nel foglio, ma si può anche copiare e condividere */}
+            <a
+              href={hrefFor(s.id)}
+              className={p.menuItem}
               aria-current={currentId === s.id ? "true" : undefined}
-              onClick={() => onSelect(s.id)}
+              onClick={(e) => {
+                if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                e.preventDefault();
+                onSelect(s.id);
+              }}
             >
               <span className={p.menuDeg} aria-hidden="true">
                 {Math.round(s.angle)}°
               </span>
               <span className={p.menuName}>{s.title}</span>
               {s.summary ? <span className={p.menuSummary}>{s.summary}</span> : null}
-            </button>
+            </a>
           </li>
         ))}
       </ol>
+      {onReplayIntro ? (
+        <p className={p.menuFoot}>
+          <button type="button" className={`${t.button} ${p.replay}`} onClick={onReplayIntro}>
+            Rivedi l’intro
+          </button>
+        </p>
+      ) : null}
     </nav>
   );
 }
