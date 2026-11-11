@@ -1,63 +1,47 @@
 import type { Metadata, Viewport } from "next";
-import { Amiri, Newsreader } from "next/font/google";
-import { GeistSans } from "geist/font/sans";
-import { site } from "@/site.config";
+import { Cormorant_Garamond, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const newsreader = Newsreader({
-  subsets: ["latin", "latin-ext"],
-  axes: ["opsz"],
+const serif = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["500"],
   style: ["normal", "italic"],
   display: "swap",
-  variable: "--font-newsreader",
+  variable: "--font-serif-intro",
 });
 
-const amiri = Amiri({
-  subsets: ["arabic"],
-  weight: ["400", "700"],
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400"],
   display: "swap",
-  variable: "--font-amiri",
+  variable: "--font-mono-intro",
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(site.url),
-  title: { default: site.title, template: `%s — ${site.title}` },
-  description: site.description,
+  metadataBase: new URL("https://imad.chat"),
+  title: "imad.chat",
+  description: "hello, imad's world",
   openGraph: {
     type: "website",
-    siteName: site.title,
-    locale: "it_IT",
-    title: site.title,
-    description: site.description,
+    siteName: "imad.chat",
+    title: "imad.chat",
+    description: "hello, imad's world",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "hello, imad's world" }],
   },
-  twitter: { card: "summary_large_image" },
-  robots: { index: true, follow: true },
+  twitter: { card: "summary_large_image", images: ["/og.png"] },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fbfaf7" },
-    { media: "(prefers-color-scheme: dark)", color: "#15171f" },
-  ],
+  themeColor: "#070a14",
 };
-
-// Applica il tema prima del primo paint, così non lampeggia.
-const themeScript = `(function(){try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="it"
-      suppressHydrationWarning
-      className={`${newsreader.variable} ${amiri.variable} ${GeistSans.variable}`}
-    >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
-      <body className="min-h-dvh bg-paper text-ink">{children}</body>
+    <html lang="it" className={`${serif.variable} ${mono.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }
