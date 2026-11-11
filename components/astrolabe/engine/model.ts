@@ -87,7 +87,7 @@ export function brassMaterial(o: BrassOptions = {}): THREE.MeshPhysicalMaterial 
     roughness: o.roughness ?? 0.44,
     map: o.map ?? null,
     bumpMap: o.map ?? null,
-    bumpScale: o.bump ?? 1.4,
+    bumpScale: o.bump ?? 0.3,
     roughnessMap: sharedRoughness(),
     clearcoat: o.clearcoat ?? 0.22,
     clearcoatRoughness: 0.32,
@@ -424,8 +424,8 @@ export class AstrolabeModel {
     const group = new THREE.Group();
     const canvas = makeCanvas(texSize);
     const texture = this.track(canvasTexture(canvas, anisotropy));
-    const faceMat = this.track(brassMaterial({ map: texture, roughness: 0.4, bump: 1.6 }));
-    const faceMat2 = this.track(brassMaterial({ map: texture, roughness: 0.4, bump: 1.6 }));
+    const faceMat = this.track(brassMaterial({ map: texture, roughness: 0.46, bump: 0.32 }));
+    const faceMat2 = this.track(brassMaterial({ map: texture, roughness: 0.46, bump: 0.32 }));
     const split = 0.656;
     const innerGeo = this.track(new THREE.CircleGeometry(split, 128));
     planarUV(innerGeo, 0, 0, DIMS.plate);
@@ -490,8 +490,8 @@ export class AstrolabeModel {
     const names = new Map(list.map((s) => [s.id, s.translit || s.name || s.latin]));
     P.paintReteTexture(new Burin(tc, P.RETE_HALF), this.design, fonts, names);
     const tex = this.track(canvasTexture(tc, anisotropy));
-    const capMat = this.track(brassMaterial({ map: tex, roughness: 0.38, bump: 1.2, clearcoat: 0.3 }));
-    const sideMat = this.track(brassMaterial({ color: 0xc29c56, roughness: 0.36 }));
+    const capMat = this.track(brassMaterial({ map: tex, roughness: 0.3, bump: 0.22, clearcoat: 0.35, color: 0xfff4dc }));
+    const sideMat = this.track(brassMaterial({ color: 0xd9b56a, roughness: 0.3 }));
     const geo = this.track(extrude(loopsToShapes(loops), DIMS.reteT - 0.004, 0.002));
     planarUV(geo, 0, 0, P.RETE_HALF);
     const mesh = new THREE.Mesh(geo, [capMat, sideMat]);

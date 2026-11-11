@@ -60,7 +60,7 @@ const poly = (pts: Pt[]) => "M" + pts.map((p) => `${X(p.x).toFixed(4)},${Y(p.y).
 /** Il contorno del trono, in SVG (le stesse curve del 3D, semplificate). */
 function kursiPath(): string {
   const segs = (s: number) => [
-    [0.62 * s, 0.9],
+    [0.25 * s, 1.12, 0.48 * s, 1.03, 0.66 * s, 0.906],
     [0.74 * s, 1.0],
     [0.82 * s, 1.02, 0.87 * s, 1.1, 0.82 * s, 1.16],
     [0.78 * s, 1.2, 0.72 * s, 1.17, 0.7 * s, 1.14],
@@ -72,11 +72,11 @@ function kursiPath(): string {
     [0.04 * s, 1.67, 0.03 * s, 1.69, 0, DIMS.kursiTop],
   ];
   const fmt = (x: number, y: number) => `${X(x).toFixed(3)},${Y(y).toFixed(3)}`;
-  let d = `M${fmt(0, 0.9)}`;
+  let d = `M${fmt(0, 1.12)}`;
   for (const v of segs(1)) d += v.length === 2 ? `L${fmt(v[0], v[1])}` : `C${fmt(v[0], v[1])} ${fmt(v[2], v[3])} ${fmt(v[4], v[5])}`;
   // la metà sinistra al contrario
   const left = segs(-1);
-  const pts: number[][] = [[0, 0.9], ...left];
+  const pts: number[][] = [[0, 1.12], ...left];
   for (let i = pts.length - 1; i >= 1; i--) {
     const cur = pts[i];
     const prevEnd = pts[i - 1].slice(-2);

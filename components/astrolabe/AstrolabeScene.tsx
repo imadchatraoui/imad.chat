@@ -98,12 +98,18 @@ function Engine({ city, observer, sections, initialState, framing, callbacks, on
 function Studio() {
   return (
     <Environment resolution={256} frames={1}>
-      <color attach="background" args={["#0b1028"]} />
-      <Lightformer form="rect" intensity={4.2} color="#ffefd2" position={[-3.2, 3.4, 4.2]} scale={[4.5, 3]} target={[0, 0, 0]} />
-      <Lightformer form="rect" intensity={1.1} color="#d9e1ff" position={[4.2, 0.6, 3.2]} scale={[2.4, 4.5]} target={[0, 0, 0]} />
-      <Lightformer form="rect" intensity={2.4} color="#9fb4f0" position={[0.5, 4.5, -3.5]} scale={[7, 0.7]} target={[0, 0, 0]} />
-      <Lightformer form="rect" intensity={0.55} color="#ffcf8a" position={[0, -4.2, 1.5]} scale={[7, 2.2]} target={[0, 0, 0]} />
-      <Lightformer form="ring" intensity={1.6} color="#fff6e6" position={[2.6, 2.8, 4]} scale={0.9} target={[0, 0, 0]} />
+      <color attach="background" args={["#0e1533"]} />
+      {/* una grande luce morbida davanti: la faccia dell'ottone la riflette tutta */}
+      <Lightformer form="rect" intensity={1.25} color="#fff1da" position={[0, 1.2, 6]} scale={[10, 6]} target={[0, 0, 0]} />
+      {/* la luce chiave, calda, in alto a sinistra */}
+      <Lightformer form="rect" intensity={6} color="#ffe6bd" position={[-3.2, 3.2, 4]} scale={[3.2, 2.2]} target={[0, 0, 0]} />
+      {/* controluce fredda dall'alto, dietro */}
+      <Lightformer form="rect" intensity={3.2} color="#b9c8ff" position={[0, 5, -2.5]} scale={[9, 1]} target={[0, 0, 0]} />
+      {/* un filo blu da destra, il colore della notte */}
+      <Lightformer form="rect" intensity={1.6} color="#9fb4f0" position={[5, 0, 2]} scale={[2, 6]} target={[0, 0, 0]} />
+      {/* un riflesso caldo dal basso */}
+      <Lightformer form="rect" intensity={0.9} color="#ffcf8a" position={[0, -5, 2]} scale={[9, 2.4]} target={[0, 0, 0]} />
+      <Lightformer form="ring" intensity={2.2} color="#fff6e6" position={[2.4, 2.6, 4.5]} scale={0.8} target={[0, 0, 0]} />
     </Environment>
   );
 }
@@ -117,7 +123,7 @@ export default function AstrolabeScene(props: SceneProps) {
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance", stencil: false }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.NeutralToneMapping;
-        gl.toneMappingExposure = 1.0;
+        gl.toneMappingExposure = 1.08;
         gl.setClearColor(0x000000, 0);
       }}
       style={{ touchAction: "pan-y pinch-zoom" }}

@@ -6,7 +6,7 @@
 import * as THREE from "three";
 import { brightStars, starColor, toDateCoordsMany } from "@/lib/astro";
 
-const VIEW_ELEV = (32 * Math.PI) / 180;
+const VIEW_ELEV = (42 * Math.PI) / 180;
 
 const COMMON = /* glsl */ `
 uniform float uLst;
@@ -104,9 +104,9 @@ void main() {
   // sotto l'orizzonte niente stelle; vicino all'orizzonte l'aria le spegne
   float ext = smoothstep(-0.01, 0.12, d.z);
   float night = 1.0 - smoothstep(-14.0, -4.0, uSunAlt);
-  vAlpha = clamp(1.15 - 0.2 * aMag, 0.12, 1.0) * ext * (0.15 + 0.85 * night) * step(-0.6, v.z);
+  vAlpha = clamp(1.25 - 0.2 * aMag, 0.18, 1.0) * ext * (0.1 + 0.9 * night) * step(-0.6, v.z);
   vColor = aColor;
-  gl_PointSize = clamp(4.6 - 0.85 * aMag, 1.4, 7.0) * uPixelRatio;
+  gl_PointSize = clamp(5.2 - 0.9 * aMag, 1.6, 8.0) * uPixelRatio;
   gl_Position = vec4(p, 0.9998, 1.0);
 }
 `;

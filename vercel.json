@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "ignoreCommand": "msg=\"${VERCEL_GIT_COMMIT_MESSAGE:-$(git log -1 --pretty=%s 2>/dev/null)}\"; case \"$msg\" in WIP*) echo \"Commit WIP: build saltata\"; exit 0;; *) exit 1;; esac"
 }

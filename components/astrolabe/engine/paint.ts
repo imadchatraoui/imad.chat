@@ -716,9 +716,10 @@ export function kursiOutline(b: Burin) {
   const P = (x: number, y: number): [number, number] => [b.X(x), b.Y(y)];
   const half = (s: number) => {
     // s = +1 lato destro, -1 sinistro; si parte dal fondo (dentro la madre) e si sale fino alla punta
+    // la base segue un arco nascosto sotto la faccia del lembo (raggio 1,12), così il trono non entra nella cavità
     const pts: [string, ...number[]][] = [
-      ["M", 0, 0.9],
-      ["L", 0.62 * s, 0.9],
+      ["M", 0, 1.12],
+      ["C", 0.25 * s, 1.12, 0.48 * s, 1.03, 0.66 * s, 0.906],
       ["L", 0.74 * s, 1.0],
       // voluta del piede: un lobo tondo con l'occhio traforato
       ["C", 0.82 * s, 1.02, 0.87 * s, 1.1, 0.82 * s, 1.16],

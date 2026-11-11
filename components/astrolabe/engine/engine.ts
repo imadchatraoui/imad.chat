@@ -966,7 +966,8 @@ export class AstrolabeEngine {
     // centro del riquadro nel mondo e spostamento per i margini asimmetrici
     const boxCy = (BOUNDS.maxY + BOUNDS.minY) / 2;
     const worldPerPx = (2 * dist * tanV) / h;
-    let cy = boxCy + ((f.bottom - f.top) * h * worldPerPx) / 2;
+    // più margine sotto che sopra: lo strumento sale, quindi la camera guarda più in basso
+    let cy = boxCy - ((f.bottom - f.top) * h * worldPerPx) / 2;
     let cx = 0;
     // sul retro: più vicino, centrato sul codice
     if (this.codeZoom > 0) {
