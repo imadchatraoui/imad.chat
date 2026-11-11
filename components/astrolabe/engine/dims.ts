@@ -6,13 +6,13 @@ export const DIMS = {
   /** Raggio esterno della madre (il lembo). */
   mater: 1.27,
   /** Raggio interno del lembo: dentro stanno piastra e rete. */
-  limbIn: 1.05,
+  limbIn: 1.075,
   /** Spessore del fondo della madre: la faccia posteriore sta a z=0, il fondo della cavità a z=floor. */
   floor: 0.045,
   /** Altezza della faccia del lembo. */
   limbTop: 0.076,
   /** Raggio della piastra: oltre il Capricorno c'è una fascia ornata. */
-  plate: 1.035,
+  plate: 1.064,
   plateZ: 0.046,
   plateT: 0.012,
   reteZ: 0.0595,

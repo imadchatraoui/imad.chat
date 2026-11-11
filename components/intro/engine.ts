@@ -1233,9 +1233,16 @@ export class IntroEngine {
         D.tp[p] = TAU * rng();
         const sx = lx + ex * L.M;
         const sy = L.baseline + ey * L.M;
-        const dy = (0.08 + 0.44 * Math.pow(rng(), 0.8)) * h;
-        const x = Math.min(this.w * 0.96, Math.max(this.w * 0.04, sx + gauss(rng) * (14 + 0.46 * dy)));
-        const y = Math.max(h * 0.04, sy - dy);
+        // rise into the room actually available above the word: never pile up against the edge
+        const avail = Math.max(20, sy - h * 0.05);
+        let dy = (0.08 + 0.44 * Math.pow(rng(), 0.8)) * h;
+        if (dy > avail) dy = avail * (0.55 + 0.45 * rng());
+        let x = sx + gauss(rng) * (14 + 0.46 * dy);
+        for (let tries = 0; tries < 3 && (x < this.w * 0.04 || x > this.w * 0.96); tries++) {
+          x = sx + gauss(rng) * (14 + 0.46 * dy);
+        }
+        x = Math.min(this.w * 0.96, Math.max(this.w * 0.04, x));
+        const y = sy - dy;
         const landS = D.rel[p] + D.dur[p];
         this.screenToSky(x, y, this.theta(this.T0 + landS), tmp);
         const si = st.n++;

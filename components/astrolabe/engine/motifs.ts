@@ -243,6 +243,8 @@ const SYNONYMS: Record<string, string> = {
   andean: "tocapu",
   greca: "tocapu",
   chakana: "tocapu",
+  inca: "tocapu",
+  inka: "tocapu",
   olive: "oliva",
   ulivo: "oliva",
   olivo: "oliva",

@@ -9,6 +9,8 @@ const config: NextConfig = {
     "/diario/[slug]/opengraph-image": ["./assets/fonts/**/*", "./content/**/*"],
   },
   poweredByHeader: false,
+  // Permette più server di sviluppo in parallelo sullo stesso progetto (NEXT_DIST_DIR=.next-xyz).
+  distDir: process.env.NEXT_DIST_DIR || ".next",
 };
 
 export default config;

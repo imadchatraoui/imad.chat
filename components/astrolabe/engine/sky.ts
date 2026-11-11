@@ -206,9 +206,10 @@ export class SkyLayer {
         uGround: { value: new THREE.Color("#03050b") },
         uOpacity: { value: 1 },
       },
+      // opaco: si disegna per primo, nel passaggio dei solidi, e non scrive la profondità
       depthTest: false,
       depthWrite: false,
-      transparent: true,
+      transparent: false,
     });
     const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.skyMat);
     quad.frustumCulled = false;
@@ -243,7 +244,8 @@ export class SkyLayer {
       vertexShader: starVert,
       fragmentShader: starFrag,
       uniforms: { ...u, uPixelRatio: { value: pixelRatio }, uSunAlt: this.skyMat.uniforms.uSunAlt },
-      depthTest: false,
+      // dietro lo strumento: il test di profondità le nasconde dove c'è l'ottone
+      depthTest: true,
       depthWrite: false,
       transparent: true,
       blending: THREE.AdditiveBlending,
@@ -263,7 +265,7 @@ export class SkyLayer {
         uPhase: { value: 0 },
         uAlpha: { value: 1 },
       },
-      depthTest: false,
+      depthTest: true,
       depthWrite: false,
       transparent: true,
     });

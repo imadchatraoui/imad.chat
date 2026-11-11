@@ -253,7 +253,7 @@ export interface ReteOptions {
 
 /** Disegna la rete per un elenco di stelle (coordinate della data). */
 export function reteDesign(stars: readonly ReteStarInput[], opts: ReteOptions = {}): ReteDesign {
-  const maxRadius = opts.maxRadius ?? 1.06;
+  const maxRadius = opts.maxRadius ?? 1.062;
   const ecl = eclipticCircle();
   const ring = { inner: 1 - RING_W, outer: 1 };
   const equator = { r: R_EQ, width: EQ_W, from: Math.PI / 2, to: -Math.PI / 2 };

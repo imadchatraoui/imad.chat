@@ -85,7 +85,7 @@ export default function Astrolabe(props: AstrolabeProps) {
       explode: () => run((e) => e.explode()),
       flip: () => run((e) => e.flip()),
       triggerTariq: () => run((e) => e.triggerTariq()),
-      setTime: (d: Date) => run((e) => e.setTime(d)),
+      setTime: (d: Date, opts?: { animate?: boolean }) => run((e) => e.setTime(d, opts?.animate ?? true)),
       resetNow: () => run((e) => e.resetNow()),
       pointQibla: (on = true) => {
         if (engineRef.current) return engineRef.current.pointQibla(on);

@@ -16,8 +16,8 @@ export interface AstrolabeHandle {
   flip(): void;
   /** At-Tariq: tre colpi luminosi, poi un raggio che trafigge il buio. */
   triggerTariq(): void;
-  /** Porta il cielo a un istante (la rete gira fino lì). */
-  setTime(date: Date): void;
+  /** Porta il cielo a un istante (la rete gira fino lì; animate: false per saltarci subito). */
+  setTime(date: Date, opts?: { animate?: boolean }): void;
   /** Torna al cielo vero di adesso. */
   resetNow(): void;
   /** La regola si gira verso la qibla (false per tornare al Sole). Ritorna l'azimut in gradi. */

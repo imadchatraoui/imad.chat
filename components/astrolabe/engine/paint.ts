@@ -329,7 +329,7 @@ export function paintLimb(b: Burin, sections: readonly AstroSection[], fonts: En
   // cerchi della scala
   const r1 = R - 0.018; // bordo esterno delle tacche
   const r2 = R - 0.062; // fine delle tacche lunghe
-  const r3 = R - 0.142; // fine dei numeri dei gradi
+  const r3 = R - 0.128; // fine dei numeri dei gradi
   const r4 = Ri + 0.012; // bordo interno
   c.lineWidth = b.L(0.003, 1);
   b.circle(0, 0, r1);
@@ -371,7 +371,7 @@ export function paintLimb(b: Burin, sections: readonly AstroSection[], fonts: En
     const label = String(h === 0 ? 24 : h);
     const at = a + 7.5 * DEG;
     const lowerH = Math.cos(at) < -0.001;
-    b.text(label, Math.sin(at) * rr, Math.cos(at) * rr, 0.04, fonts.serif, lowerH ? at + Math.PI : at, { style: "italic" });
+    b.text(label, Math.sin(at) * rr, Math.cos(at) * rr, 0.034, fonts.serif, lowerH ? at + Math.PI : at, { style: "italic" });
   }
   c.restore();
 
