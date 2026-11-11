@@ -4,8 +4,9 @@
 //
 // 1. L'intro (components/intro) scrive "hello, world", lo trasforma in "hello, imad’s world" e incide un
 //    cerchio graduato: proprio dove cadrà il lembo dell'astrolabio (stage.ts).
-// 2. Intanto, dietro, si carica l'astrolabio (nascosto). Quando l'intro ha chiuso il cerchio e lo
-//    strumento è pronto, l'intro sfuma e l'ottone si monta pezzo per pezzo sul cerchio (assemble).
+// 2. Intanto si scarica il codice dell'astrolabio. Lo strumento si costruisce quando l'intro ha chiuso
+//    il cerchio (dipingere l'ottone e preparare WebGL occupa il filo principale: durante l'animazione la
+//    farebbe inciampare); poi l'intro sfuma e l'ottone si monta pezzo per pezzo sul cerchio (assemble).
 // 3. Poi la cornice: il logo e «Sezioni» in alto, la barra delle piastre e dei gesti in basso, i fogli
 //    con le stelle, le città e le sezioni. I suoni seguono gli eventi dell'intro e dello strumento.
 //
@@ -71,7 +72,7 @@ const SEEN_KEY = "imad.intro";
 /** La dissolvenza dell'intro sull'astrolabio che si monta, in ms. */
 const HANDOFF_MS = 1100;
 /** Se lo strumento 3D non è pronto tanto dopo la fine dell'intro, si passa alla versione 2D. */
-const WATCHDOG_MS = 14000;
+const WATCHDOG_MS = 15000;
 
 function readSeen(): boolean {
   try {
@@ -214,6 +215,25 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
     };
   }, []);
 
+
+  // il codice dello strumento si scarica subito, quando il browser è libero (durante le prime stelle)
+  useEffect(() => {
+    if (twoD === null) return;
+    const load = () => {
+      if (twoD) void import("@/components/astrolabe/AstrolabeFallback");
+      else {
+        void import("@/components/astrolabe/Astrolabe");
+        void import("@/components/astrolabe/AstrolabeScene");
+      }
+    };
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(load, { timeout: 1200 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(load, 200);
+    return () => window.clearTimeout(id);
+  }, [twoD]);
 
   // --- inquadratura: lo strumento sta tra la barra in alto e i comandi in basso -----------------
 
@@ -496,7 +516,7 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
           style={shift ? { transform: `translate3d(${shift}px, 0, 0)` } : undefined}
           onKeyDown={onStageKey}
         >
-          {mounted && framing && twoD !== null ? (
+          {mounted && framing && twoD !== null && introDone ? (
             mode2d ? (
               <AstrolabeFallback key={`2d-${run}`} {...astroProps} />
             ) : (

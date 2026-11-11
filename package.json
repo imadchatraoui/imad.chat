@@ -7,10 +7,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:content": "node scripts/check/content.mjs",
+    "check:astro": "node scripts/check/astro.mjs",
+    "media": "python3 -I scripts/media/import.py"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "latest",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
     "astronomy-engine": "^2.1.19",

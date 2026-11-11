@@ -653,6 +653,7 @@ export class IntroEngine {
   private textCv: HTMLCanvasElement | null = null;
   private tctx: CanvasRenderingContext2D | null = null;
   private bandN = 0;
+  private bgDithered = false;
   private lastTh = NaN;
   private lastBgA = -1;
   private lastBandA = -1;
@@ -705,7 +706,10 @@ export class IntroEngine {
     };
     this.createLayers();
     this.applyResize();
-    if (this.manual || this.reduced) this.makeBand(); // otherwise on the first frame
+    if (this.manual || this.reduced) {
+      this.makeBackground();
+      this.makeBand(); // otherwise on the first frames, while the night is still fading in
+    }
     this.render(this.t); // the night, before anything else
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.onVisibility);
     if (this.reduced) this.later(() => this.fireDone(), REDUCED_HANDOVER_MS);
@@ -903,6 +907,7 @@ export class IntroEngine {
       if (++this.frames % 30 === 0) this.checkDevicePixelRatio();
       // startup work, one piece per frame
       if (!this.bandN) this.makeBand();
+      else if (!this.bgDithered) this.makeBackground();
       else if (this.stage > 0 && this.stage < 5) this.runStage();
       this.maintain();
       if (this.doneFired) {
@@ -1053,7 +1058,7 @@ export class IntroEngine {
   private lateFontsArrived() {
     if (!this.webFonts || this.disposed || this.failed) return;
     const s = this.t - this.T0;
-    if (!this.ready || !(s >= this.timeline.type[0] - 0.05)) {
+    if (this.skipAt < 0 && (!this.ready || !(s >= this.timeline.type[0] - 0.05))) {
       // nothing typed yet: prepare again in the real faces, the script keeps its start
       this.fonts = this.webFonts;
       this.webFonts = null;
@@ -1262,7 +1267,7 @@ export class IntroEngine {
     this.placeBand();
     this.placeTextLayer();
     // the background is stretched by CSS until the size has settled, then painted again
-    if (full) this.makeBackground();
+    if (full) this.makeBackground(true);
     else if (!this.looping) this.rebuildLayers();
     else this.layersStale = true;
     this.stableFrames = 0;
@@ -1405,13 +1410,13 @@ export class IntroEngine {
       L.gold = gr;
     }
     this.textDirty = true;
-    this.markQuiet();
     // glows: drawn scaled until the size settles, then rasterised again
     const gw = this.glows.find((g) => g);
     if (gw && (gw.dpr !== this.dpr || Math.abs(S / gw.S - 1) > 0.02)) this.glowsStale = true;
     if (this.glowsStale && !this.looping && this.stage >= 5) this.makeGlows();
     // the plume stars that have not landed yet are placed again around the word
     if (this.D) this.placePlume(false);
+    this.markQuiet();
     // the gathering is planned again (sources, timings) if it has not begun
     if (this.C && this.ready && this.t - this.T0 < this.timeline.cond0 - 0.05) {
       if (this.looping) this.condenseStale = true;
@@ -1578,7 +1583,7 @@ export class IntroEngine {
     st.p2[i] = TAU * rng();
   }
 
-  /** Bright stars that would come to rest behind the lockup shine like faint ones instead. */
+  /** Bright stars (the new ones from "world" too) that would rest behind the lockup shine like faint ones instead. */
   private markQuiet() {
     const st = this.stars;
     const L = this.L;
@@ -1590,7 +1595,7 @@ export class IntroEngine {
     const sky = L.sky;
     const ax = L.textW / 2 + 0.6 * L.S;
     const ay = 1.1 * L.S;
-    for (let i = 0; i < this.nBase; i++) {
+    for (let i = 0; i < st.n; i++) {
       st.quiet[i] = 0;
       if (!(st.spr[i] || st.a[i] > 0.45)) continue;
       const bx = sky.Cx + st.u[i] * sky.L - sky.Px;
@@ -1666,8 +1671,12 @@ export class IntroEngine {
   // -------------------------------------------------------------------------
   // Pre-rendered layers
   // -------------------------------------------------------------------------
-  /** Radial night (#0b1230 → #070a14), dithered so the gradient never bands. */
-  private makeBackground() {
+  /**
+   * Radial night (#0b1230 → #070a14), dithered so the gradient never bands. `quick`: a plain
+   * gradient for the first frames (the night is then still fading in from the page colour); the
+   * dithered one follows on a frame of its own.
+   */
+  private makeBackground(quick = false) {
     const L = this.L;
     const cv = this.bg;
     if (!L || !cv) return;
@@ -1681,6 +1690,26 @@ export class IntroEngine {
       cv.height = bh;
     }
     const g = ctx2d(cv, { alpha: false });
+    if (quick) {
+      const cx = L.cx * sc;
+      const cy = (L.cy - 0.05 * L.r) * sc;
+      const R = 0.62 * Math.sqrt(bw * bw + bh * bh);
+      g.setTransform(1, 0, 0, 1 / 1.08, 0, cy - cy / 1.08);
+      const gr = g.createRadialGradient(cx, cy, 0, cx, cy, R);
+      for (let i = 0; i <= 8; i++) {
+        const t = i / 8;
+        const k = Math.pow(t * t * (3 - 2 * t), 0.8);
+        gr.addColorStop(t, 'rgb(' + Math.round(11 - 4 * k) + ',' + Math.round(18 - 8 * k) + ',' + Math.round(48 - 28 * k) + ')');
+      }
+      g.fillStyle = gr;
+      const v0 = cy - cy * 1.08; // user-space rows that map onto device rows 0 … bh
+      const v1 = cy + (bh - cy) * 1.08;
+      g.fillRect(0, v0 - 2, bw, v1 - v0 + 4);
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      this.bgDithered = false;
+      return;
+    }
+    this.bgDithered = true;
     const img = g.createImageData(bw, bh);
     const px = new Uint32Array(img.data.buffer);
     const cx = L.cx * sc;
@@ -1960,6 +1989,7 @@ export class IntroEngine {
     this.D = D;
     this.placePlume(true);
     this.recomputeStarSizes();
+    this.markQuiet();
   }
 
   /**
