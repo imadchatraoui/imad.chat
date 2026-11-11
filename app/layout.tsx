@@ -17,8 +17,11 @@ const mono = JetBrains_Mono({
   variable: "--font-mono-intro",
 });
 
+// Il dominio pubblico del progetto: imad.chat quando è collegato, altrimenti l'indirizzo vercel.app.
+const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || "imad.chat";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://imad.chat"),
+  metadataBase: new URL(`https://${productionHost}`),
   title: "imad.chat",
   description: "hello, imad's world",
   openGraph: {
