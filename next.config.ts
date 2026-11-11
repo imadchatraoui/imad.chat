@@ -9,6 +9,17 @@ const config: NextConfig = {
     "/sitemap.xml": ["./content/sezioni/**/*"],
   },
   poweredByHeader: false,
+  // La home online è la pagina statica in public/home (scripts/home/build.mjs la genera dal disegno scelto).
+  async rewrites() {
+    return { beforeFiles: [{ source: "/", destination: "/home/index.html" }], afterFiles: [], fallback: [] };
+  },
+  // Le pagine del vecchio sito non si mostrano più: tornano alla home.
+  async redirects() {
+    return [
+      { source: "/sezioni/:path*", destination: "/", permanent: false },
+      { source: "/lab/:path*", destination: "/", permanent: false },
+    ];
+  },
   // Permette più server di sviluppo in parallelo sullo stesso progetto (NEXT_DIST_DIR=.next-xyz).
   distDir: process.env.NEXT_DIST_DIR || ".next",
 };
