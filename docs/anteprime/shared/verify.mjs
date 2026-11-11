@@ -1,5 +1,6 @@
 // Controllo automatico delle regole fisse su un'anteprima. Non sostituisce gli occhi: li affianca.
 // Uso: node shared/verify.mjs <cartella-variante> [--t 2026-11-11T15:50:00Z]
+//      node docs/anteprime/shared/verify.mjs --base http://localhost:3000 --repo . [--t ...]   (il sito vero, in esecuzione)
 // Esce con codice 2 se ci sono BLOCCHI (regole fisse violate), 0 altrimenti. Gli AVVISI vanno letti e valutati.
 import http from "node:http";
 import fs from "node:fs";
@@ -9,12 +10,21 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
 const args = process.argv.slice(2);
-const dir = path.resolve(args[0] || ".");
+const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : "");
+const BASE = opt("--base");            // sito in esecuzione (es. http://localhost:3000): niente server statico, niente controlli sui file
+const REPO = opt("--repo");            // cartella del repository: l'arabo ammesso si legge da content/astro invece che da data.js
+const dir = path.resolve(BASE ? "." : args[0] || ".");
 const T = args.includes("--t") ? args[args.indexOf("--t") + 1] : "2026-11-11T15:50:00Z";
 const here = path.dirname(new URL(import.meta.url).pathname);
 const astro = require(path.join(here, "astro-lite.js"));
 const dataSrc = fs.readFileSync(path.join(here, "data.js"), "utf8");
 const DATA = JSON.parse(dataSrc.slice(dataSrc.indexOf("{"), dataSrc.lastIndexOf("}") + 1));
+if (REPO) {
+  const items = (f) => JSON.parse(fs.readFileSync(path.join(path.resolve(REPO), "content/astro", f), "utf8")).items;
+  DATA.verses = items("verses.json");
+  DATA.stars = items("stars.json");
+  DATA.cities = items("cities.json").map((c) => ({ ...c, ar: c.nameLocal || "" }));
+}
 
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".woff2": "font/woff2" };
@@ -26,14 +36,14 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { "content-type": MIME[path.extname(file)] || "application/octet-stream", "cache-control": "no-store" });
   fs.createReadStream(file).pipe(res);
 });
-await new Promise((r) => server.listen(0, "127.0.0.1", r));
-const base = `http://127.0.0.1:${server.address().port}/`;
+if (!BASE) await new Promise((r) => server.listen(0, "127.0.0.1", r));
+const base = BASE ? BASE.replace(/\/?$/, "/") : `http://127.0.0.1:${server.address().port}/`;
 const browser = await chromium.launch();
 const blocks = [], warns = [];
 const block = (m) => blocks.push(m), warn = (m) => warns.push(m);
 
 // ---- controlli statici sui file
-const files = fs.readdirSync(dir).filter((f) => /\.(html|css|js)$/.test(f) && !["data.js", "astro-lite.js"].includes(f));
+const files = BASE ? [] : fs.readdirSync(dir).filter((f) => /\.(html|css|js)$/.test(f) && !["data.js", "astro-lite.js"].includes(f));
 for (const f of files) {
   const src = fs.readFileSync(path.join(dir, f), "utf8");
   const it = src.match(/font-style\s*:\s*(italic|oblique)/gi);
@@ -50,7 +60,7 @@ const IN_PAGE = (DATA_JSON) => {
   const visible = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none" && +s.opacity > 0.05; };
   const sel = (el) => { let s = el.tagName.toLowerCase(); if (el.id) s += "#" + el.id; if (el.className && typeof el.className === "string") s += "." + el.className.trim().split(/\s+/).slice(0, 2).join("."); return s; };
   const AR = /[؀-ۿݐ-ݿﭐ-ﷹﷻ-﷿ﹰ-﻿]/;
-  const verses = DATA.verses.map((v) => v.ar), known = new Set([...verses, ...DATA.cities.map((c) => c.ar), ...DATA.stars.map((s) => s.ar)]);
+  const verses = DATA.verses.map((v) => v.ar), known = new Set([...verses, ...DATA.cities.map((c) => c.ar), ...DATA.stars.map((s) => s.ar)].filter(Boolean));
   // corsivo
   const italics = [...document.querySelectorAll("body *")].filter((el) => visible(el) && getComputedStyle(el).fontStyle !== "normal" && el.textContent.trim());
   if (italics.length) out.blocks.push(`corsivo calcolato su ${italics.length} elementi, es. ${italics.slice(0, 3).map(sel).join(", ")}`);
@@ -145,12 +155,13 @@ await visit("movimento ridotto", { theme: "dark", reduce: true });
 for (const s of ["citta", "saluti", "corano"]) { await visit(`aperto ${s} scuro`, { theme: "dark", query: `&open=${s}` }); await visit(`aperto ${s} chiaro 360`, { width: 360, height: 740, theme: "light", query: `&open=${s}` }); }
 if (dark && light && dark.bg === light.bg) warn(`tema: il colore di fondo è uguale in chiaro e in scuro (${dark.bg}): il parametro theme funziona?`);
 if (dark) for (const c of DATA.cities) { const t = astro.localTime(now, c.tz); if (!dark.text.includes(t)) warn(`ore: ora attesa per ${c.name} (${t}) non trovata nella home a ${T}`); }
-for (const [key, fam] of [["inter", "Inter"], ["geist", "Geist"], ["manrope", "Manrope"], ["instrument", "Instrument Sans"], ["sistema", "system"]]) {
+// i caratteri alternativi e la barra "anteprima" esistono solo nell'anteprima, non nel sito vero
+for (const [key, fam] of BASE ? [] : [["inter", "Inter"], ["geist", "Geist"], ["manrope", "Manrope"], ["instrument", "Instrument Sans"], ["sistema", "system"]]) {
   const r = await visit(`carattere ${key}`, { width: 360, height: 740, theme: "light", query: `&font=${key}` });
   if (r && key !== "sistema" && !new RegExp(`^["']?${fam}`, "i").test(r.bodyFont)) warn(`caratteri: font=${key}: il corpo usa ${r.bodyFont.slice(0, 50)}`);
 }
 // la barra "anteprima" deve esserci senza shot=1
-{
+if (!BASE) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "dark", isMobile: true, hasTouch: true, reducedMotion: "reduce" });
   const page = await ctx.newPage();
   try { await page.goto(`${base}?t=${encodeURIComponent(T)}`, { waitUntil: "load", timeout: 45000 }); await page.waitForTimeout(1500);
@@ -158,13 +169,13 @@ for (const [key, fam] of [["inter", "Inter"], ["geist", "Geist"], ["manrope", "M
   } catch (e) { warn("barra: " + String(e.message).split("\n")[0]); }
   await ctx.close();
 }
-await browser.close(); server.close();
+await browser.close(); if (!BASE) server.close();
 
 // stesso messaggio in più viste: una riga sola, con l'elenco delle viste
 const group = (list) => { const m = new Map(); for (const x of list) { const i = x.indexOf(": "); const label = x.slice(0, i), msg = x.slice(i + 2).replace(/\b\d+(\.\d+)?x\d+(\.\d+)?\b/g, "NxN"); if (!m.has(msg)) m.set(msg, { text: x.slice(i + 2), labels: [] }); if (!m.get(msg).labels.includes(label)) m.get(msg).labels.push(label); } return [...m.values()]; };
 const show = (mark, g) => console.log(`  ${mark} ${g.text}  [${g.labels.length > 3 ? g.labels.slice(0, 3).join(", ") + ` e altre ${g.labels.length - 3} viste` : g.labels.join(", ")}]`);
 const gb = group(blocks), gw = group(warns);
-console.log(`\n== ${path.basename(dir)} a ${T}`);
+console.log(`\n== ${BASE || path.basename(dir)} a ${T}`);
 console.log(`BLOCCHI (${gb.length}):`); for (const g of gb) show("✗", g);
 console.log(`AVVISI (${gw.length}):`); for (const g of gw) show("!", g);
 if (!blocks.length) console.log("nessun blocco: le regole fisse controllabili sono rispettate");

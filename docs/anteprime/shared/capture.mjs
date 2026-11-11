@@ -1,5 +1,6 @@
 // Fotografa un'anteprima (cartella con index.html) su telefono e computer, in chiaro e in scuro.
 // Uso:  node shared/capture.mjs <cartella-variante> [--t 2026-11-11T15:50:00Z] [--only home|stati|intro|desktop] [--out shots]
+//       node docs/anteprime/shared/capture.mjs <cartella-dove-salvare> --base http://localhost:3000 [...]   (il sito vero, in esecuzione)
 // Contratto con la pagina (parametri in querystring):
 //   shot=1            nasconde la barra "anteprima", salta l'intro, ferma le animazioni continue sullo stato finale
 //   theme=light|dark  forza il tema (oltre a prefers-color-scheme, che viene comunque emulato)
@@ -15,7 +16,8 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
 const args = process.argv.slice(2);
-const dir = path.resolve(args[0] || ".");
+const BASE = args.includes("--base") ? args[args.indexOf("--base") + 1] : ""; // sito in esecuzione: niente server statico; <cartella> è solo dove salvare
+const dir = path.resolve(args[0] && !args[0].startsWith("--") ? args[0] : ".");
 const opt = (name, def) => (args.includes(name) ? args[args.indexOf(name) + 1] : def);
 const T = opt("--t", "2026-11-11T15:50:00Z");
 const only = opt("--only", "");
@@ -34,8 +36,8 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { "content-type": MIME[path.extname(file)] || "application/octet-stream", "cache-control": "no-store" });
   fs.createReadStream(file).pipe(res);
 });
-await new Promise((r) => server.listen(0, "127.0.0.1", r));
-const base = `http://127.0.0.1:${server.address().port}/`;
+if (!BASE) await new Promise((r) => server.listen(0, "127.0.0.1", r));
+const base = BASE ? BASE.replace(/\/?$/, "/") : `http://127.0.0.1:${server.address().port}/`;
 
 const browser = await chromium.launch();
 const problems = [];
@@ -106,7 +108,7 @@ if (!only || only === "home") {
 if (!only || only === "intro") { await intro("dark"); await intro("light"); }
 
 await browser.close();
-server.close();
+if (!BASE) server.close();
 console.log("fatte:", made.length, "immagini in", outDir);
 for (const m of made) console.log("  " + m);
 if (problems.length) { console.log("\nPROBLEMI:"); for (const p of [...new Set(problems)]) console.log("  - " + p); process.exitCode = 2; }

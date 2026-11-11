@@ -1,6 +1,7 @@
 // Stampa tutto il testo che un visitatore può leggere in un'anteprima: la home e ogni pagina aperta.
 // Serve a rileggere le parole prima di mostrarle (niente fatti inventati, niente dati personali, niente arabo scritto a mano).
 // Uso: node shared/testo.mjs <cartella> [--t 2026-11-11T15:50:00Z] [--theme dark]
+//      node docs/anteprime/shared/testo.mjs --base http://localhost:3000   (il sito vero, in esecuzione)
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -9,7 +10,8 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
 const args = process.argv.slice(2);
-const dir = path.resolve(args[0] || ".");
+const BASE = args.includes("--base") ? args[args.indexOf("--base") + 1] : ""; // sito in esecuzione
+const dir = path.resolve(args[0] && !args[0].startsWith("--") ? args[0] : ".");
 const opt = (n, d) => (args.includes(n) ? args[args.indexOf(n) + 1] : d);
 const T = opt("--t", "2026-11-11T15:50:00Z");
 const theme = opt("--theme", "dark");
@@ -22,8 +24,8 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { "content-type": MIME[path.extname(file)] || "application/octet-stream", "cache-control": "no-store" });
   fs.createReadStream(file).pipe(res);
 });
-await new Promise((r) => server.listen(0, "127.0.0.1", r));
-const base = `http://127.0.0.1:${server.address().port}/`;
+if (!BASE) await new Promise((r) => server.listen(0, "127.0.0.1", r));
+const base = BASE ? BASE.replace(/\/?$/, "/") : `http://127.0.0.1:${server.address().port}/`;
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: theme, locale: "it-IT" });
 const page = await ctx.newPage();
@@ -49,4 +51,4 @@ for (const id of ids) {
 }
 if (errors.length) { console.log("\n===== ERRORI ====="); console.log([...new Set(errors)].join("\n")); }
 await browser.close();
-server.close();
+if (!BASE) server.close();
