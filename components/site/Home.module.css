@@ -34,10 +34,6 @@
   transition-delay: 1.6s;
 }
 
-.home[data-live] .controls {
-  transition-delay: 1.6s;
-}
-
 /* la direzione della qibla, incisa in alto a sinistra mentre la regola la indica */
 .qibla {
   position: absolute;

@@ -18,7 +18,7 @@
   --hair: rgb(201 162 91 / 0.28);
   --hair-strong: rgb(201 162 91 / 0.55);
 
-  --serif: var(--font-serif-intro, "Cormorant Garamond"), "Cormorant Garamond", Garamond, "Iowan Old Style", Georgia, serif;
+  --serif: var(--font-serif-intro, "Cormorant Garamond"), "Cormorant Garamond", var(--font-amiri, "Amiri"), Garamond, "Iowan Old Style", Georgia, serif;
   --arabic: var(--font-amiri, "Amiri"), "Amiri", "Noto Naskh Arabic", "Geeza Pro", "Times New Roman", serif;
   --mono: var(--font-mono-intro, "JetBrains Mono"), "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --cjk: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "Noto Serif CJK JP", serif;

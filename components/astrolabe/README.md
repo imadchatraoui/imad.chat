@@ -163,10 +163,12 @@ Senza React, usabile ovunque (anche sul server):
 ## Caratteri
 
 Le incisioni si disegnano su canvas con i caratteri della pagina, letti da variabili CSS sull'elemento
-che contiene l'astrolabio: `--font-newsreader` (serif, numeri e nomi), `--font-amiri` (arabo, dai JSON),
-`--font-geist-mono` (solo dati: coordinate, gradi, il codice). Mancando, ripiega su Georgia e ui-monospace.
-Il layout principale carica già Newsreader e Amiri; Geist Mono va aggiunto (`geist/font/mono`), come fa
-`app/lab/astrolabio/page.tsx`.
+che contiene l'astrolabio: il serif da `--font-newsreader` o, se manca, `--font-cormorant` (numeri e nomi),
+l'arabo da `--font-amiri` (dai JSON), il monospace da `--font-geist-mono` o `--font-mono` (solo dati:
+coordinate, gradi, il codice). Mancando, ripiega su Georgia e ui-monospace.
+Il sito definisce `--font-cormorant` (Cormorant Garamond, lo stesso serif dell'intro), `--font-mono`
+(JetBrains Mono) e `--font-amiri` in `app/globals.css`, a partire dai caratteri caricati in `app/layout.tsx`.
+Il banco di prova `app/lab/astrolabio/page.tsx` aggiunge Geist Mono per conto suo.
 
 ## Asset generati (public/media/manifest.json)
 

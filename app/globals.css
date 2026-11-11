@@ -19,7 +19,7 @@
   --hair-strong: rgb(201 162 91 / 0.55);
 
   /* le variabili di next/font (app/layout.tsx), con un ripiego sensato */
-  --font-serif: var(--font-serif-intro, "Cormorant Garamond"), "Cormorant Garamond", Garamond, "Iowan Old Style", Georgia, serif;
+  --font-serif: var(--font-serif-intro, "Cormorant Garamond"), "Cormorant Garamond", var(--font-amiri, "Amiri"), Garamond, "Iowan Old Style", Georgia, serif;
   --font-mono: var(--font-mono-intro, "JetBrains Mono"), "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --font-arabic: var(--font-amiri, "Amiri"), "Amiri", "Noto Naskh Arabic", "Geeza Pro", serif;
   /* le incisioni dell'astrolabio leggono il serif da qui (components/astrolabe/engine/fonts.ts) */

@@ -102,7 +102,7 @@ Ogni voce ha almeno una fonte aperta durante il lavoro. Al massimo 60 parole cia
 - **Fès**: la fondazione di al-Qarawiyyin da parte di Fatima al-Fihri e l’età della conceria Chouara sono tradizioni che gli storici mettono in dubbio (Wikipedia EN); il testo le presenta come tali.
 - **Al-Muqaddasi**: la risposta «palestinese» è un solo episodio, a Shiraz, quando gli chiesero se fosse egiziano (Wikipedia EN, Al-Maqdisi).
 - **Tudela**: secondo Sotheby’s la doratura è «molto probabilmente un’aggiunta successiva»; il testo dice solo «d’ottone».
-- **Il nome del Profeta**: compare senza formula di benedizione (per esempio «pace e benedizioni su di lui»), in un registro neutro. È una scelta da confermare con Imad.
+- **Il nome del Profeta**: è seguito dalla formula di benedizione ﷺ (ṣallā Allāhu ʿalayhi wa-sallam, «Dio lo benedica e gli dia pace»), come si usa scrivendo da musulmani: nella curiosità sulla prima qibla e nel fatto su Hashim ibn ʿAbd Manaf a Gaza. Il segno è il carattere Unicode U+FDFA, reso in Amiri.
 - **Mariam al-Asṭurlābiyya**: il nome Mariam non compare nell’unica fonte antica (Ibn al-Nadīm); nel testo si usa al-ʿIjliyya.
 - **Tatreez**: i significati dei motivi sono interpretazioni diffuse, e il testo lo dice.
 - **Torino magica**: presentata come leggenda esoterica.

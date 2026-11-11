@@ -69,9 +69,19 @@ export function grouped(n: number): string {
     .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
+/**
+ * Il Marocco sta a UTC+0 tutto l'anno dal 20 settembre 2026, 01:00 UTC (tzdata 2026c e seguenti):
+ * i telefoni con dati dei fusi più vecchi metterebbero Fès un'ora avanti. Da lì in poi si usa UTC.
+ */
+const MOROCCO_UTC_FROM = Date.UTC(2026, 8, 20, 1, 0, 0);
+
+function zoneFor(timeZone: string, date: Date): string {
+  return timeZone === "Africa/Casablanca" && date.getTime() >= MOROCCO_UTC_FROM ? "UTC" : timeZone;
+}
+
 function fmt(date: Date, timeZone: string, opts: Intl.DateTimeFormatOptions): string {
   try {
-    return new Intl.DateTimeFormat("it-IT", { timeZone, ...opts }).format(date);
+    return new Intl.DateTimeFormat("it-IT", { timeZone: zoneFor(timeZone, date), ...opts }).format(date);
   } catch {
     return new Intl.DateTimeFormat("it-IT", { timeZone: "UTC", ...opts }).format(date);
   }
