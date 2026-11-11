@@ -108,7 +108,7 @@ function slotsFor(mode: Mode, view: number, count: number, turn: Turn | null, ph
     const ok = i >= 0 && i < count;
     return { key: ok ? `p${i}` : `blank-${side}`, index: ok ? i : null, side, part };
   };
-  const covering = (phase === "opening" || phase === "closing") && !reduced;
+  const covering = (phase === "opening" || phase === "closing" || phase === "closed") && !reduced;
   let out: Slot[];
   if (mode === "spread") {
     const R = (v: number) => 2 * v;
@@ -171,6 +171,8 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
   const [bookmark, setBookmark] = useState<number | null>(null);
   const [pill, setPill] = useState(false);
   const [warm, setWarm] = useState<number[]>([]);
+  // il libro aperto si prepara (nascosto e inerte) quando il browser è libero: aprirlo poi costa poco
+  const [prepared, setPrepared] = useState(false);
   const [announcement, setAnnouncement] = useState("");
 
   const safePage = count ? Math.min(Math.max(page, 0), count - 1) : 0;
@@ -254,13 +256,25 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
   // il carattere del Corano si scarica quando il browser è libero
   useEffect(() => {
     const sample = pages.map((p) => p.verse.ar).join(" ");
+    let alive = true;
+    const go = () => {
+      void warmQuranFont(sample).then(() => {
+        if (alive) setPrepared(true);
+      });
+    };
     const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
     if (w.requestIdleCallback) {
-      const id = w.requestIdleCallback(() => void warmQuranFont(sample), { timeout: 4000 });
-      return () => w.cancelIdleCallback?.(id);
+      const id = w.requestIdleCallback(go, { timeout: 4000 });
+      return () => {
+        alive = false;
+        w.cancelIdleCallback?.(id);
+      };
     }
-    const t = window.setTimeout(() => void warmQuranFont(sample), 2000);
-    return () => window.clearTimeout(t);
+    const t = window.setTimeout(go, 2000);
+    return () => {
+      alive = false;
+      window.clearTimeout(t);
+    };
   }, [pages]);
 
   const warmNow = useCallback(() => void warmQuranFont(pages.map((p) => p.verse.ar).join(" ")), [pages]);
@@ -283,6 +297,23 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
     },
     [pages, count],
   );
+
+  // le pagine vicine si preparano (nascoste) quando il browser è libero
+  const warmTimer = useRef<number | null>(null);
+  const scheduleWarm = useCallback(() => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    if (warmTimer.current !== null) {
+      if (w.cancelIdleCallback) w.cancelIdleCallback(warmTimer.current);
+      else window.clearTimeout(warmTimer.current);
+    }
+    const run = () => {
+      warmTimer.current = null;
+      const { phase: ph, view: v, mode: m, turn: tr } = live.current;
+      if (ph !== "open" || tr) return;
+      setWarm(neighborsOf(v, m, count));
+    };
+    warmTimer.current = w.requestIdleCallback ? w.requestIdleCallback(run, { timeout: 320 }) : window.setTimeout(run, 160);
+  }, [count]);
 
   const schedulePeek = useEffectEvent(() => {
     if (peekDone || reduced || view + 1 >= viewCount) return;
@@ -328,6 +359,7 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
         setPhase("open");
         setAnnouncement(describe(live.current.view, live.current.mode));
       });
+      scheduleWarm();
       schedulePeek();
     });
     return () => {
@@ -380,7 +412,10 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
     let alive = true;
     void settled(anims).then((ok) => {
       if (!alive || !ok) return;
-      flushSync(() => setPhase("closed"));
+      flushSync(() => {
+        setPhase("closed");
+        setWarm([]);
+      });
       dockRef.current?.focus({ preventScroll: true });
     });
     return () => {
@@ -405,10 +440,14 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
   const finishTurn = useCallback(
     (to: { view: number; page: number } | null) => {
       const before = live.current.view;
+      const m = live.current.mode;
       flushSync(() => {
         if (to) setPage(to.page);
         setTurn(null);
+        // le pagine appena lasciate restano pronte, nascoste: tornarci non costa niente
+        if (to) setWarm((w) => [...new Set([...w, ...(m === "spread" ? [2 * before, 2 * before + 1] : [before])])]);
       });
+      scheduleWarm();
       running.current.forEach((a) => a.cancel());
       running.current = [];
       clearFrame(bookRef.current);
@@ -420,7 +459,7 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
       pending.current = null;
       if (next) startTurnRef.current(next.view, { page: next.page });
     },
-    [describe],
+    [describe, scheduleWarm],
   );
 
   const startTurn = useCallback(
@@ -496,6 +535,10 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
     setTurn(null);
     clearFrame(bookRef.current);
   }, [mode]);
+
+  useEffect(() => {
+    if (live.current.phase === "open") scheduleWarm();
+  }, [mode, scheduleWarm]);
 
   // --- il dito sulla pagina ---------------------------------------------------------------------
 
@@ -680,23 +723,30 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
     () => () => {
       if (peekTimer.current) window.clearTimeout(peekTimer.current);
       if (raf.current) cancelAnimationFrame(raf.current);
+      const w = window as Window & { cancelIdleCallback?: (id: number) => void };
+      if (warmTimer.current !== null) {
+        if (w.cancelIdleCallback) w.cancelIdleCallback(warmTimer.current);
+        else window.clearTimeout(warmTimer.current);
+      }
     },
     [],
   );
 
   // --- azioni ----------------------------------------------------------------------------------------
 
-  const fire = useCallback(
-    (p: QuranPageData) => {
+  const fireRef = useRef<(p: QuranPageData) => void>(() => {});
+  useLayoutEffect(() => {
+    fireRef.current = (p: QuranPageData) => {
       if (!p.meta || live.current.phase !== "open") return;
       setPage(p.index);
       setBookmark(p.index);
       setPill(true);
       onAction?.(p.meta.action);
       close(true);
-    },
-    [onAction, close],
-  );
+    };
+  });
+  // sempre la stessa funzione: le pagine (memo) non si ridisegnano quando cambia il resto
+  const fire = useCallback((p: QuranPageData) => fireRef.current(p), []);
 
   const openBook = useCallback(() => {
     warmNow();
@@ -707,8 +757,9 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
 
   // --- disegno ----------------------------------------------------------------------------------------
 
-  const slots = phase === "closed" ? [] : slotsFor(mode, view, count, turn, phase, reduced);
-  const showCover = (phase === "opening" || phase === "closing") && !reduced;
+  const mounted = phase !== "closed" || prepared;
+  const slots = mounted ? slotsFor(mode, view, count, turn, phase, reduced, warm) : [];
+  const showCover = phase !== "open" && !reduced;
   const canNext = view + 1 < viewCount;
   const canPrev = view > 0;
   const marked = bookmark !== null ? pages[bookmark] : undefined;
@@ -749,7 +800,7 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
         </button>
       </div>
 
-      {phase !== "closed" ? (
+      {mounted ? (
         <div
           ref={dialogRef}
           id={dialogId}
@@ -760,6 +811,8 @@ export default function QuranBook({ verses, onAction, open, onOpenChange, initia
           tabIndex={-1}
           data-mode={mode}
           data-phase={phase}
+          inert={phase === "closed"}
+          aria-hidden={phase === "closed" || undefined}
         >
           <div ref={backdropRef} className={s.backdrop} onClick={() => close()} />
 

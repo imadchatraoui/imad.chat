@@ -6,7 +6,7 @@
 // [data-q-ayah-text], uniti da uno spazio, rifanno esattamente il campo `ar`; i segni di fine versetto
 // stanno in [data-q-ayah-end], fuori dal testo.
 
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { memo, useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { ayahEndSign, keepTogether } from "./arabic";
 import type { QuranPageData } from "./pages";
 import s from "./QuranBook.module.css";
@@ -83,7 +83,7 @@ function Arabic({ page }: { page: QuranPageData }) {
   );
 }
 
-export default function QuranPage({ page, idBase, actionHintId, onAction }: QuranPageProps) {
+function QuranPage({ page, idBase, actionHintId, onAction }: QuranPageProps) {
   const { verse, meta } = page;
   const titleId = `${idBase}-p${page.index}`;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -168,3 +168,6 @@ export default function QuranPage({ page, idBase, actionHintId, onAction }: Qura
     </article>
   );
 }
+
+// le pagine non cambiano mentre girano: niente ridisegni inutili durante le animazioni
+export default memo(QuranPage);

@@ -347,6 +347,12 @@
   --_bottom-h: calc(54px + env(safe-area-inset-bottom, 0px));
 }
 
+/* preparato in anticipo, finché non si apre non si vede e non si tocca */
+.dialog[data-phase="closed"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .backdrop {
   position: absolute;
   inset: 0;
@@ -519,6 +525,12 @@
 .slot[data-part="front"],
 .slot[data-part="back"] {
   z-index: 3;
+}
+
+/* le pagine vicine, già impaginate e pronte a girare: non si vedono */
+.slot[data-part="idle"] {
+  z-index: 0;
+  visibility: hidden;
 }
 
 .book[data-turning] .slot[data-part="front"],
