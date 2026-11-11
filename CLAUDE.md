@@ -1,18 +1,34 @@
 # imad.chat — project memory
 
-Personal site of Imad Chatraoui (Italian, Muslim, near Turin). Visitors arrive from his Instagram bio: **phones in portrait first**. Reply to Imad in **Italian**, plainly, step by step; he writes informally and is not a designer or a sysadmin.
+Personal site of Imad Chatraoui (Italian, Muslim, near Turin). Visitors arrive from his Instagram bio: **phones in portrait first**. Reply to Imad in **Italian**, plainly, step by step; he writes informally and is not a designer or a sysadmin. He wants to be asked questions and shown previews before big changes ("fammi tante domande prima di iniziare, mostrami anteprime").
 
-## What the site is
+## What the site is (direction of 2026-11-11; it replaces the astrolabe-centred site)
 
-"hello, imad's world": an intro where `hello, world` is typed, `world` is erased and becomes `imad's world`; then an interactive **astrolabe** showing the real sky now (drag the rete = travel in time), with city plates (torino, al-quds, gaza, fes, istanbul, samarcanda, kyoto, cusco), star panels with Arabic names, at-Tariq (a star knocks three times, a needle of light pierces the night), qibla, the back with the real `reteAngle` code engraved, sections (Markdown), sounds.
+"hello, imad's world": an opening where `hello, world` is typed, `world` is erased and becomes `imad's world`; then the phrase condenses into `imad.chat` (white text) and a **bento grid of live tiles** opens around it. Apple-like style, rounded tiles of different sizes, light and dark theme following the phone.
+
+Tiles, by importance:
+
+- big: **Corano** (interactive mushaf), **Le città, adesso** (Gaza, Torino, Medina, Makkah, Casablanca: local time, sky, qibla), **Palestina**;
+- second tier: **Su di me**;
+- small: **Cubo di Rubik** (small on purpose: "non è così importante"), **Cielo** (the astrolabe with the real sky, now a secondary extra), **Saluti** (the "chat"), **Codice**, **Curiosità e folklore**;
+- a logo slot top-left.
+
+The "chat" of imad.chat is **greetings that become stars**: a visitor picks a greeting from a fixed list in many languages (no free text) and it becomes a star in the site's sky, visible to everyone. It needs a small shared store on Vercel (not set up yet).
 
 ## Imad's decisions (do not relitigate)
 
-- **Visual style: stylised cartoon / comic-book**, in the family of *Spider-Verse*'s graphic language but with its own identity (no copying, no characters/logos). He rejected the photoreal gold astrolabe with italic serif ("mi fa schifo la grafica, con il font in corsivo"). **No italic type.**
-- **No Islamic geometric ornament anywhere** (no eight-pointed stars, crescents, arabesques, girih, zellige, lanterns, dome/minaret silhouettes, tatreez as decoration). **The one Islamic element is an interactive Quran** (a mushaf you open and leaf through; each sky verse acts on the astrolabe).
-- Rejected as banal: a desk with interactive objects; a terminal with commands; a diary/blog he must keep updating; a chatbot.
-- **No personal details** about him (studies, job, age, address). The site shows what he loves: coding, the Quran, stars and space, travel and cultures, folklore and curiosities, Turin, Palestine (dignified, cultural; no war imagery, no slogans).
-- Quran text only verbatim from `content/astro/verses.json` (byte-identical to api.quran.com Uthmani; Italian by Hamza Roberto Piccardo). Never type or alter Arabic; never apply effects to it. No "scientific miracle" claims. Add ﷺ after the Prophet's name.
+- **Style: modern, Apple-like, "aesthetic" bento UI**: rounded corners, a modern upright sans, great care in details and motion. **No italic type.** Rejected: the photoreal gold astrolabe with italic serif ("mi fa schifo la grafica, con il font in corsivo"); the cartoon/comic look ("troppo cartoonish"): no thick outlines, halftone, hand-drawn wobble, emoji as icons.
+- **The astrolabe is not the main thing** ("va bene come feature secondaria ma non come roba principale"). Nobody comes to spin the sky through the days.
+- **No Islamic geometric ornament anywhere** (no eight-pointed stars, crescents, arabesques, girih, zellige, lanterns, arches, dome/minaret silhouettes, tatreez as decoration). **The one Islamic element is the interactive Quran**, set plainly.
+- **Cities: only Gaza, Torino, Medina, Makkah, Casablanca.** Removed: Istanbul, Samarcanda, Kyoto, Cusco, Al-Quds, Fès.
+- **Palestina**: he wants a part that talks about Palestine, the conflict included, and **he writes and manages that content himself**. Give him the page and an easy way to edit it; do not write that content for him, no invented facts, no slogans of ours.
+- **Su di me**: a second-tier tile. No personal details (studies, job, age, address) unless he writes them himself.
+- Rejected as banal: a desk with interactive objects; a terminal with commands; a diary/blog he must keep updating; an AI chatbot.
+- Quran text only verbatim from `content/astro/verses.json` (byte-identical to api.quran.com Uthmani; Italian by Hamza Roberto Piccardo). Never type or alter Arabic; never apply effects to it; never truncate a verse. No "scientific miracle" claims. Add ﷺ after the Prophet's name.
+- No Arabic is typed by hand anywhere: names come from a source (Wikidata labels, quran.com) recorded in `docs/fonti.md`.
+- **Cube**: he offered his own repo `github.com/imadchatraoui/cube`, his fork of "The Cube" by Boris Šehovac (three.js; upstream `bsehovac/the-cube` now targets three 0.187 like this repo; package licence field ISC, no LICENSE file). His addition is the pastel theme **Kukko**: U `#ffb6c1`, D `#fdfd96`, F `#ffb347`, R `#77dd77`, B `#aec6cf`, L `#ff6961`, white plastic. Use those colours and that way of playing; credit the original author.
+- **Components**: he allows **React Bits** (reactbits.dev) through the shadcn registry: in `components.json`, `"registries": { "@react-bits": "https://reactbits.dev/r/{name}.json" }` (names like `GlassSurface-TS-CSS`). Use one only where it serves the design, never as a bolted-on effect.
+- He likes previews drawn by code, without Higgsfield ("mi piace questa tua iniziativa di creare quelle anteprime senza usare higgsfield o altro").
 - He pre-authorised publishing to `main` when a build passes checks ("ti do l'ok"), and likes seeing demos online early.
 
 ## Branches and deploy
@@ -22,31 +38,27 @@ Personal site of Imad Chatraoui (Italian, Muslim, near Turin). Visitors arrive f
 - To publish: create a worktree at the commit to ship, `npm ci`, `npm run build`, smoke-test with Playwright, then `git merge -s ours origin/main -F <msgfile>` (main has its own history) and `git push origin <branch>:main`. Never push a `WIP` message to main.
 - This is **Next.js 16** (see `AGENTS.md`): read `node_modules/next/dist/docs/` before writing Next-specific code. Several dev servers can run at once with `NEXT_DIST_DIR=.next-<name> npx next dev -p <port>`.
 
-## Map
+## Map (the tree still holds the old astrolabe site; reuse what fits, remove the rest in the rebuild)
 
 - `app/` — layout, home (`page.tsx` → `components/site/Home.tsx`), `sezioni/[slug]`, OG image, icons, `lab/` test benches (noindex).
-- `components/intro/` — Canvas 2D intro (`Intro.tsx`, `engine.ts`); props `onDone, targetRect, skip, onEvent`.
-- `components/astrolabe/` — R3F 3D astrolabe + `AstrolabeFallback` (2D SVG); see its `README.md` for the API (ref methods `assemble, explode, flip, triggerTariq, setTime, resetNow, pointQibla`).
-- `components/site/` — shell: chrome, sheets/panels, control bar, city backdrop, sound toggle.
-- `components/quran/` — the interactive mushaf (`QuranBook`, `QuranAction`), style-agnostic via `--q-*` CSS variables. Not yet mounted in the home.
+- `components/intro/` — Canvas 2D intro (`Intro.tsx`, `engine.ts`); old gold/italic look, to be redone.
+- `components/astrolabe/` — R3F 3D astrolabe + `AstrolabeFallback` (2D SVG); see its `README.md`. To become the secondary "Cielo" extra, restyled.
+- `components/site/` — old shell: chrome, sheets/panels, control bar, city backdrop, sound toggle.
+- `components/quran/` — the interactive mushaf (`QuranBook`, `QuranAction`), style-agnostic via `--q-*` CSS variables; unfinished (its review was stopped), not mounted.
 - `lib/astro/` — verified astronomy (astronomy-engine): projection, plates, rete, sky, qibla. `lib/media.ts`, `lib/sound.ts`, `lib/sections.ts`, `lib/site.ts`.
-- `content/astro/*.json` (stars, cities, verses, curiosities), `content/sezioni/*.md`; sources in `docs/fonti.md`.
-- `public/media/` + `manifest.json` — generated assets; the code must work without them and pick them up from the manifest.
-- `scripts/media/jobs.json` + `import.py` — registry of Higgsfield jobs and the importer (download, convert, write the manifest). `scripts/check/` — content validator and astronomy check.
-- `docs/higgsfield.md` (what to generate and how), `docs/riferimenti.md` (public-domain references uploaded to Higgsfield), `docs/mio-mondo.md` (concept).
+- `content/astro/*.json` (stars, cities, verses, curiosities), `content/sezioni/*.md`; sources in `docs/fonti.md`. `cities.json` still lists the old eight cities.
+- `public/media/` + `manifest.json`, `scripts/media/` — Higgsfield assets and importer. `scripts/check/` — content validator and astronomy check (`npm run check:content`, `npm run check:astro`).
+- Morocco is at UTC+0 all year since 2026-09-20 (tzdata 2026c): guard `Africa/Casablanca` for devices with older time-zone data.
 
 ## Higgsfield (generated media)
 
-- Imad has a free trial: **unlimited generations work only from ChatGPT / Claude chat, not from Claude Code** (from here: read history with `show_generations`, never call `generate_*`: it would spend his 10 credits). Auto-renewal is already cancelled. **Trial ends 2026-11-13 21:00 UTC.**
-- Covered by unlimited: images up to **2k** (nano_banana_pro, nano_banana_2_1, seedream; gpt_image_2_6 at quality medium), video **seedance_2_0 720p ≤ 15 s**, audio `seed_audio`. About one job per type at a time, ~16 minutes each: prioritise.
-- Flow: I write a message → Imad pastes it in a normal ChatGPT chat (not the Higgsfield panel) → results appear in the account → sync with `show_generations` → add to `scripts/media/jobs.json` → `python3 -I scripts/media/import.py`.
-- Imported so far: sounds S01–S11 and the night ambience, at-Tariq video (v and h), Turin night still. The brass textures (T02) are unusable. **Image generation is paused until the cartoon style is chosen**; then rewrite the image prompts in that style.
+- Free trial, **ends 2026-11-13 21:00 UTC**; auto-renewal already cancelled. Unlimited generations work only from ChatGPT / Claude chat, not from Claude Code (from here only read history with `show_generations`; never call `generate_*`: it would spend his 10 credits).
+- On 2026-11-11 Imad asked to **stop ChatGPT**: the old prompts (brass textures, ornaments, old cities) are obsolete. Imported and still usable: sounds S01–S11, night ambience, at-Tariq video, Turin night still. Ambiences for Torino and Gaza exist in the account but are not imported.
+- New media only if the chosen design needs it; visuals drawn by code are preferred.
 
-## State on 2026-11-11 (update this section)
+## State on 2026-11-11 evening (update this section)
 
-- Online demo on main: intro → 3D astrolabe → panels, old gold/italic look, Quran not included.
-- In flight when this was written: integration review (5 lenses) and fixes; intro motion/perf fixes; two cartoon style-frame proposals (`scratchpad/style-fumetto`, `style-mano`) to show Imad; the Quran component with two reviews.
-- Next: Imad picks a style → restyle intro, astrolabe and shell (cartoon shading/outlines, new type, no ornament: also remove the star logo mark, the kursi piercings and city motifs such as tatreez/zellige/girih from plates) → mount `QuranBook` in the home and wire `QuranAction` to the astrolabe → new Higgsfield image prompts in the chosen style → publish.
-- Live demo checked on an emulated iPhone (2026-11-11): intro, assembly, rete drag (+4 h 36 min), city switch with the right local time, at-Tariq, Sezioni menu and a section panel all work, zero console errors.
-- Known gaps: after a drag, "Adesso" returned to now very slowly in the software-rendered test (about 2 minutes of sky time per second): check that `resetNow` is time-based, not frame-based. The moon disc can sit half off-screen at the right edge on phones.
-- Checks: `npm run check:content` (schema, limits, verse placeholders) and `npm run check:astro` (lib/astro against astronomy-engine). `npm run media` imports Higgsfield results.
+- Online on main: the OLD demo (intro → gold 3D astrolabe). It is not what he wants any more.
+- Answers collected so far: bento grid of live tiles; chat = greetings that become stars; contents = Corano, città, Palestina (his text), Su di me, cielo as an extra, codice, curiosità e folklore, cubo small; Casablanca for Morocco; opening = hello, world → imad's world → imad.chat; theme follows the phone; style Apple.
+- In flight: four code-drawn interactive previews of the bento home (Apple-like takes) in the session scratchpad `anteprime/`, to show Imad so he can pick one, plus the font.
+- Next: Imad picks a preview and a font → build the real bento home in Next.js (shell, tiles, opening, tile pages), port the cube, restyle the Quran, greetings store on Vercel, new cities data → review and fix → publish to main.
