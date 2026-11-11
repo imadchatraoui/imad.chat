@@ -899,7 +899,7 @@ export class AstrolabeEngine {
     // le ombre svaniscono quando i pezzi si sollevano o non sono al loro posto
     const seat = Math.min(1, Math.max(0, 1 - Math.abs(this.pose.rete.z) * 4)) * (1 - Math.min(1, lift * 3));
     const seatRule = Math.min(1, Math.max(0, 1 - Math.abs(this.pose.rule.z) * 4)) * (1 - Math.min(1, lift * 3));
-    m.shadowMaterials[0].opacity = 0.5 * seat * this.pose.rete.opacity;
+    m.shadowMaterials[0].opacity = 0.36 * seat * this.pose.rete.opacity;
     m.shadowMaterials[1].opacity = 0.42 * seatRule * this.pose.rule.opacity;
     m.reteShadow.visible = seat > 0.01;
     m.ruleShadow.visible = seatRule > 0.01;

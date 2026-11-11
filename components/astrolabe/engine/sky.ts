@@ -6,13 +6,14 @@
 import * as THREE from "three";
 import { brightStars, starColor, toDateCoordsMany } from "@/lib/astro";
 
-const VIEW_ELEV = (42 * Math.PI) / 180;
+const DEG = Math.PI / 180;
 
 const COMMON = /* glsl */ `
 uniform float uLst;
 uniform float uLat;
-uniform float uE0;
-uniform float uScale;
+uniform float uAlt0;   // altezza al centro dello schermo (rad)
+uniform float uHalfW;  // mezza larghezza in azimut (rad)
+uniform float uHalfH;  // mezza altezza in altezza (rad)
 uniform float uAspect;
 
 // equatoriale della data (vettore unitario) → est, nord, alto
@@ -24,14 +25,19 @@ vec3 eqToEnu(vec3 eq) {
   float sl = sin(uLat), cl = cos(uLat);
   return vec3(yh, cl * eq.z - sl * xh, sl * eq.z + cl * xh);
 }
-// est, nord, alto → coordinate di vista (destra, su, avanti), guardando a sud con elevazione uE0
-vec3 enuToView(vec3 d) {
-  float se = sin(uE0), ce = cos(uE0);
-  return vec3(-d.x, d.y * se + d.z * ce, -d.y * ce + d.z * se);
+// proiezione cilindrica guardando a sud: l'orizzonte è una linea diritta, l'est a sinistra
+const float PI = 3.141592653589793;
+vec2 enuToScreen(vec3 d) {
+  float alt = asin(clamp(d.z, -1.0, 1.0));
+  float az = atan(d.x, d.y); // da nord verso est
+  float off = az - PI;       // rispetto al sud
+  off = mod(off + PI, 2.0 * PI) - PI;
+  return vec2(-off / uHalfW, (alt - uAlt0) / uHalfH);
 }
-vec3 viewToEnu(vec3 v) {
-  float se = sin(uE0), ce = cos(uE0);
-  return vec3(-v.x, v.y * se - v.z * ce, v.y * ce + v.z * se);
+vec3 screenToEnu(vec2 p) {
+  float az = PI - p.x * uHalfW;
+  float alt = uAlt0 + p.y * uHalfH;
+  return vec3(cos(alt) * sin(az), cos(alt) * cos(az), sin(alt));
 }
 `;
 
@@ -59,10 +65,7 @@ varying vec2 vNdc;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 
 void main() {
-  vec2 ab = vec2(vNdc.x * uAspect, vNdc.y) / uScale;
-  float r2 = dot(ab, ab);
-  vec3 v = vec3(2.0 * ab.x, 2.0 * ab.y, 1.0 - r2) / (1.0 + r2);
-  vec3 d = viewToEnu(v);
+  vec3 d = screenToEnu(vNdc);
   float up = d.z;
   float day = smoothstep(-6.0, 4.0, uSunAlt);
   float tw = (1.0 - day) * smoothstep(-19.0, -5.0, uSunAlt);
@@ -98,13 +101,11 @@ varying float vAlpha;
 varying vec3 vColor;
 void main() {
   vec3 d = eqToEnu(position);
-  vec3 v = enuToView(d);
-  float k = uScale / (1.0 + v.z);
-  vec2 p = vec2(v.x * k / uAspect, v.y * k);
+  vec2 p = enuToScreen(d);
   // sotto l'orizzonte niente stelle; vicino all'orizzonte l'aria le spegne
   float ext = smoothstep(-0.01, 0.12, d.z);
   float night = 1.0 - smoothstep(-14.0, -4.0, uSunAlt);
-  vAlpha = clamp(1.25 - 0.2 * aMag, 0.18, 1.0) * ext * (0.1 + 0.9 * night) * step(-0.6, v.z);
+  vAlpha = clamp(1.25 - 0.2 * aMag, 0.18, 1.0) * ext * (0.1 + 0.9 * night) * step(abs(p.x), 1.2);
   vColor = aColor;
   gl_PointSize = clamp(5.2 - 0.9 * aMag, 1.6, 8.0) * uPixelRatio;
   gl_Position = vec4(p, 0.9998, 1.0);
@@ -185,9 +186,10 @@ export class SkyLayer {
   constructor(pixelRatio: number) {
     this.uniforms = {
       uLst: { value: 0 },
-      uLat: { value: (45 * Math.PI) / 180 },
-      uE0: { value: VIEW_ELEV },
-      uScale: { value: 1.2 },
+      uLat: { value: 45 * DEG },
+      uAlt0: { value: 34 * DEG },
+      uHalfW: { value: 30 * DEG },
+      uHalfH: { value: 44 * DEG },
       uAspect: { value: 1 },
     };
     const u = this.uniforms;
@@ -277,28 +279,32 @@ export class SkyLayer {
     this.group.add(quad, points, this.moon);
   }
 
-  /** Dimensioni dello schermo: la scala della proiezione dipende dall'orientamento. */
+  /** Dimensioni dello schermo: in verticale si vede dal suolo quasi allo zenit, in orizzontale un panorama. */
   setViewport(width: number, height: number, pixelRatio: number) {
     const aspect = width / Math.max(1, height);
     this.uniforms.uAspect.value = aspect;
-    // metà del lato lungo copre circa 62° dal centro della vista
-    const halfAngle = (62 * Math.PI) / 180;
-    const k = 1 / (2 * Math.tan(halfAngle / 2));
-    this.uniforms.uScale.value = aspect < 1 ? k : k * aspect;
+    // altezza coperta dallo schermo: da -10° a circa 76° in verticale, da -8° a 52° in orizzontale
+    const portrait = aspect < 1;
+    const bottom = portrait ? -10 : -8;
+    const top = portrait ? 76 : 52;
+    const halfH = ((top - bottom) / 2) * DEG;
+    this.uniforms.uHalfH.value = halfH;
+    this.uniforms.uAlt0.value = ((top + bottom) / 2) * DEG;
+    // stessi gradi per pixel in orizzontale e in verticale
+    this.uniforms.uHalfW.value = halfH * aspect;
     this.starMat.uniforms.uPixelRatio.value = pixelRatio;
   }
 
   /** Proietta una direzione (est, nord, alto) sullo schermo, in NDC. */
   project(enu: THREE.Vector3): THREE.Vector2 | null {
-    const e0 = this.uniforms.uE0.value as number;
-    const se = Math.sin(e0);
-    const ce = Math.cos(e0);
-    const vx = -enu.x;
-    const vy = enu.y * se + enu.z * ce;
-    const vz = -enu.y * ce + enu.z * se;
-    if (vz < -0.6) return null;
-    const k = (this.uniforms.uScale.value as number) / (1 + vz);
-    return new THREE.Vector2((vx * k) / (this.uniforms.uAspect.value as number), vy * k);
+    const alt = Math.asin(Math.max(-1, Math.min(1, enu.z)));
+    const az = Math.atan2(enu.x, enu.y);
+    let off = az - Math.PI;
+    off = ((((off + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
+    const x = -off / (this.uniforms.uHalfW.value as number);
+    const y = (alt - (this.uniforms.uAlt0.value as number)) / (this.uniforms.uHalfH.value as number);
+    if (Math.abs(x) > 1.5) return null;
+    return new THREE.Vector2(x, y);
   }
 
   update(s: SkyState) {

@@ -207,6 +207,10 @@ export function getNoise(): HTMLCanvasElement {
 
 export const BRASS = {
   base: "#cfa962",
+  /** la piastra: più vecchia e più scura della rete */
+  plate: "#b88f4f",
+  /** la rete: lucidata dalle mani */
+  rete: "#dcb96f",
   light: "#e6c983",
   dark: "#8a6630",
   /** colore delle linee incise (scure, riempite di patina) */

@@ -52,6 +52,17 @@ export default function AstrolabeLab() {
   const api = useRef<AstrolabeHandle | null>(null);
   const [mode, setMode] = useState<string>("");
   const state = (params.get("state") as "hidden" | "exploded" | null) ?? "assembled";
+  const [landscape, setLandscape] = useState(false);
+  useEffect(() => {
+    const upd = () => setLandscape(window.innerWidth > window.innerHeight);
+    upd();
+    window.addEventListener("resize", upd);
+    return () => window.removeEventListener("resize", upd);
+  }, []);
+  const framing = useMemo(
+    () => (landscape ? { top: 0.07, bottom: 0.15, side: 0.03 } : { top: 0.13, bottom: 0.25, side: 0.03 }),
+    [landscape],
+  );
   const fixedTime = params.get("t");
 
   const onReady = useCallback(
@@ -111,7 +122,7 @@ export default function AstrolabeLab() {
           sections={SECTIONS}
           initialState={state}
           forceFallback={params.get("fallback") === "1"}
-          framing={{ top: 0.11, bottom: 0.25, side: 0.03 }}
+          framing={framing}
           onReady={onReady}
           onEvent={onEvent}
           onStarSelect={(id) => {

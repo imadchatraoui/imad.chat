@@ -698,14 +698,14 @@ export class AstrolabeModel {
         P.paintReteSilhouette(b, this.design);
         // bianco pieno sul nero: diventa la maschera dell'ombra
       },
-      6,
-      0.5,
+      7,
+      0.36,
     );
     rete.position.z = DIMS.plateZ + DIMS.plateT + 0.0007;
     this.reteShadowSpin.add(rete);
     this.reteShadow.add(this.reteShadowSpin);
     // la luce viene dall'alto a sinistra: l'ombra cade un poco in basso a destra
-    this.reteShadow.position.set(0.011, -0.014, 0);
+    this.reteShadow.position.set(0.008, -0.011, 0);
 
     const rule = this.shadowFrom(
       1.16,

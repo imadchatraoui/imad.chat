@@ -98,18 +98,19 @@ function Engine({ city, observer, sections, initialState, framing, callbacks, on
 function Studio() {
   return (
     <Environment resolution={256} frames={1}>
-      <color attach="background" args={["#0e1533"]} />
-      {/* una grande luce morbida davanti: la faccia dell'ottone la riflette tutta */}
-      <Lightformer form="rect" intensity={1.25} color="#fff1da" position={[0, 1.2, 6]} scale={[10, 6]} target={[0, 0, 0]} />
-      {/* la luce chiave, calda, in alto a sinistra */}
-      <Lightformer form="rect" intensity={6} color="#ffe6bd" position={[-3.2, 3.2, 4]} scale={[3.2, 2.2]} target={[0, 0, 0]} />
+      <color attach="background" args={["#090c1c"]} />
+      {/* un grande pannello morbido davanti e in alto: la metà alta della faccia lo riflette e si accende,
+          la metà bassa riflette la notte e resta scura, come in una vetrina di museo */}
+      <Lightformer form="rect" intensity={1.35} color="#fff0d8" position={[0, 2.6, 5]} scale={[12, 5.2]} target={[0, 0, 0]} />
+      {/* la luce chiave, calda, in alto a sinistra: accende gli smussi */}
+      <Lightformer form="rect" intensity={8} color="#ffe2b0" position={[-3.4, 2.8, 3.4]} scale={[2.4, 1.8]} target={[0, 0, 0]} />
       {/* controluce fredda dall'alto, dietro */}
-      <Lightformer form="rect" intensity={3.2} color="#b9c8ff" position={[0, 5, -2.5]} scale={[9, 1]} target={[0, 0, 0]} />
+      <Lightformer form="rect" intensity={3.4} color="#b9c8ff" position={[0, 5, -2.5]} scale={[9, 1]} target={[0, 0, 0]} />
       {/* un filo blu da destra, il colore della notte */}
-      <Lightformer form="rect" intensity={1.6} color="#9fb4f0" position={[5, 0, 2]} scale={[2, 6]} target={[0, 0, 0]} />
-      {/* un riflesso caldo dal basso */}
-      <Lightformer form="rect" intensity={0.9} color="#ffcf8a" position={[0, -5, 2]} scale={[9, 2.4]} target={[0, 0, 0]} />
-      <Lightformer form="ring" intensity={2.2} color="#fff6e6" position={[2.4, 2.6, 4.5]} scale={0.8} target={[0, 0, 0]} />
+      <Lightformer form="rect" intensity={1.5} color="#8aa0e8" position={[5, -0.5, 2.2]} scale={[1.4, 6]} target={[0, 0, 0]} />
+      {/* un riflesso caldo e basso, appena: la metà bassa non è mai nera */}
+      <Lightformer form="rect" intensity={0.32} color="#ffc98a" position={[0, -2.6, 5]} scale={[12, 3.2]} target={[0, 0, 0]} />
+      <Lightformer form="ring" intensity={2.4} color="#fff6e6" position={[2.2, 2.4, 4.8]} scale={0.7} target={[0, 0, 0]} />
     </Environment>
   );
 }

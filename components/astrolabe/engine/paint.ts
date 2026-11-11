@@ -95,7 +95,7 @@ export function paintPlate(b: Burin, opts: PlatePaintOptions) {
   const { fonts, city } = opts;
   const c = b.ctx;
   const S = b.size / 2048; // scala dei tratti rispetto alla risoluzione piena
-  fillBrass(b, { seed: opts.seed ?? 3, patina: 0.9 });
+  fillBrass(b, { seed: opts.seed ?? 3, patina: 1.2, tint: BRASS.plate });
   const thin = 0.0016;
   const mid = 0.0024;
   const bold = 0.0036;
@@ -633,7 +633,7 @@ export function paintReteSilhouette(b: Burin, d: ReteDesign) {
 /** Le incisioni sulla faccia della rete: scala dello zodiaco, nomi dei segni, filetti. */
 export function paintReteTexture(b: Burin, d: ReteDesign, fonts: EngraveFonts, names: Map<string, string>) {
   const c = b.ctx;
-  fillBrass(b, { seed: 41, patina: 0.8 });
+  fillBrass(b, { seed: 41, patina: 0.7, tint: BRASS.rete });
   c.save();
   c.lineCap = "round";
   c.strokeStyle = BRASS.engrave;
