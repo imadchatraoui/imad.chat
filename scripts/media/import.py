@@ -18,6 +18,7 @@ FORCE = "--force" in args
 
 CITY = {"TORINO": "torino", "ALQUDS": "al-quds", "GAZA": "gaza", "BATTIR": "battir", "FES": "fes",
         "ISTANBUL": "istanbul", "SAMARCANDA": "samarcanda", "KYOTO": "kyoto", "CUSCO": "cusco",
+        "MEDINA": "medina", "MAKKAH": "makkah", "CASABLANCA": "casablanca",
         "NOTTE": "notte", "OLIVA": "oliva"}
 
 def target_for(job):
@@ -32,6 +33,8 @@ def target_for(job):
     if m: return f"band/{CITY[m.group(1)]}.png"
     m = re.fullmatch(r"([ND])-([A-Z]+)-([VH])", i)
     if m: return f"city/{CITY[m.group(2)]}-{'night' if m.group(1) == 'N' else 'day'}-{m.group(3).lower()}.jpg"
+    m = re.fullmatch(r"L-HERO-([VH])", i)                # il cielo in loop del riquadro principale
+    if m: return f"video/hero-loop-{m.group(1).lower()}.mp4"
     m = re.fullmatch(r"L(D?)-([A-Z]+)-([VH])", i)
     if m: return f"city/{CITY[m.group(2)]}-{'day' if m.group(1) else 'night'}-{m.group(3).lower()}.mp4"
     m = re.fullmatch(r"H0(\d)", i)
@@ -42,6 +45,8 @@ def target_for(job):
     if m: return f"amb/{CITY[m.group(1)]}.mp3"
     m = re.fullmatch(r"V-TARIQ-([VH])", i)
     if m: return f"video/tariq-{m.group(1).lower()}.mp4"
+    m = re.fullmatch(r"V-STELLA-(\d[A-Z]?)-([VH])", i)   # l'apertura: la stella che sale
+    if m: return f"video/stella-{m.group(1).lower()}-{m.group(2).lower()}.mp4"
     raise ValueError(f"nessuna destinazione per {i}")
 
 def download(url, dst):

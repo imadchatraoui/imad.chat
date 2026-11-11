@@ -105,6 +105,18 @@
    "job": "8fbade08-a15a-43eb-9309-18bdb8420e77",
    "kind": "video",
    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LvpIpXOpGOXbgc1gg8HyWUUZjY/hf_20261111_055909_8fbade08-a15a-43eb-9309-18bdb8420e77.mp4"
+  },
+  {
+   "id": "A-TORINO",
+   "job": "514cf638-e35d-4714-be73-b6402d7bfd83",
+   "kind": "audio",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LvpIpXOpGOXbgc1gg8HyWUUZjY/hf_20261111_110905_514cf638-e35d-4714-be73-b6402d7bfd83.wav"
+  },
+  {
+   "id": "A-GAZA",
+   "job": "6f97f86f-4761-46d6-b202-b9ad70b3c4ac",
+   "kind": "audio",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LvpIpXOpGOXbgc1gg8HyWUUZjY/hf_20261111_114845_6f97f86f-4761-46d6-b202-b9ad70b3c4ac.wav"
   }
  ],
  "pending": []
