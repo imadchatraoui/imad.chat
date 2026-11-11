@@ -67,10 +67,12 @@ const DECEL_TAU = 2.2; // after the intro the sky settles towards stillness
 const IDLE_STOP = 3 * DECEL_TAU; // ... and then rendering stops
 const IDLE_FRAME_MS = 32; // from onDone + 1 s until the stop: about 30 fps, by elapsed time
 const MAX_DPR_SKY = 2;
-const LOW_DPR_SKY = 1.5; // when the device cannot hold the frame rate
+const LOW_DPR_SKY = 1.5; // when the device cannot hold the frame rate ...
+const LOWER_DPR_SKY = 1.25; // ... or is far from it
 const MAX_DPR_TEXT = 3;
 const MAX_TEXT_PX = 4.5e6; // backing-store cap of the text layer, device px
 const SLOW_FRAME_MS = 21;
+const VERY_SLOW_FRAME_MS = 30;
 const NB = 16; // alpha buckets for batching
 const SKY_SCALE = 1.18; // sky square side / max(w, h)
 const BAND_ALPHA = 0.11; // CSS opacity of the band layer (source-over ≈ the old 0.1 additive)
@@ -612,6 +614,7 @@ export class IntroEngine {
   private w = 0;
   private h = 0;
   private dpr = 1;
+  private refDpr = 1; // the density the look is designed for: min(device DPR, 2), even when the sky is drawn lower
   private dprText = 1;
   private dprTextEff = 1;
   private maxSkyDpr = MAX_DPR_SKY;
@@ -1212,6 +1215,7 @@ export class IntroEngine {
     this.w = w;
     this.h = h;
     this.dpr = dpr;
+    this.refDpr = Math.min(MAX_DPR_SKY, dev);
     this.dprText = dprT;
     const cw = Math.round(w * dpr);
     const ch = Math.round(h * dpr);
@@ -1286,16 +1290,24 @@ export class IntroEngine {
     this.adaptDpr(s);
   }
 
-  /** Twice (before typing, before the gathering): if frames are slow, draw the sky at DPR 1.5. */
+  /**
+   * Twice (before typing, while the stars are still fading in; before the gathering): if frames are
+   * slow, the sky is drawn at DPR 1.5, or at 1.25 if far too slow (one step at most the second time).
+   * The text layer keeps DPR 2, so the name stays sharp.
+   */
   private adaptDpr(s: number) {
     if (this.manual || this.dprChecks >= 2 || !this.ready || this.skipAt >= 0) return;
-    const at = this.dprChecks === 0 ? -0.12 : this.timeline.cond0 - 0.15;
-    if (!(s >= at)) return;
+    const first = this.dprChecks === 0;
+    if (!(s >= (first ? -0.12 : this.timeline.cond0 - 0.15))) return;
     this.dprChecks++;
     const n = Math.min(this.frameN, this.frameMs.length);
-    if (n < 8 || this.dpr <= LOW_DPR_SKY) return;
-    if (median(this.frameMs, n) > SLOW_FRAME_MS) {
-      this.maxSkyDpr = LOW_DPR_SKY;
+    if (n < 8) return;
+    const med = median(this.frameMs, n);
+    let cap = this.maxSkyDpr;
+    if (first && med > VERY_SLOW_FRAME_MS) cap = LOWER_DPR_SKY;
+    else if (med > SLOW_FRAME_MS) cap = cap > LOW_DPR_SKY ? LOW_DPR_SKY : LOWER_DPR_SKY;
+    if (cap < this.maxSkyDpr && this.dpr > cap) {
+      this.maxSkyDpr = cap;
       this.maxTextDpr = 2;
       this.pendingResize = true;
     }
@@ -1410,7 +1422,8 @@ export class IntroEngine {
   private recomputeStarSizes() {
     const st = this.stars;
     if (!st) return;
-    const base = Math.max(1.2 / this.dpr, 0.55);
+    // stars keep their size on screen when a slow device draws the sky at a lower DPR
+    const base = Math.max(1.2 / this.refDpr, 0.55);
     this.starBase = base;
     for (let i = 0; i < st.n; i++) {
       const I = st.I[i];
@@ -2220,14 +2233,37 @@ export class IntroEngine {
     const snap = this.snapText;
     const phase = !this.ready || s < tl.caretIn ? 0 : s > tl.done + 0.6 && !snap ? 2 : 1;
     if (phase !== 1 && phase === this.textPhase && !this.textDirty) return;
+    const k = this.dprTextEff;
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
+    if (phase === 1 && this.textPhase === 1 && !this.textDirty && !snap && s < tl.circle0 - 0.05) {
+      // until the limb begins only the line of text changes: clear and draw that strip alone
+      const M = this.metrics!;
+      const x0 = Math.max(L.box.x, Math.min(L.xTyped, L.xFinal) - 0.3 * L.S);
+      const x1 = Math.min(L.box.x + L.box.w, Math.max(L.xTyped + 12.5 * L.adv, L.serifX + (M.serifInkR + 0.25) * L.S));
+      const y0 = Math.max(L.box.y, L.baseline - 1.3 * L.S);
+      const y1 = Math.min(L.box.y + L.box.h, L.baseline + 0.55 * L.S);
+      if (x1 <= x0 || y1 <= y0) return;
+      const px0 = Math.floor((x0 - L.box.x) * k);
+      const py0 = Math.floor((y0 - L.box.y) * k);
+      const px1 = Math.ceil((x1 - L.box.x) * k);
+      const py1 = Math.ceil((y1 - L.box.y) * k);
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.clearRect(px0, py0, px1 - px0, py1 - py0);
+      g.save();
+      g.beginPath();
+      g.rect(px0, py0, px1 - px0, py1 - py0);
+      g.clip();
+      g.setTransform(k, 0, 0, k, -L.box.x * k, -L.box.y * k);
+      this.drawText(g, s);
+      g.restore();
+      return;
+    }
     this.textPhase = phase;
     this.textDirty = false;
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.globalAlpha = 1;
-    g.globalCompositeOperation = 'source-over';
     g.clearRect(0, 0, cv.width, cv.height);
     if (phase !== 0) {
-      const k = this.dprTextEff;
       g.setTransform(k, 0, 0, k, -L.box.x * k, -L.box.y * k);
       this.drawText(g, s);
       this.drawCircle(g, s);
@@ -2392,7 +2428,7 @@ export class IntroEngine {
 
   /** Radius (CSS px) below which a mote is drawn as a rect: on dense screens, where a sprite that small has no visible falloff. */
   private rectRadius() {
-    return this.dpr >= 1.5 ? RECT_DOT_DEV / this.dpr : 0;
+    return this.refDpr >= 1.5 ? RECT_DOT_DEV / this.refDpr : 0;
   }
 
   private pushDissolve(s: number, th: number) {
