@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Home, { type HomeCity } from "@/components/site/Home";
 import SectionAnchorAction from "@/components/site/SectionAnchorAction";
 import SectionPanel from "@/components/site/SectionPanel";
@@ -7,6 +8,10 @@ import { getSections, sectionMetas } from "@/lib/sections";
 
 // La pagina si costruisce una volta, alla build: le sezioni e le città sono file del repository.
 // Il cielo, l'ora e la luna li calcola il browser, in tempo reale.
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default function Page() {
   const sections = getSections();

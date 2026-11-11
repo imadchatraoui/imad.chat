@@ -34,6 +34,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${section.title} · imad.chat`,
       description: section.summary || undefined,
     },
+    twitter: {
+      card: "summary_large_image",
+      title: `${section.title} · imad.chat`,
+      description: section.summary || undefined,
+    },
   };
 }
 

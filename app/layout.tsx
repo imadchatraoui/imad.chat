@@ -42,7 +42,6 @@ export const metadata: Metadata = {
   title: { default: "imad.chat", template: "%s · imad.chat" },
   description,
   applicationName: "imad.chat",
-  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: "imad.chat",

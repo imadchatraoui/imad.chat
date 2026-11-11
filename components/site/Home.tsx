@@ -73,7 +73,7 @@ const SEEN_KEY = "imad.intro";
 /** La dissolvenza dell'intro sull'astrolabio che si monta, in ms. */
 const HANDOFF_MS = 1100;
 /** Se lo strumento 3D non è pronto tanto dopo la fine dell'intro, si passa alla versione 2D. */
-const WATCHDOG_MS = 15000;
+const WATCHDOG_MS = 25000;
 
 function readSeen(): boolean {
   try {
@@ -216,7 +216,6 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
     };
   }, []);
 
-
   // --- inquadratura: lo strumento sta tra la barra in alto e i comandi in basso -----------------
 
   const framing = useMemo<Framing | undefined>(() => {
@@ -274,7 +273,15 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
   useEffect(() => {
     if (!live) return;
     const id = window.setTimeout(() => setIntroGone(true), reducedMotion() ? 250 : HANDOFF_MS + 250);
-    return () => window.clearTimeout(id);
+    // i pannelli delle stelle e delle città, pronti prima del primo tocco
+    const pre = window.setTimeout(() => {
+      void import("./StarSheet");
+      void import("./CitySheet");
+    }, 2500);
+    return () => {
+      window.clearTimeout(id);
+      window.clearTimeout(pre);
+    };
   }, [live]);
 
   // se lo strumento 3D non arriva (rete lentissima, motore fermo), la versione 2D prende il suo posto
@@ -309,7 +316,9 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
   const onTimeChange = useCallback((d: Date, now: boolean) => time.set(now ? null : d.getTime()), [time]);
 
   const sheetNow = useRef<SheetState>(null);
-  sheetNow.current = sheet;
+  useEffect(() => {
+    sheetNow.current = sheet;
+  }, [sheet]);
   const openSheet = useCallback(
     (next: SheetState) => {
       if (!sheetNow.current && next) sound.play("open");
@@ -492,6 +501,16 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
           hello, imad’s world
         </h1>
 
+        {/* prima nel documento la barra in alto: l'ordine della tastiera segue quello dello schermo */}
+        <SiteChrome
+          onOpenSections={() => openSheet({ kind: "menu" })}
+          sectionsOpen={sheet?.kind === "menu"}
+          soundToggle
+          logo={logo}
+          intro={!live}
+          onHeight={setHeaderH}
+        />
+
         {mounted && city ? <LiveBackdrop city={city} time={time} sky={skyLib} onSky={setSky} /> : null}
 
         <div
@@ -499,6 +518,7 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
           className={h.stage}
           style={shift ? { transform: `translate3d(${shift}px, 0, 0)` } : undefined}
           onKeyDown={onStageKey}
+          inert={!live}
         >
           {mounted && framing && twoD !== null ? (
             mode2d ? (
@@ -535,14 +555,6 @@ export default function Home({ cities, sections, sectionPanels, defaultCity = "t
           ) : null}
         </p>
 
-        <SiteChrome
-          onOpenSections={() => openSheet({ kind: "menu" })}
-          sectionsOpen={sheet?.kind === "menu"}
-          soundToggle
-          logo={logo}
-          intro={!live}
-          onHeight={setHeaderH}
-        />
 
         {mounted && city ? (
           <LiveControlBar

@@ -66,7 +66,8 @@ def convert(src, out, kind):
     elif ext in (".jpg", ".png"):
         from PIL import Image
         im = Image.open(src)
-        limit = 2048
+        # le texture dell'ottone si ripetono in tessere di un terzo della faccia: 1024 px bastano e pesano un quarto
+        limit = 1024 if out.split(os.sep)[-2] == "tex" else 2048
         im.thumbnail((limit, limit))
         if ext == ".jpg":
             im.convert("RGB").save(out, quality=86, optimize=True, progressive=True)
