@@ -240,6 +240,12 @@ export class AstrolabeModel {
   readonly alidade = new THREE.Group();
   readonly alidadeSpin = new THREE.Group();
   readonly fx = new THREE.Group();
+  /** Ombre finte (niente ombre in tempo reale): la rete e la regola sulla piastra. */
+  readonly reteShadow = new THREE.Group();
+  readonly reteShadowSpin = new THREE.Group();
+  readonly ruleShadow = new THREE.Group();
+  readonly ruleShadowSpin = new THREE.Group();
+  shadowMaterials: THREE.MeshBasicMaterial[] = [];
   design!: ReteDesign;
   /** Materiali per l'apparizione graduale delle parti. */
   readonly partMaterials = new Map<THREE.Object3D, THREE.Material[]>();
@@ -258,7 +264,8 @@ export class AstrolabeModel {
     this.buildRule();
     this.buildPinAndHorse();
     this.buildAlidade();
-    this.root.add(this.mater, this.kursi, this.plates[0].group, this.plates[1].group, this.rete, this.rule, this.pin, this.horse, this.alidade, this.fx);
+    this.buildShadows();
+    this.root.add(this.mater, this.kursi, this.plates[0].group, this.plates[1].group, this.reteShadow, this.ruleShadow, this.rete, this.rule, this.pin, this.horse, this.alidade, this.fx);
     this.plates[1].group.visible = false;
   }
 
@@ -653,6 +660,79 @@ export class AstrolabeModel {
     }
     this.alidade.add(this.alidadeSpin);
     this.register(this.alidade, capMat, sideMat);
+  }
+
+  // ----- ombre di contatto finte -----
+  private shadowFrom(half: number, paintFn: (b: Burin) => void, blurPx: number, opacity: number): THREE.Mesh {
+    const size = 512;
+    const c = makeCanvas(size);
+    const b = new Burin(c, half);
+    paintFn(b);
+    // sfoca rimpicciolendo e ringrandendo (funziona ovunque, anche dove ctx.filter non c'è)
+    const small = makeCanvas(Math.max(16, Math.round(size / blurPx)));
+    const sctx = small.getContext("2d")!;
+    sctx.imageSmoothingEnabled = true;
+    sctx.drawImage(c, 0, 0, small.width, small.height);
+    const out = makeCanvas(size);
+    const octx = out.getContext("2d")!;
+    octx.fillStyle = "#000";
+    octx.fillRect(0, 0, size, size);
+    octx.imageSmoothingEnabled = true;
+    octx.drawImage(small, 0, 0, size, size);
+    const tex = this.track(new THREE.CanvasTexture(out));
+    tex.colorSpace = THREE.NoColorSpace;
+    const mat = this.track(
+      new THREE.MeshBasicMaterial({ color: 0x0b0703, alphaMap: tex, transparent: true, opacity, depthWrite: false, toneMapped: false }),
+    );
+    this.shadowMaterials.push(mat);
+    const geo = this.track(new THREE.PlaneGeometry(2 * half, 2 * half));
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.renderOrder = 1;
+    return mesh;
+  }
+
+  private buildShadows() {
+    const rete = this.shadowFrom(
+      P.RETE_HALF,
+      (b) => {
+        P.paintReteSilhouette(b, this.design);
+        // bianco pieno sul nero: diventa la maschera dell'ombra
+      },
+      6,
+      0.5,
+    );
+    rete.position.z = DIMS.plateZ + DIMS.plateT + 0.0007;
+    this.reteShadowSpin.add(rete);
+    this.reteShadow.add(this.reteShadowSpin);
+    // la luce viene dall'alto a sinistra: l'ombra cade un poco in basso a destra
+    this.reteShadow.position.set(0.011, -0.014, 0);
+
+    const rule = this.shadowFrom(
+      1.16,
+      (b) => {
+        const c = b.ctx;
+        c.fillStyle = "#fff";
+        c.beginPath();
+        const pts = [
+          [-1.13, 0],
+          [-0.97, 0.03],
+          [0.97, 0.03],
+          [1.13, 0],
+          [0.97, -0.03],
+          [-0.97, -0.03],
+        ];
+        pts.forEach(([x, y], i) => (i ? c.lineTo(b.X(x), b.Y(y)) : c.moveTo(b.X(x), b.Y(y))));
+        c.closePath();
+        c.fill();
+        b.fillCircle(0, 0, 0.058);
+      },
+      5,
+      0.42,
+    );
+    rule.position.z = DIMS.reteZ + DIMS.reteT + 0.0008;
+    this.ruleShadowSpin.add(rule);
+    this.ruleShadow.add(this.ruleShadowSpin);
+    this.ruleShadow.position.set(0.012, -0.016, 0);
   }
 
   /** Il punto della punta di un puntatore, in coordinate della rete. */
