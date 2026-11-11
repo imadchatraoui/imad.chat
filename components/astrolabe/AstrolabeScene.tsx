@@ -10,7 +10,9 @@ import { Environment, Lightformer } from "@react-three/drei";
 import { citiesInOrder, getCity, STARS, type AstroSection, type CityItem, type Observer } from "@/lib/astro";
 import { AstrolabeEngine, type EngineCallbacks } from "./engine/engine";
 import { resolveFonts, waitForFonts } from "./engine/fonts";
-import { loadManifest } from "./engine/manifest";
+import { loadImage, loadManifest } from "./engine/manifest";
+import { setBrassDetail } from "./engine/canvas";
+import { setShamsaImage } from "./engine/paint";
 
 export interface SceneProps {
   city: CityItem;
@@ -22,22 +24,37 @@ export interface SceneProps {
   onEngine: (e: AstrolabeEngine | null) => void;
   lowEnd: boolean;
   tariqVideo: "auto" | "procedural";
+  sky: "full" | "stars" | "none";
 }
 
-function Engine({ city, observer, sections, initialState, framing, callbacks, onEngine, lowEnd, tariqVideo }: SceneProps) {
+function Engine({ city, observer, sections, initialState, framing, callbacks, onEngine, lowEnd, tariqVideo, sky }: SceneProps) {
   const { scene, camera, gl, invalidate } = useThree();
   const [engine, setEngine] = useState<AstrolabeEngine | null>(null);
-  const first = useRef({ city, observer, sections, initialState, framing, tariqVideo });
+  const first = useRef({ city, observer, sections, initialState, framing, tariqVideo, sky });
 
   useEffect(() => {
     let alive = true;
     let made: AstrolabeEngine | null = null;
     const host = gl.domElement.parentElement ?? gl.domElement;
     const fonts = resolveFonts(host);
-    Promise.all([waitForFonts(fonts), loadManifest()]).then(([, manifest]) => {
+    Promise.all([waitForFonts(fonts), loadManifest()])
+      .then(async ([, manifest]) => {
+        // gli asset generati, se il manifesto li elenca: ottone fotografico e medaglione
+        const tex = manifest.first("tex/T02.jpg", "tex/T01.jpg");
+        const orn = manifest.first("orn/O05S.svg", "orn/O05P.png");
+        const [detail, medal] = await Promise.all([
+          tex ? loadImage(manifest.url(tex)) : Promise.resolve(null),
+          orn ? loadImage(manifest.url(orn)) : Promise.resolve(null),
+        ]);
+        setBrassDetail(detail);
+        setShamsaImage(medal);
+        return manifest;
+      })
+      .then(async (manifest) => {
       if (!alive) return;
       const init = first.current;
-      made = new AstrolabeEngine({
+      const t0 = performance.now();
+      const engineMade = await AstrolabeEngine.create({
         scene,
         camera: camera as THREE.PerspectiveCamera,
         dom: gl.domElement,
@@ -55,6 +72,7 @@ function Engine({ city, observer, sections, initialState, framing, callbacks, on
         initialState: init.initialState,
         framing: init.framing,
         tariqVideo: init.tariqVideo,
+        sky: init.sky,
         callbacks: {
           onEvent: (n) => callbacks.current?.onEvent?.(n),
           onStarSelect: (id) => callbacks.current?.onStarSelect?.(id),
@@ -62,6 +80,12 @@ function Engine({ city, observer, sections, initialState, framing, callbacks, on
           onTimeChange: (d, now) => callbacks.current?.onTimeChange?.(d, now),
         },
       });
+      if (!alive) {
+        engineMade.dispose();
+        return;
+      }
+      made = engineMade;
+      if (/[?&]debug=1/.test(window.location.search)) console.log(`[astro] motore pronto in ${(performance.now() - t0).toFixed(0)} ms`);
       setEngine(made);
       onEngine(made);
       // per il banco di prova: ?debug=1 espone il motore nella console
@@ -91,6 +115,9 @@ function Engine({ city, observer, sections, initialState, framing, callbacks, on
   useEffect(() => {
     engine?.setFraming(framing);
   }, [engine, framing]);
+  useEffect(() => {
+    engine?.setSkyMode(sky);
+  }, [engine, sky]);
 
   useFrame((_, dt) => {
     if (!engine) return;
@@ -104,16 +131,16 @@ function Engine({ city, observer, sections, initialState, framing, callbacks, on
 function Studio() {
   return (
     <Environment resolution={256} frames={1}>
-      <color attach="background" args={["#090c1c"]} />
+      <color attach="background" args={["#100d16"]} />
       {/* un grande pannello morbido davanti e in alto: la metà alta della faccia lo riflette e si accende,
           la metà bassa riflette la notte e resta scura, come in una vetrina di museo */}
-      <Lightformer form="rect" intensity={1.35} color="#fff0d8" position={[0, 2.6, 5]} scale={[12, 5.2]} target={[0, 0, 0]} />
+      <Lightformer form="rect" intensity={1.45} color="#ffe9c8" position={[0, 2.6, 5]} scale={[12, 5.2]} target={[0, 0, 0]} />
       {/* la luce chiave, calda, in alto a sinistra: accende gli smussi */}
       <Lightformer form="rect" intensity={8} color="#ffe2b0" position={[-3.4, 2.8, 3.4]} scale={[2.4, 1.8]} target={[0, 0, 0]} />
       {/* controluce fredda dall'alto, dietro */}
       <Lightformer form="rect" intensity={3.4} color="#b9c8ff" position={[0, 5, -2.5]} scale={[9, 1]} target={[0, 0, 0]} />
       {/* un filo blu da destra, il colore della notte */}
-      <Lightformer form="rect" intensity={1.5} color="#8aa0e8" position={[5, -0.5, 2.2]} scale={[1.4, 6]} target={[0, 0, 0]} />
+      <Lightformer form="rect" intensity={1.1} color="#8aa0e8" position={[5, -0.5, 2.2]} scale={[1.4, 6]} target={[0, 0, 0]} />
       {/* un riflesso caldo e basso, appena: la metà bassa non è mai nera */}
       <Lightformer form="rect" intensity={0.32} color="#ffc98a" position={[0, -2.6, 5]} scale={[12, 3.2]} target={[0, 0, 0]} />
       <Lightformer form="ring" intensity={2.4} color="#fff6e6" position={[2.2, 2.4, 4.8]} scale={0.7} target={[0, 0, 0]} />
@@ -130,7 +157,7 @@ export default function AstrolabeScene(props: SceneProps) {
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance", stencil: false }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.NeutralToneMapping;
-        gl.toneMappingExposure = 1.08;
+        gl.toneMappingExposure = 1.12;
         gl.setClearColor(0x000000, 0);
       }}
       style={{ touchAction: "pan-y pinch-zoom" }}

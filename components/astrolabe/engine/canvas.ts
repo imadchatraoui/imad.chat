@@ -206,11 +206,11 @@ export function getNoise(): HTMLCanvasElement {
 }
 
 export const BRASS = {
-  base: "#cfa962",
-  /** la piastra: più vecchia e più scura della rete */
-  plate: "#b88f4f",
-  /** la rete: lucidata dalle mani */
-  rete: "#dcb96f",
+  base: "#d7b671",
+  /** la piastra: più vecchia e appena più scura della rete */
+  plate: "#c9a564",
+  /** la rete: lucidata dalle mani, più chiara */
+  rete: "#e8cb86",
   light: "#e6c983",
   dark: "#8a6630",
   /** colore delle linee incise (scure, riempite di patina) */
@@ -219,6 +219,13 @@ export const BRASS = {
   /** riflesso sottile sul bordo dell'incisione */
   lip: "rgba(255, 236, 190, 0.35)",
 };
+
+let brassDetail: HTMLImageElement | null = null;
+
+/** Una texture fotografica d'ottone (tex/T02.jpg o T01.jpg dal manifesto) da fondere nella patina. */
+export function setBrassDetail(img: HTMLImageElement | null) {
+  brassDetail = img;
+}
 
 /** Riempie con l'ottone: tinta di base, patina a macchie, graffi sottili. */
 export function fillBrass(b: Burin, opts: { seed?: number; patina?: number; scratches?: number; tint?: string } = {}) {
@@ -230,6 +237,20 @@ export function fillBrass(b: Burin, opts: { seed?: number; patina?: number; scra
   ctx.globalCompositeOperation = "source-over";
   ctx.fillStyle = opts.tint ?? BRASS.base;
   ctx.fillRect(0, 0, size, height);
+  if (brassDetail) {
+    // la texture vera, ripetuta: una piastrella ogni terzo di lato, fusa in sovrapposizione
+    const pattern = ctx.createPattern(brassDetail, "repeat");
+    if (pattern) {
+      const k = size / 3 / Math.max(1, brassDetail.width);
+      pattern.setTransform(new DOMMatrix([k, 0, 0, k, (seed * 97) % size, (seed * 53) % size]));
+      ctx.globalCompositeOperation = "overlay";
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = pattern;
+      ctx.fillRect(0, 0, size, height);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+    }
+  }
   // patina a grandi macchie (moltiplica) e lucentezza (schiarisce)
   const n = getNoise();
   ctx.globalAlpha = 0.22 * (opts.patina ?? 1);

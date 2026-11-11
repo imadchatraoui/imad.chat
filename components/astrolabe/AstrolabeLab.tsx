@@ -41,7 +41,14 @@ const ui = {
 };
 
 export default function AstrolabeLab() {
-  const params = useMemo(() => (typeof window === "undefined" ? new URLSearchParams() : new URLSearchParams(window.location.search)), []);
+  // i parametri si leggono solo nel browser (niente differenze tra server e client)
+  const [params, setParams] = useState<URLSearchParams | null>(null);
+  useEffect(() => setParams(new URLSearchParams(window.location.search)), []);
+  if (!params) return <main style={{ position: "fixed", inset: 0, background: "#070a14" }} />;
+  return <Lab params={params} />;
+}
+
+function Lab({ params }: { params: URLSearchParams }) {
   const cities = useMemo(() => citiesInOrder(), []);
   const [cityId, setCityId] = useState(params.get("city") ?? "torino");
   const [time, setTime] = useState<{ d: Date; now: boolean }>({ d: new Date(), now: true });
@@ -105,11 +112,14 @@ export default function AstrolabeLab() {
     whiteSpace: "nowrap",
   };
 
+  const scrollTest = params.get("scroll") === "1";
   return (
+    <>
     <main
       style={{
-        position: "fixed",
-        inset: 0,
+        position: scrollTest ? "relative" : "fixed",
+        inset: scrollTest ? undefined : 0,
+        height: scrollTest ? "100svh" : undefined,
         background: `radial-gradient(120% 80% at 50% 110%, ${ui.lapis} 0%, ${ui.night} 60%)`,
         color: ui.cream,
         fontFamily: "var(--font-newsreader), Georgia, serif",
@@ -123,6 +133,7 @@ export default function AstrolabeLab() {
           initialState={state}
           forceFallback={params.get("fallback") === "1"}
           tariqVideo={params.get("tariq") === "procedural" ? "procedural" : "auto"}
+          sky={(params.get("sky") as "full" | "stars" | "none" | null) ?? "full"}
           framing={framing}
           onReady={onReady}
           onEvent={onEvent}
@@ -263,5 +274,11 @@ export default function AstrolabeLab() {
         </div>
       </nav>
     </main>
+    {scrollTest && (
+      <section style={{ height: "150vh", padding: 24, color: ui.muted, background: ui.night }}>
+        Pagina che scorre: per provare che lo strumento non blocca lo scorrimento fuori dal disco.
+      </section>
+    )}
+    </>
   );
 }

@@ -246,6 +246,127 @@ function stemOutline(from: Pt, to: Pt, variant: number): Pt[] {
   return taperedStroke(path, 0.032, 0.022);
 }
 
+/**
+ * Le volute ornamentali: si cercano nello spazio libero, lontano dalle stelle, dai puntatori e dalle
+ * altre parti, partendo da barre e anelli. Così ogni catalogo di stelle ha la sua rete, sempre ornata.
+ */
+function searchOrnaments(
+  starPts: Pt[],
+  pointers: RetePointer[],
+  elements: Element[],
+  bars: ReteDesign["bars"],
+  ecl: Circle,
+  rEq: number,
+  ringInner: number,
+): { shapes: Pt[][]; holes: Circle[] } {
+  const pointerPts: Pt[] = [];
+  for (const p of pointers) {
+    for (const v of p.outline) pointerPts.push(v);
+    if (p.stem) for (const v of p.stem) pointerPts.push(v);
+    pointerPts.push(p.tip);
+  }
+  type Cand = { start: Pt; heading: number; len: number; k0: number; k1: number };
+  const cands: Cand[] = [];
+  const both = (start: Pt, heading: number) => {
+    for (const sgn of [1, -1]) {
+      for (const len of [0.2, 0.27]) cands.push({ start, heading, len, k0: 1.4 * sgn, k1: 13 * sgn });
+    }
+  };
+  // dalle barre, di lato
+  for (const b of bars) {
+    const dx = b.b.x - b.a.x;
+    const dy = b.b.y - b.a.y;
+    const L = Math.hypot(dx, dy);
+    const ang = Math.atan2(dy, dx);
+    for (const t of [0.28, 0.45, 0.62, 0.78]) {
+      const start = { x: b.a.x + dx * t, y: b.a.y + dy * t };
+      if (L * t < 0.05) continue;
+      both(start, ang + Math.PI / 2 + 0.5);
+      both(start, ang - Math.PI / 2 - 0.5);
+    }
+  }
+  // dall'anello del Capricorno, verso dentro
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * Math.PI * 2;
+    const start = { x: Math.cos(a) * ringInner, y: Math.sin(a) * ringInner };
+    both(start, a + Math.PI + 0.55);
+    both(start, a + Math.PI - 0.55);
+  }
+  // dall'eclittica, verso il suo centro e verso fuori
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * Math.PI * 2 + 0.26;
+    const rIn = ecl.r - ECL_W;
+    both({ x: ecl.cx + Math.cos(a) * rIn, y: ecl.cy + Math.sin(a) * rIn }, a + Math.PI + 0.5);
+    both({ x: ecl.cx + Math.cos(a) * ecl.r, y: ecl.cy + Math.sin(a) * ecl.r }, a - 0.5);
+  }
+  // dall'arco dell'equatore
+  for (let k = 1; k < 6; k++) {
+    const a = Math.PI / 2 + (k / 6) * Math.PI;
+    both({ x: Math.cos(a) * rEq, y: Math.sin(a) * rEq }, a + 0.6);
+    both({ x: Math.cos(a) * rEq, y: Math.sin(a) * rEq }, a + Math.PI - 0.6);
+  }
+
+  const minDist = (p: Pt, pts: Pt[]) => {
+    let m = Infinity;
+    for (const q of pts) {
+      const d = (p.x - q.x) * (p.x - q.x) + (p.y - q.y) * (p.y - q.y);
+      if (d < m) m = d;
+    }
+    return Math.sqrt(m);
+  };
+  const scored: { path: Pt[]; score: number; start: Pt }[] = [];
+  for (const c of cands) {
+    const path = scrollPath(c.start, c.heading, c.len, c.k0, c.k1, 28);
+    let ok = true;
+    let clear = Infinity;
+    for (let i = 0; i < path.length && ok; i++) {
+      const p = path[i];
+      const r = Math.hypot(p.x, p.y);
+      if (r > ringInner - 0.02 || r < HUB_R + 0.03) ok = false;
+      const ds = minDist(p, starPts);
+      const dp = pointerPts.length ? minDist(p, pointerPts) : Infinity;
+      if (ds < 0.06 || dp < 0.035) ok = false;
+      if (i > 5) {
+        for (const el of elements) {
+          if (el(p).dist < 0.022) {
+            ok = false;
+            break;
+          }
+        }
+      }
+      clear = Math.min(clear, ds, dp + 0.02);
+    }
+    if (ok) scored.push({ path, score: clear, start: c.start });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  const chosen: { path: Pt[]; start: Pt }[] = [];
+  for (const cand of scored) {
+    if (chosen.length >= 8) break;
+    // lontano dalle volute già scelte
+    let far = true;
+    for (const ch of chosen) {
+      if (Math.hypot(ch.start.x - cand.start.x, ch.start.y - cand.start.y) < 0.12) far = false;
+      for (let i = 0; i < cand.path.length && far; i += 3) if (minDist(cand.path[i], ch.path) < 0.07) far = false;
+      if (!far) break;
+    }
+    if (far) chosen.push(cand);
+  }
+  // ogni voluta finisce in una perla traforata: così non si confonde con un puntatore
+  const out: { shapes: Pt[][]; holes: Circle[] } = { shapes: [], holes: [] };
+  for (const c of chosen) {
+    out.shapes.push(taperedStroke(c.path, 0.024, 0.012));
+    const end = c.path[c.path.length - 1];
+    const bead: Pt[] = [];
+    for (let i = 0; i < 20; i++) {
+      const a = (i / 20) * Math.PI * 2;
+      bead.push({ x: end.x + Math.cos(a) * 0.017, y: end.y + Math.sin(a) * 0.017 });
+    }
+    out.shapes.push(bead);
+    out.holes.push({ cx: end.x, cy: end.y, r: 0.0068 });
+  }
+  return out;
+}
+
 export interface ReteOptions {
   /** Oltre questo raggio una stella non entra nella rete (il lembo la coprirebbe). */
   maxRadius?: number;
@@ -266,34 +387,14 @@ export function reteDesign(stars: readonly ReteStarInput[], opts: ReteOptions = 
     { a: { x: 0, y: -HUB_R + 0.01 }, b: { x: 0, y: -ring.inner - 0.01 }, width: BAR_W },
   ];
 
-  // volute: riempiono i vuoti grandi dentro l'eclittica e la mezzaluna a sinistra
-  const starPts = stars.map((s) => projectOnRete(s.ra, s.dec));
-  const ornamentPaths: { path: Pt[]; w0: number; w1: number }[] = [];
-  const addScroll = (start: Pt, heading: number, length: number, k0: number, k1: number, w0 = 0.026, w1 = 0.012) => {
-    const path = scrollPath(start, heading, length, k0, k1);
-    // una voluta non deve coprire una stella: si ferma prima
-    let cut = path.length;
-    for (let i = 0; i < path.length && cut === path.length; i++) {
-      for (const sp of starPts) {
-        if (Math.hypot(path[i].x - sp.x, path[i].y - sp.y) < 0.06) {
-          cut = Math.max(0, i - 3);
-          break;
-        }
-      }
-    }
-    if (cut >= 14) ornamentPaths.push({ path: path.slice(0, cut), w0, w1: cut === path.length ? w1 : (w0 + w1) / 2 });
-  };
-  const ornaments = ornamentPaths.map((o) => taperedStroke(o.path, o.w0, o.w1));
-  const piercings: Circle[] = [];
-
   const elements: Element[] = [
     ringElement(0, 0, ring.inner, ring.outer),
     ringElement(ecl.cx, ecl.cy, ecl.r - ECL_W, ecl.r),
     ringElement(0, 0, equator.r - EQ_W / 2, equator.r + EQ_W / 2, [Math.PI / 2, -Math.PI / 2]),
     ringElement(0, 0, HOLE_R, HUB_R),
     ...bars.map((b) => segmentElement(b.a, b.b, b.width)),
-    ...ornamentPaths.map((o) => polylineElement(o.path, (o.w0 + o.w1) / 2)),
   ];
+  const piercings: Circle[] = [];
 
   const pointers: RetePointer[] = [];
   let variant = 0;
@@ -331,6 +432,10 @@ export function reteDesign(stars: readonly ReteStarInput[], opts: ReteOptions = 
     const rosette = special ? { cx: base.x, cy: base.y, r: 0.026, hole: 0.0105 } : null;
     pointers.push({ id: s.id, tip, kind: "flame", outline, stem, base, axis, special, rosette });
   }
+
+  const found = searchOrnaments(stars.map((st) => projectOnRete(st.ra, st.dec)), pointers, elements, bars, ecl, equator.r, ring.inner);
+  const ornaments = found.shapes;
+  piercings.push(...found.holes);
 
   return {
     ring,

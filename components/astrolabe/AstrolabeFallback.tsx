@@ -86,7 +86,8 @@ function kursiPath(): string {
 }
 
 export default function AstrolabeFallback(props: AstrolabeProps) {
-  const { city: cityId = "torino", observer = null, sections = [], className, ref } = props;
+  const { city: cityId = "torino", observer = null, sections = [], className, framing, ref } = props;
+  const frame = { top: framing?.top ?? 0.06, bottom: framing?.bottom ?? 0.1, side: framing?.side ?? 0.035 };
   const city = getCity(cityId) ?? getCity("torino") ?? CITIES[0];
   const [offset, setOffset] = useState(0);
   const [nowMode, setNowMode] = useState(true);
@@ -303,9 +304,18 @@ export default function AstrolabeFallback(props: AstrolabeProps) {
       <svg
         ref={svgRef}
         viewBox={`${-VB} ${-TOP} ${2 * VB} ${VB + TOP}`}
-        width="100%"
-        height="100%"
-        style={{ display: "block", touchAction: "pan-y pinch-zoom", userSelect: "none" }}
+        style={{
+          position: "absolute",
+          top: `${frame.top * 100}%`,
+          bottom: `${frame.bottom * 100}%`,
+          left: `${frame.side * 100}%`,
+          right: `${frame.side * 100}%`,
+          width: `${(1 - 2 * frame.side) * 100}%`,
+          height: `${(1 - frame.top - frame.bottom) * 100}%`,
+          display: "block",
+          touchAction: "pan-y pinch-zoom",
+          userSelect: "none",
+        }}
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}
@@ -340,7 +350,28 @@ export default function AstrolabeFallback(props: AstrolabeProps) {
         {/* il trono e l'anello */}
         <circle cx={0} cy={Y(DIMS.kursiTop + 0.07 + DIMS.ringR)} r={DIMS.ringR} fill="none" stroke="url(#ab-brass)" strokeWidth={DIMS.ringTube * 2} />
         <path d={kursi} fill="url(#ab-brass)" fillRule="evenodd" stroke={C.line} strokeWidth={0.004} />
-        <circle cx={0} cy={Y(1.625)} r={0.016} fill={C.night} />
+        {/* la maniglia a bocciolo e i trafori del trono */}
+        <ellipse cx={0} cy={Y(DIMS.kursiTop + 0.005)} rx={0.026} ry={0.075} fill="url(#ab-brass)" stroke={C.line} strokeWidth={0.003} />
+        <g fill={C.night}>
+          <circle cx={0} cy={Y(1.625)} r={0.015} />
+          <path d={`M-0.05,${Y(1.31)}L-0.05,${Y(1.405)}C-0.05,${Y(1.45)} -0.012,${Y(1.47)} -0.006,${Y(1.5)}L0,${Y(1.522)}L0.006,${Y(1.5)}C0.012,${Y(1.47)} 0.05,${Y(1.45)} 0.05,${Y(1.405)}L0.05,${Y(1.31)}Q0,${Y(1.29)} -0.05,${Y(1.31)}Z`} />
+          {[-1, 1].map((s) => (
+            <g key={s}>
+              <circle cx={0.79 * s} cy={Y(1.105)} r={0.019} />
+              <circle cx={0.135 * s} cy={Y(1.535)} r={0.014} />
+            </g>
+          ))}
+          <g fill="none" stroke={C.night} strokeLinecap="round">
+            {[-1, 1].map((s) => (
+              <g key={s}>
+                <path d={`M${0.095 * s},${Y(1.31)}C${0.17 * s},${Y(1.42)} ${0.24 * s},${Y(1.28)} ${0.31 * s},${Y(1.37)}`} strokeWidth={0.024} />
+                <path d={`M${0.34 * s},${Y(1.27)}C${0.4 * s},${Y(1.22)} ${0.47 * s},${Y(1.25)} ${0.45 * s},${Y(1.3)}`} strokeWidth={0.022} />
+                <path d={`M${0.12 * s},${Y(1.42)}C${0.16 * s},${Y(1.48)} ${0.21 * s},${Y(1.4)} ${0.24 * s},${Y(1.45)}`} strokeWidth={0.016} />
+                <path d={`M${0.555 * s},${Y(1.175)}C${0.585 * s},${Y(1.15)} ${0.625 * s},${Y(1.15)} ${0.645 * s},${Y(1.18)}`} strokeWidth={0.016} />
+              </g>
+            ))}
+          </g>
+        </g>
 
         {!flipped ? (
           <g>
@@ -413,6 +444,9 @@ export default function AstrolabeFallback(props: AstrolabeProps) {
               <circle r={design.hub.r} />
               {design.ornaments.map((o, i) => (
                 <path key={i} d={poly(o)} strokeWidth={0.0015} />
+              ))}
+              {design.piercings.map((h, i) => (
+                <circle key={`h${i}`} cx={X(h.cx)} cy={Y(h.cy)} r={h.r} fill="#c9a564" strokeWidth={0.001} />
               ))}
               {design.pointers.map((p) => (
                 <g key={p.id}>

@@ -327,7 +327,7 @@ export class SkyLayer {
     // la Luna, se è sopra l'orizzonte e dentro la vista
     const m = s.moonEnu;
     const p = m && m.z > -0.01 ? this.project(m) : null;
-    if (m && p && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2) {
+    if (this.mode !== "none" && m && p && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2) {
       this.moon.visible = true;
       const aspect = this.uniforms.uAspect.value as number;
       // raggio del disco: il 3,6% del lato corto (la Luna vera sarebbe un puntino: la ingrandiamo)
@@ -389,6 +389,11 @@ export class SkyLayer {
   setVideoMix(m: number) {
     this.skyMat.uniforms.uVideoMix.value = m;
     if (m > 0) this.fitVideo();
+    if (this.mode !== "full") {
+      // senza cielo disegnato, il video compare da solo e poi se ne va
+      this.group.children[0].visible = m > 0.001;
+      this.skyMat.uniforms.uOpacity.value = m;
+    }
   }
 
   stopVideo() {
@@ -402,6 +407,24 @@ export class SkyLayer {
     this.video = null;
     this.videoTex = null;
     this.skyMat.uniforms.uVideo.value = null;
+  }
+
+  private mode: "full" | "stars" | "none" = "full";
+
+  /**
+   * "full": gradiente, stelle e Luna; "stars": sfondo trasparente con stelle e Luna (sopra uno sfondo
+   * della pagina, per esempio le foto delle città); "none": solo lo strumento.
+   */
+  setMode(mode: "full" | "stars" | "none") {
+    this.mode = mode;
+    const transparent = mode !== "full";
+    this.skyMat.transparent = transparent;
+    this.skyMat.depthTest = transparent; // trasparente: deve stare dietro l'ottone per profondità
+    this.skyMat.needsUpdate = true;
+    this.skyMat.uniforms.uOpacity.value = transparent ? 0 : 1;
+    this.group.children[0].visible = mode === "full";
+    this.group.children[1].visible = mode !== "none";
+    if (mode === "none") this.moon.visible = false;
   }
 
   setOpacity(o: number) {

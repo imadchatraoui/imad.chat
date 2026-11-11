@@ -1,0 +1,549 @@
+/*
+  I pannelli dentro il foglio. Una sola famiglia per le parole (Newsreader), il monospace solo
+  per i dati veri, Amiri per l'arabo. I dati stanno in un cartellino da museo: etichette in corsivo,
+  valori in monospace, tra due filetti d'ottone.
+*/
+
+.panel {
+  font-family: var(--serif);
+  font-optical-sizing: auto;
+  color: var(--cream);
+  padding-top: 2px;
+}
+
+/* --- titoli ----------------------------------------------------------------------------------- */
+
+.title {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 2.05rem;
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+  color: var(--brass-light);
+  text-wrap: balance;
+}
+
+.lede {
+  margin: 10px 0 0;
+  font-style: italic;
+  font-size: 1.125rem;
+  line-height: 1.5;
+  color: rgb(239 230 210 / 0.84);
+  text-wrap: pretty;
+}
+
+/* --- testo ------------------------------------------------------------------------------------ */
+
+.prose {
+  font-size: 1.0625rem;
+  line-height: 1.64;
+  color: var(--cream);
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+
+.prose > * {
+  margin: 0;
+}
+
+.prose > * + * {
+  margin-top: 0.9em;
+}
+
+.prose a {
+  color: var(--brass-light);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--hair-strong);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease;
+}
+
+.prose a:hover {
+  text-decoration-color: var(--brass-light);
+}
+
+.prose em {
+  font-style: italic;
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.2em;
+}
+
+.prose ul {
+  list-style: disc;
+}
+
+.prose ol {
+  list-style: decimal;
+}
+
+.prose li::marker {
+  color: var(--brass);
+}
+
+.prose li + li {
+  margin-top: 0.35em;
+}
+
+.prose h2,
+.prose h3 {
+  font-weight: 400;
+  color: var(--brass-light);
+  line-height: 1.25;
+  margin-top: 1.5em;
+}
+
+.prose h2 {
+  font-size: 1.4rem;
+}
+
+.prose h3 {
+  font-size: 1.18rem;
+  font-style: italic;
+}
+
+.prose blockquote {
+  padding-left: 1em;
+  border-left: 1px solid var(--hair-strong);
+  font-style: italic;
+}
+
+.prose code {
+  font-family: var(--mono);
+  font-size: 0.84em;
+  color: var(--brass-light);
+}
+
+.prose pre {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  background: rgb(7 10 20 / 0.35);
+}
+
+.prose hr {
+  border: 0;
+  height: 1px;
+  background: var(--hair);
+  margin: 1.6em 0;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.prose th,
+.prose td {
+  text-align: left;
+  padding: 0.45em 0.6em 0.45em 0;
+  border-bottom: 1px solid var(--hair);
+}
+
+/* le fonti in fondo alle sezioni: più piccole e quiete */
+.small {
+  font-size: 0.9375rem;
+  color: rgb(239 230 210 / 0.78);
+}
+
+/* --- il cartellino dei dati ------------------------------------------------------------------- */
+
+.plate {
+  margin: 22px 0 0;
+  padding: 12px 0 13px;
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 20px;
+  row-gap: 7px;
+  align-items: baseline;
+}
+
+.plate dt {
+  font-style: italic;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.plate dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  color: var(--cream);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 14px;
+}
+
+/* le parole dentro un dato tornano al serif: il monospace è solo per i numeri */
+.plate dd .soft {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.plateNote {
+  margin: 6px 0 0;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* --- la stella -------------------------------------------------------------------------------- */
+
+.starHead {
+  text-align: center;
+  padding-top: 4px;
+}
+
+.arName {
+  margin: 0;
+  font-family: var(--arabic);
+  font-weight: 400;
+  font-size: 3.5rem;
+  line-height: 1.32;
+  color: var(--brass-light);
+  /* l'ottone inciso: un'ombra sottile sotto le lettere */
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.35);
+}
+
+.translit {
+  margin: 0;
+  font-style: italic;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  color: var(--cream);
+}
+
+.starName {
+  margin: 6px 0 0;
+  font-weight: 400;
+  font-size: 0.98rem;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.starNameLarge {
+  margin: 0;
+  font-weight: 400;
+  font-size: 2.3rem;
+  line-height: 1.15;
+  color: var(--brass-light);
+}
+
+.meaning {
+  margin: 16px auto 0;
+  max-width: 30ch;
+  text-align: center;
+  font-style: italic;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: rgb(239 230 210 / 0.86);
+  text-wrap: balance;
+}
+
+.note {
+  margin: 20px 0 0;
+}
+
+.curio {
+  margin: 30px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--hair);
+}
+
+.curioTitle {
+  margin: 0 0 6px;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.15rem;
+  line-height: 1.3;
+  color: var(--brass-light);
+}
+
+/* --- il versetto ------------------------------------------------------------------------------ */
+
+.verse {
+  margin: 32px 0;
+  padding: 0;
+  text-align: center;
+}
+
+.verse blockquote {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-style: normal;
+}
+
+.verseAr {
+  margin: 0;
+  font-family: var(--arabic);
+  font-weight: 400;
+  font-size: 1.8rem;
+  line-height: 2.05;
+  color: var(--brass-light);
+  text-wrap: balance;
+  word-spacing: 0.04em;
+}
+
+.verseRule {
+  display: block;
+  width: 26px;
+  height: 1px;
+  margin: 14px auto 0;
+  background: var(--hair-strong);
+}
+
+.verseIt {
+  margin: 14px auto 0;
+  max-width: 34ch;
+  font-style: italic;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--cream);
+  text-wrap: pretty;
+}
+
+.verseCite {
+  margin: 14px auto 0;
+  max-width: 34ch;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.verseCite a {
+  color: var(--brass-light);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--hair-strong);
+  text-underline-offset: 3px;
+}
+
+.surah {
+  font-style: italic;
+  color: rgb(239 230 210 / 0.88);
+}
+
+/* --- la città --------------------------------------------------------------------------------- */
+
+.cityHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cityLocal {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: rgb(239 230 210 / 0.78);
+  white-space: nowrap;
+}
+
+.cityLocal[lang="ar"] {
+  font-family: var(--arabic);
+  font-size: 1.9rem;
+}
+
+.cityLocal[lang="ja"] {
+  font-family: var(--cjk);
+  font-size: 1.45rem;
+}
+
+.cityLocal:not([lang="ar"]):not([lang="ja"]) {
+  font-style: italic;
+  font-size: 1.2rem;
+}
+
+.country {
+  margin: 4px 0 0;
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.moon {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 16px;
+  align-items: center;
+  margin: 20px 0 0;
+}
+
+.moonText {
+  margin: 0;
+  font-style: italic;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--cream);
+  text-wrap: pretty;
+}
+
+.moonData {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.blurb {
+  margin: 22px 0 0;
+}
+
+.facts {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+}
+
+.facts li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: rgb(239 230 210 / 0.92);
+}
+
+.facts li + li {
+  margin-top: 12px;
+}
+
+/* un piccolo rombo d'ottone, come le rosette sul lembo */
+.facts li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0.66em;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--brass);
+  transform: rotate(45deg);
+}
+
+/* --- il menu delle sezioni -------------------------------------------------------------------- */
+
+.menuList {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--hair);
+}
+
+.menuList li {
+  border-bottom: 1px solid var(--hair);
+}
+
+.menuItem {
+  display: grid;
+  grid-template-columns: 3.1rem 1fr;
+  column-gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 14px 4px 15px 0;
+  text-align: left;
+  border-radius: 4px;
+}
+
+.menuDeg {
+  grid-row: 1 / span 2;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  line-height: 1.95rem;
+  color: var(--brass);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-right: 6px;
+}
+
+.menuName {
+  font-size: 1.32rem;
+  line-height: 1.3;
+  color: var(--cream);
+  transition: color 0.2s ease;
+}
+
+.menuSummary {
+  grid-column: 2;
+  margin-top: 3px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+.menuItem:hover .menuName,
+.menuItem:focus-visible .menuName,
+.menuItem[aria-current="true"] .menuName {
+  color: var(--brass-light);
+}
+
+/* --- il gesto legato alla sezione -------------------------------------------------------------- */
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 18px;
+  padding: 0 18px;
+  border: 1px solid var(--hair-strong);
+  border-radius: 999px;
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--brass-light);
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.action:hover {
+  background: rgb(201 162 91 / 0.1);
+  border-color: var(--brass-light);
+}
+
+.action svg {
+  flex: 0 0 auto;
+}
+
+@media (min-width: 900px) {
+  .title {
+    font-size: 2.3rem;
+  }
+
+  .arName {
+    font-size: 3.9rem;
+  }
+}
+
+.sectionBody {
+  margin-top: 24px;
+}

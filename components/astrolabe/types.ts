@@ -58,6 +58,12 @@ export interface AstrolabeProps {
   initialState?: "assembled" | "exploded" | "hidden";
   /** Spazio da lasciare libero attorno allo strumento, in frazioni del contenitore. */
   framing?: { top?: number; bottom?: number; side?: number };
+  /**
+   * Il cielo dietro lo strumento: "full" (predefinito) gradiente vero, stelle e Luna; "stars" sfondo
+   * trasparente con stelle e Luna, da mettere sopra uno sfondo della pagina (le foto delle città);
+   * "none" solo lo strumento su sfondo trasparente.
+   */
+  sky?: "full" | "stars" | "none";
   /** at-Tariq: "auto" usa video/tariq-v|h.mp4 se il manifesto li elenca, "procedural" sempre la versione disegnata. */
   tariqVideo?: "auto" | "procedural";
   /** Forza la versione 2D (per prova). */

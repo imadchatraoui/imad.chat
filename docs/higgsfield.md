@@ -216,6 +216,10 @@ Higgsfield ha un limite di lavori contemporanei: l'errore 429 vuol dire "troppi 
 6. Ogni 5 asset completati scrivimi la tabella aggiornata in un blocco di codice (ID | job_id | stato). Se ti fermi, al mio "continua" riprendi dal primo asset non completato.
 ```
 
+## Da rifare
+
+- **T02** è uscita con `nano_banana_2` (non Pro): buchi profondi e riflessi chiari ai bordi, non va bene come superficie dell'ottone. Da rifare con `nano_banana_pro`, 2k, 1:1: "Seamless tileable texture of aged brass, warm golden tone, subtle soft patina and very fine hairline scratches. Perfectly flat, even, diffuse lighting with no highlights, no hotspots and no vignetting; no pits, no holes, no dents. Top-down orthographic view, no objects, no text."
+
 ## Messaggio 3 — reel e loop di giorno (lo preparo io)
 
 I loop di notte delle città li fa già la chat delle immagini. Il resto (loop di giorno, versioni orizzontali, reel per Instagram) lo scrivo quando incolli in Claude Code le tabelle: uso le immagini approvate come primo e ultimo fotogramma dei video e metto io i job ID.

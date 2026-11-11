@@ -248,6 +248,13 @@ function silhouetteFromImage(img: HTMLImageElement, size: number, frame: { cx: n
   return silhouetteToLoops(c, (px, py) => [px / b.k - frame.half + frame.cx, frame.cy + b.halfY - py / b.k], 0.6);
 }
 
+/** Cede il filo principale per un attimo (scheduler.yield dove c'è, altrimenti un timeout). */
+export function yieldToMain(): Promise<void> {
+  const sched = (globalThis as unknown as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
+  if (sched?.yield) return sched.yield();
+  return new Promise((r) => setTimeout(r, 0));
+}
+
 // ---------- il modello ----------
 
 export interface PlateSlot {
@@ -267,7 +274,7 @@ export class AstrolabeModel {
   readonly limb = new THREE.Group();
   readonly kursi = new THREE.Group();
   readonly ring = new THREE.Group();
-  readonly plates: [PlateSlot, PlateSlot];
+  plates!: [PlateSlot, PlateSlot];
   activePlate = 0;
   readonly rete = new THREE.Group();
   readonly reteSpin = new THREE.Group();
@@ -292,19 +299,34 @@ export class AstrolabeModel {
   private limbTexture!: THREE.CanvasTexture;
   private opts: ModelOptions;
 
-  constructor(opts: ModelOptions) {
+  private constructor(opts: ModelOptions) {
     this.opts = opts;
     this.root.name = "astrolabio";
-    this.plates = [this.makePlateSlot(), this.makePlateSlot()];
-    this.buildMater();
-    this.buildKursi();
-    this.buildRete();
-    this.buildRule();
-    this.buildPinAndHorse();
-    this.buildAlidade();
-    this.buildShadows();
-    this.root.add(this.mater, this.kursi, this.plates[0].group, this.plates[1].group, this.reteShadow, this.ruleShadow, this.rete, this.rule, this.pin, this.horse, this.alidade, this.fx);
-    this.plates[1].group.visible = false;
+  }
+
+  /**
+   * Costruisce lo strumento a piccoli passi, cedendo il filo principale tra uno e l'altro:
+   * così un'animazione che gira nel frattempo (l'intro) non si inceppa.
+   */
+  static async create(opts: ModelOptions): Promise<AstrolabeModel> {
+    const m = new AstrolabeModel(opts);
+    const steps: (() => void)[] = [
+      () => (m.plates = [m.makePlateSlot(), m.makePlateSlot()]),
+      () => m.buildMater(),
+      () => m.buildKursi(),
+      () => m.buildRete(),
+      () => m.buildRule(),
+      () => m.buildPinAndHorse(),
+      () => m.buildAlidade(),
+      () => m.buildShadows(),
+    ];
+    for (const step of steps) {
+      step();
+      await yieldToMain();
+    }
+    m.root.add(m.mater, m.kursi, m.plates[0].group, m.plates[1].group, m.reteShadow, m.ruleShadow, m.rete, m.rule, m.pin, m.horse, m.alidade, m.fx);
+    m.plates[1].group.visible = false;
+    return m;
   }
 
   private track<T extends { dispose(): void }>(x: T): T {
@@ -493,7 +515,31 @@ export class AstrolabeModel {
       ),
     );
     const edgeMesh = new THREE.Mesh(edge, sideMat);
-    group.add(inner, outer, edgeMesh);
+    // l'ombra morbida dove la piastra entra sotto il lembo
+    const ao = this.track(new THREE.RingGeometry(DIMS.plate - 0.085, DIMS.plate, 160, 1));
+    const aoCanvas = makeCanvas(256, 4);
+    const actx = aoCanvas.getContext("2d")!;
+    // la maschera alfa sta nel canale verde: grigi opachi, non bianco trasparente
+    const grad = actx.createLinearGradient(0, 0, 256, 0);
+    grad.addColorStop(0, "#000");
+    grad.addColorStop(0.65, "#3a3a3a");
+    grad.addColorStop(1, "#b0b0b0");
+    actx.fillStyle = grad;
+    actx.fillRect(0, 0, 256, 4);
+    const aoTex = this.track(new THREE.CanvasTexture(aoCanvas));
+    aoTex.colorSpace = THREE.NoColorSpace;
+    // UV radiali: u va da dentro a fuori
+    const pos = ao.attributes.position;
+    const uv = ao.attributes.uv;
+    for (let i = 0; i < pos.count; i++) {
+      const r = Math.hypot(pos.getX(i), pos.getY(i));
+      uv.setXY(i, (r - (DIMS.plate - 0.085)) / 0.085, 0.5);
+    }
+    const aoMat = this.track(new THREE.MeshBasicMaterial({ color: 0x120a02, alphaMap: aoTex, transparent: true, depthWrite: false, toneMapped: false }));
+    const aoMesh = new THREE.Mesh(ao, aoMat);
+    aoMesh.position.z = DIMS.plateZ + DIMS.plateT + 0.0004;
+    aoMesh.renderOrder = 1;
+    group.add(inner, outer, edgeMesh, aoMesh);
     const slot: PlateSlot = { group, inner, outer, canvas, texture, materials: [faceMat, faceMat2, sideMat], cityId: null };
     this.register(group, faceMat, faceMat2, sideMat);
     return slot;
@@ -536,11 +582,11 @@ export class AstrolabeModel {
     P.paintReteTexture(new Burin(tc, P.RETE_HALF), this.design, fonts, names);
     const tex = this.track(canvasTexture(tc, anisotropy));
     const capMat = this.track(brassMaterial({ map: tex, roughness: 0.3, bump: 0.22, clearcoat: 0.35, color: 0xfff4dc }));
-    const sideMat = this.track(brassMaterial({ color: 0xd9b56a, roughness: 0.3 }));
-    const geo = this.track(extrude(loopsToShapes(loops), DIMS.reteT - 0.004, 0.002));
+    const sideMat = this.track(brassMaterial({ color: 0xe6c47c, roughness: 0.26 }));
+    const geo = this.track(extrude(loopsToShapes(loops), DIMS.reteT - 0.0036, 0.0018));
     planarUV(geo, 0, 0, P.RETE_HALF);
     const mesh = new THREE.Mesh(geo, [capMat, sideMat]);
-    mesh.position.z = DIMS.reteZ + 0.002;
+    mesh.position.z = DIMS.reteZ + 0.0018;
     mesh.name = "rete";
     this.reteSpin.add(mesh);
     this.rete.add(this.reteSpin);
@@ -579,6 +625,8 @@ export class AstrolabeModel {
     const sideMat = this.track(brassMaterial({ color: 0xc8a25d, roughness: 0.34 }));
     const mesh = new THREE.Mesh(geo, [capMat, sideMat]);
     mesh.position.z = DIMS.ruleZ + 0.0015;
+    // la regola è disegnata lungo x: la giriamo perché a rotazione zero punti in alto (0° sul lembo)
+    mesh.rotation.z = Math.PI / 2;
     this.ruleSpin.add(mesh);
     this.rule.add(this.ruleSpin);
     this.register(this.rule, capMat, sideMat);
@@ -743,7 +791,7 @@ export class AstrolabeModel {
     this.reteShadowSpin.add(rete);
     this.reteShadow.add(this.reteShadowSpin);
     // la luce viene dall'alto a sinistra: l'ombra cade un poco in basso a destra
-    this.reteShadow.position.set(0.008, -0.011, 0);
+    this.reteShadow.position.set(0.011, -0.015, 0);
 
     const rule = this.shadowFrom(
       1.16,
@@ -768,6 +816,7 @@ export class AstrolabeModel {
       0.42,
     );
     rule.position.z = DIMS.reteZ + DIMS.reteT + 0.0008;
+    rule.rotation.z = Math.PI / 2;
     this.ruleShadowSpin.add(rule);
     this.ruleShadow.add(this.ruleShadowSpin);
     this.ruleShadow.position.set(0.012, -0.016, 0);

@@ -1,0 +1,69 @@
+/*
+  La cornice dell'astrolabio: una vetrina di museo, quieta e precisa.
+  Le parole in serif (Newsreader), i dati veri in monospace (Geist Mono), l'arabo in Amiri.
+  Ogni linea è un'incisione: filetti d'ottone di un pixel, niente vetri sfocati, niente ombre grigie.
+
+  .vars sta sulla radice di ogni componente della cornice, così ognuno porta con sé i suoi colori
+  anche se viene montato da solo.
+*/
+.vars {
+  --night: #070a14;
+  --lapis: #14204a;
+  --lapis-deep: #0b1330;
+  --brass: #c9a25b;
+  --brass-light: #ead6a0;
+  --cream: #efe6d2;
+  --muted: #8a8fa3;
+  --hair: rgb(201 162 91 / 0.28);
+  --hair-strong: rgb(201 162 91 / 0.55);
+
+  --serif: var(--font-newsreader, "Newsreader"), "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --arabic: var(--font-amiri, "Amiri"), "Noto Naskh Arabic", "Geeza Pro", "Times New Roman", serif;
+  --mono: var(--font-geist-mono, "Geist Mono"), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --cjk: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "Noto Serif CJK JP", serif;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vars :focus-visible {
+  outline: 1.5px solid var(--brass-light);
+  outline-offset: 3px;
+}
+
+.vars ::selection {
+  background: rgb(201 162 91 / 0.35);
+  color: var(--cream);
+}
+
+/* Lo stesso aspetto per tutti i pulsanti della cornice: niente stili del browser. */
+.button {
+  appearance: none;
+  margin: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

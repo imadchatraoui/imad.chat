@@ -293,9 +293,24 @@ function paintHorizonsPlate(b: Burin, cities: CityItem[], fonts: EngraveFonts) {
   shamsa(b, 0, -0.34, 0.12);
 }
 
+let shamsaImage: HTMLImageElement | null = null;
+
+/** Il medaglione disegnato (orn/O05S.svg o O05P.png dal manifesto), inciso al posto di quello procedurale. */
+export function setShamsaImage(img: HTMLImageElement | null) {
+  shamsaImage = img;
+}
+
 /** Una shamsa: stella a otto punte intrecciata. */
 export function shamsa(b: Burin, cx: number, cy: number, r: number) {
   const c = b.ctx;
+  if (shamsaImage) {
+    c.save();
+    c.globalCompositeOperation = "multiply";
+    c.globalAlpha = 0.85;
+    c.drawImage(shamsaImage, b.X(cx - r * 1.1), b.Y(cy + r * 1.1), b.L(2.2 * r), b.L(2.2 * r));
+    c.restore();
+    return;
+  }
   c.save();
   c.strokeStyle = BRASS.engrave;
   c.lineWidth = b.L(0.002, 1);
@@ -769,43 +784,43 @@ export function kursiHoles(b: Burin) {
   const c = b.ctx;
   const P = (x: number, y: number): [number, number] => [b.X(x), b.Y(y)];
   // arco trilobato al centro
+  // una finestra ad arco inflesso (ogivale), come un mihrab in miniatura
   c.beginPath();
-  c.moveTo(...P(-0.07, 1.31));
-  c.lineTo(...P(-0.07, 1.4));
-  c.bezierCurveTo(...P(-0.105, 1.415), ...P(-0.095, 1.47), ...P(-0.052, 1.466));
-  c.bezierCurveTo(...P(-0.056, 1.505), ...P(-0.02, 1.525), ...P(0, 1.545));
-  c.bezierCurveTo(...P(0.02, 1.525), ...P(0.056, 1.505), ...P(0.052, 1.466));
-  c.bezierCurveTo(...P(0.095, 1.47), ...P(0.105, 1.415), ...P(0.07, 1.4));
-  c.lineTo(...P(0.07, 1.31));
+  c.moveTo(...P(-0.05, 1.31));
+  c.lineTo(...P(-0.05, 1.405));
+  c.bezierCurveTo(...P(-0.05, 1.45), ...P(-0.012, 1.47), ...P(-0.006, 1.5));
+  c.lineTo(...P(0, 1.522));
+  c.lineTo(...P(0.006, 1.5));
+  c.bezierCurveTo(...P(0.012, 1.47), ...P(0.05, 1.45), ...P(0.05, 1.405));
+  c.lineTo(...P(0.05, 1.31));
+  c.quadraticCurveTo(...P(0, 1.29), ...P(-0.05, 1.31));
   c.closePath();
   c.fill();
   for (const s of [-1, 1]) {
-    // goccia inclinata
-    c.save();
-    c.translate(...P(0.3 * s, 1.335));
-    c.rotate(s * 0.75);
-    c.beginPath();
-    const k = b.k;
-    c.moveTo(0, -0.07 * k);
-    c.bezierCurveTo(0.045 * k, -0.01 * k, 0.035 * k, 0.04 * k, 0, 0.042 * k);
-    c.bezierCurveTo(-0.035 * k, 0.04 * k, -0.045 * k, -0.01 * k, 0, -0.07 * k);
-    c.fill();
-    c.restore();
+    // trafori ad arabesco: viticci a S tagliati nell'ottone, con le punte arrotondate
+    const slot = (pts: number[], w: number) => {
+      c.save();
+      c.lineCap = "round";
+      c.lineJoin = "round";
+      c.lineWidth = w * b.k;
+      c.strokeStyle = "#000";
+      c.beginPath();
+      c.moveTo(...P(pts[0] * s, pts[1]));
+      c.bezierCurveTo(...P(pts[2] * s, pts[3]), ...P(pts[4] * s, pts[5]), ...P(pts[6] * s, pts[7]));
+      c.stroke();
+      c.restore();
+    };
+    slot([0.095, 1.31, 0.17, 1.42, 0.24, 1.28, 0.31, 1.37], 0.024);
+    slot([0.34, 1.27, 0.4, 1.22, 0.47, 1.25, 0.45, 1.3], 0.022);
+    slot([0.12, 1.42, 0.16, 1.48, 0.21, 1.4, 0.24, 1.45], 0.016);
+    slot([0.555, 1.175, 0.585, 1.15, 0.625, 1.15, 0.645, 1.18], 0.016);
     // occhio della voluta
     c.beginPath();
     c.arc(...P(0.79 * s, 1.105), 0.019 * b.k, 0, Math.PI * 2);
     c.fill();
     // forellini in alto
     c.beginPath();
-    c.arc(...P(0.16 * s, 1.5), 0.019 * b.k, 0, Math.PI * 2);
-    c.fill();
-    c.beginPath();
-    c.arc(...P(0.46 * s, 1.335), 0.016 * b.k, 0, Math.PI * 2);
-    c.fill();
-    // mezzaluna sotto la spalla
-    c.beginPath();
-    c.arc(...P(0.565 * s, 1.215), 0.032 * b.k, 0, Math.PI * 2);
-    c.arc(...P(0.578 * s, 1.228), 0.027 * b.k, 0, Math.PI * 2, true);
+    c.arc(...P(0.135 * s, 1.535), 0.014 * b.k, 0, Math.PI * 2);
     c.fill();
   }
   // il foro del perno della maniglia

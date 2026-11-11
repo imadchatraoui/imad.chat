@@ -28,7 +28,7 @@ import {
 import { clamp01, easeInOutCubic, easeOutBack, easeOutCubic, easeSettle, lerp, segment, wrapPi } from "./anim";
 import { DIMS, BOUNDS } from "./dims";
 import type { EngraveFonts } from "./fonts";
-import { glowTexture, makeGlow, qiblaMaterial, ribbon, TariqLayer } from "./fx";
+import { glowTexture, kaabaTexture, makeGlow, qiblaMaterial, ribbon, sunTexture, TariqLayer } from "./fx";
 import type { MediaManifest } from "./manifest";
 import { AstrolabeModel } from "./model";
 import { SkyLayer } from "./sky";
@@ -74,6 +74,7 @@ export interface EngineInit {
   framing: { top: number; bottom: number; side: number };
   /** "auto": se il manifesto ha video/tariq-*.mp4 at-Tariq è quel video; "procedural": sempre la versione disegnata. */
   tariqVideo?: "auto" | "procedural";
+  sky?: "full" | "stars" | "none";
   callbacks: EngineCallbacks;
 }
 
@@ -105,7 +106,7 @@ const EXPLODED: Record<PartKey, PartPose> = {
 const ARRIVAL: Record<PartKey, PartPose> = {
   alidade: { x: 0, y: 0, z: -0.4, rz: 0, opacity: 0 },
   mater: { x: 0, y: 0, z: 0, rz: 0, opacity: 0 },
-  kursi: { x: 0, y: -0.32, z: -0.03, rz: 0, opacity: 0 },
+  kursi: { x: 0, y: -0.32, z: -0.075, rz: 0, opacity: 0 },
   plate: { x: 0, y: 0, z: 1.7, rz: 0.55, opacity: 0 },
   rete: { x: 0, y: 0, z: 2.4, rz: -2.4, opacity: 0 },
   rule: { x: 0, y: 0, z: 2.8, rz: 1.3, opacity: 0 },
@@ -184,6 +185,7 @@ export class AstrolabeEngine {
   private qiblaLine: THREE.Mesh | null = null;
   private qiblaMat: THREE.ShaderMaterial;
   private kaabaMark: THREE.Sprite;
+  private sunMark: THREE.Sprite;
   private envIntensity = 1;
 
   private tweens = new Map<string, Tween>();
@@ -210,7 +212,21 @@ export class AstrolabeEngine {
   private nowTimer: ReturnType<typeof setInterval> | null = null;
   private disposed = false;
 
-  constructor(init: EngineInit) {
+  /** Costruisce il modello senza bloccare la pagina, poi il motore. */
+  static async create(init: EngineInit): Promise<AstrolabeEngine> {
+    const model = await AstrolabeModel.create({
+      fonts: init.fonts,
+      texSize: init.texSize,
+      manifest: init.manifest,
+      stars: init.stars,
+      cities: init.cities,
+      sections: init.sections,
+      anisotropy: init.anisotropy,
+    });
+    return new AstrolabeEngine(init, model);
+  }
+
+  private constructor(init: EngineInit, model: AstrolabeModel) {
     this.scene = init.scene;
     this.camera = init.camera;
     this.dom = init.dom;
@@ -226,16 +242,9 @@ export class AstrolabeEngine {
     this.cities = init.cities;
     this.stars = init.stars;
 
-    this.model = new AstrolabeModel({
-      fonts: init.fonts,
-      texSize: init.texSize,
-      manifest: init.manifest,
-      stars: init.stars,
-      cities: init.cities,
-      sections: init.sections,
-      anisotropy: init.anisotropy,
-    });
+    this.model = model;
     this.sky = new SkyLayer(init.pixelRatio);
+    this.sky.setMode(init.sky ?? "full");
     this.tariq = new TariqLayer();
     this.scene.add(this.sky.group, this.model.root, this.tariq.mesh);
 
@@ -247,9 +256,17 @@ export class AstrolabeEngine {
     this.sectionGlow.visible = false;
     this.model.limb.add(this.sectionGlow);
     this.qiblaMat = qiblaMaterial();
-    this.kaabaMark = makeGlow(0.09, "#fff6dc");
+    this.kaabaMark = makeGlow(0.15, "#ffffff");
+    this.kaabaMark.material.map = kaabaTexture();
+    this.kaabaMark.material.blending = THREE.NormalBlending;
     this.kaabaMark.visible = false;
     this.model.fx.add(this.kaabaMark);
+    // il Sole sull'eclittica: la regola lo segue, e sul lembo si legge l'ora
+    this.sunMark = makeGlow(0.085, "#ffffff");
+    this.sunMark.material.map = sunTexture();
+    this.sunMark.material.blending = THREE.NormalBlending;
+    this.sunMark.renderOrder = 12;
+    this.model.reteSpin.add(this.sunMark);
     void glowTexture;
 
     this.pose = {} as Record<PartKey, PartPose>;
@@ -360,6 +377,11 @@ export class AstrolabeEngine {
     this.invalidate();
   }
 
+  setSkyMode(mode: "full" | "stars" | "none") {
+    this.sky.setMode(mode);
+    this.invalidate();
+  }
+
   setFraming(f: EngineInit["framing"]) {
     this.framing = f;
     this.invalidate();
@@ -389,16 +411,17 @@ export class AstrolabeEngine {
       // rete e regola salgono e poi tornano
       this.plateSwap = Math.sin(Math.PI * clamp01(t / 0.92));
       if (this.cityBlend) this.cityBlend.t = easeInOutCubic(segment(t, 0.2, 0.6));
-      // la vecchia piastra: su, poi giù fuori dalla madre
-      const o = segment(t, 0.08, 0.42);
-      oldSlot.group.position.z = 0.22 * easeOutCubic(clamp01(o * 2.2));
-      oldSlot.group.position.y = -2.9 * easeInOutCubic(clamp01((o - 0.25) / 0.75));
-      oldSlot.group.rotation.z = -0.25 * easeInOutCubic(o);
-      // la nuova: entra dall'alto e scende nel suo alloggio
-      const n = segment(t, 0.42, 0.5);
-      newSlot.group.position.y = 2.9 * (1 - easeOutCubic(clamp01(n / 0.62)));
-      newSlot.group.position.z = 0.22 * (1 - easeSettle(clamp01((n - 0.5) / 0.5)));
-      newSlot.group.rotation.z = 0.2 * (1 - easeOutCubic(n));
+      // la vecchia piastra: si solleva dalla madre e scorre via a sinistra, come una carta
+      const o = segment(t, 0.06, 0.46);
+      oldSlot.group.position.z = 0.24 * easeOutCubic(clamp01(o * 2.5));
+      oldSlot.group.position.x = -3.2 * easeInOutCubic(clamp01((o - 0.3) / 0.7));
+      oldSlot.group.rotation.z = 0.18 * easeInOutCubic(clamp01((o - 0.3) / 0.7));
+      // la nuova: entra da destra sollevata, poi scende nel suo alloggio e si assesta
+      const n = segment(t, 0.4, 0.56);
+      newSlot.group.position.x = 3.2 * (1 - easeOutCubic(clamp01(n / 0.62)));
+      newSlot.group.position.y = 0;
+      newSlot.group.position.z = 0.24 * (1 - easeSettle(clamp01((n - 0.58) / 0.42)));
+      newSlot.group.rotation.z = -0.16 * (1 - easeOutCubic(clamp01(n / 0.62)));
       this.plateLat = n > 0.3 ? (secret ? this.plateLat : city.lat) : this.plateLat;
     }, () => {
       oldSlot.group.visible = false;
@@ -579,7 +602,7 @@ export class AstrolabeEngine {
     }
     pts = pts.filter((p) => Math.hypot(p.x, p.y) <= 1.0);
     if (pts.length < 2) return;
-    const geo = ribbon(pts, 0.0065, DIMS.plateZ + DIMS.plateT + 0.0012);
+    const geo = ribbon(pts, 0.011, DIMS.plateZ + DIMS.plateT + 0.0012);
     let length = 0;
     for (let i = 1; i < pts.length; i++) length += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
     this.qiblaMat.uniforms.uLength.value = length;
@@ -635,7 +658,7 @@ export class AstrolabeEngine {
     this.tween("tariq", total, (tt) => {
       const T = tt * total;
       const mix = Math.min(clamp01(T / 0.9), clamp01((total - T) / 1.2));
-      this.sky.setVideoMix(mix);
+      this.sky.setVideoMix(mix * 0.82);
       this.envIntensity = envFrom * (1 - 0.35 * mix);
       marks.forEach((k, i) => {
         if (T >= k && !fired.has(i)) {
@@ -828,13 +851,15 @@ export class AstrolabeEngine {
 
   /** Fotogrammi disegnati e ultimo dt, per il banco di prova. */
   stats = { frames: 0, lastDt: 0 };
+  /** Velocità del tempo delle animazioni (il banco di prova la mette a 0 per fotografare un istante). */
+  timeScale = 1;
 
   /** Avanza di dt secondi. Ritorna true se serve un altro fotogramma. */
   update(dt: number): boolean {
     if (this.disposed) return false;
     this.stats.frames++;
     this.stats.lastDt = dt;
-    dt = Math.min(dt, 1 / 20);
+    dt = Math.min(dt, 1 / 20) * this.timeScale;
     this.clock += dt;
     let animating = false;
 
@@ -944,7 +969,9 @@ export class AstrolabeEngine {
 
     // la regola segue il Sole sulla rete (così sul lembo si legge l'ora solare), o la qibla
     const sun = this.sunEq(t);
-    const sunPos = rotateClockwise(projectOnRete(sun.ra, sun.dec), reteRot);
+    const sunOnRete = projectOnRete(sun.ra, sun.dec);
+    this.sunMark.position.set(sunOnRete.x, sunOnRete.y, DIMS.reteZ + DIMS.reteT + 0.003);
+    const sunPos = rotateClockwise(sunOnRete, reteRot);
     const sunAngle = clockAngle(sunPos);
     let ruleTarget = sunAngle;
     if (this.ruleQiblaBlend > 0) {
@@ -1355,6 +1382,6 @@ export class AstrolabeEngine {
     this.tariq.dispose();
     this.qiblaMat.dispose();
     this.qiblaLine?.geometry.dispose();
-    for (const s of [this.selectGlow, this.sectionGlow, this.kaabaMark]) s.material.dispose();
+    for (const s of [this.selectGlow, this.sectionGlow, this.kaabaMark, this.sunMark]) s.material.dispose();
   }
 }

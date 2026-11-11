@@ -1,0 +1,79 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--night);
+  pointer-events: none;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.layer[data-on] {
+  opacity: 1;
+}
+
+.media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* le città occupano il terzo basso dell'inquadratura */
+  object-position: 50% 100%;
+}
+
+.dim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(7 10 20 / 0.62) 0%, rgb(7 10 20 / 0.42) 55%, rgb(7 10 20 / 0.3) 100%);
+}
+
+/*
+  Senza immagini: il cielo dipinto dall'altezza del Sole. L'orizzonte sta un po' sopra la barra dei
+  comandi (--horizon), così il suo chiarore si vede intorno alla metà bassa dello strumento; sotto,
+  la terra è scura come una città spenta.
+*/
+.gradient {
+  --horizon: 74%;
+  position: absolute;
+  inset: 0;
+}
+
+.layer[data-sky="notte"] .gradient {
+  background:
+    radial-gradient(70% 9% at 50% var(--horizon), rgb(201 162 91 / 0.1) 0%, rgb(201 162 91 / 0) 100%),
+    radial-gradient(140% 42% at 50% var(--horizon), rgb(26 40 97 / 0.85) 0%, rgb(20 32 74 / 0.4) 45%, rgb(7 10 20 / 0) 100%),
+    linear-gradient(180deg, #03050b 0%, #070a14 40%, #0b1330 var(--horizon), #05070f 100%);
+}
+
+.layer[data-sky="crepuscolo"] .gradient {
+  background:
+    radial-gradient(80% 10% at 50% var(--horizon), rgb(214 146 102 / 0.34) 0%, rgb(214 146 102 / 0) 100%),
+    radial-gradient(150% 46% at 50% var(--horizon), rgb(70 58 112 / 0.9) 0%, rgb(36 42 96 / 0.55) 42%, rgb(7 10 20 / 0) 100%),
+    linear-gradient(180deg, #05080f 0%, #0c1431 38%, #262a5a var(--horizon), #0a0d1d calc(var(--horizon) + 6%), #06080f 100%);
+}
+
+.layer[data-sky="giorno"] .gradient {
+  background:
+    radial-gradient(90% 11% at 50% var(--horizon), rgb(234 214 160 / 0.26) 0%, rgb(234 214 160 / 0) 100%),
+    radial-gradient(160% 55% at 50% var(--horizon), rgb(98 132 186 / 0.9) 0%, rgb(52 82 140 / 0.6) 45%, rgb(20 32 74 / 0) 100%),
+    linear-gradient(180deg, #0b1636 0%, #1b305f 42%, #4a6898 var(--horizon), #111a33 calc(var(--horizon) + 6%), #080c18 100%);
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 82% 64% at 50% 46%, rgb(7 10 20 / 0) 42%, rgb(7 10 20 / 0.5) 82%, rgb(7 10 20 / 0.86) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer {
+    transition-duration: 0.01s;
+  }
+}

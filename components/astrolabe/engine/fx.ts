@@ -22,6 +22,66 @@ export function glowTexture(): THREE.Texture {
   return t;
 }
 
+let kaabaTex: THREE.Texture | null = null;
+
+/** Il segno della qibla: un piccolo cubo nero con la fascia d'oro, in un alone. */
+export function kaabaTexture(): THREE.Texture {
+  if (kaabaTex) return kaabaTex;
+  const c = makeCanvas(128);
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, "rgba(255,236,190,0.9)");
+  g.addColorStop(0.35, "rgba(255,220,150,0.35)");
+  g.addColorStop(1, "rgba(255,220,150,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  ctx.fillStyle = "#0b0a0a";
+  ctx.fillRect(48, 48, 32, 32);
+  ctx.fillStyle = "#e9c46a";
+  ctx.fillRect(48, 56, 32, 4);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  kaabaTex = t;
+  return t;
+}
+
+let sunTex: THREE.Texture | null = null;
+
+/** Il Sole sull'eclittica della rete: un dischetto d'oro con i raggi incisi. */
+export function sunTexture(): THREE.Texture {
+  if (sunTex) return sunTex;
+  const c = makeCanvas(128);
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, "rgba(255,226,150,0.55)");
+  g.addColorStop(0.5, "rgba(255,210,120,0.12)");
+  g.addColorStop(1, "rgba(255,210,120,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  ctx.translate(64, 64);
+  ctx.strokeStyle = "#f6d27a";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * 20, Math.sin(a) * 20);
+    ctx.lineTo(Math.cos(a) * (i % 2 ? 30 : 36), Math.sin(a) * (i % 2 ? 30 : 36));
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#ffe08a";
+  ctx.beginPath();
+  ctx.arc(0, 0, 15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#8a5a12";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  sunTex = t;
+  return t;
+}
+
 /** Un bagliore che si può appendere a un punto dello strumento. */
 export function makeGlow(size: number, color = "#ffe9b8"): THREE.Sprite {
   const m = new THREE.SpriteMaterial({
@@ -85,8 +145,8 @@ export function qiblaMaterial(): THREE.ShaderMaterial {
         if (t > uProgress) discard;
         float across = 1.0 - abs(vUv.y * 2.0 - 1.0);
         float head = smoothstep(uProgress - 0.08, uProgress, t);
-        vec3 col = mix(vec3(1.0, 0.86, 0.52), vec3(1.0, 0.98, 0.9), head);
-        float a = pow(across, 1.6) * uAlpha * (0.75 + 0.25 * head);
+        vec3 col = mix(vec3(1.0, 0.84, 0.48), vec3(1.0, 0.98, 0.92), head) * 1.6;
+        float a = pow(across, 1.2) * uAlpha * (0.85 + 0.15 * head);
         gl_FragColor = vec4(col * a, a);
       }`,
     transparent: true,

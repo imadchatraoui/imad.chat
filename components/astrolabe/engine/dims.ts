@@ -15,9 +15,9 @@ export const DIMS = {
   plate: 1.064,
   plateZ: 0.046,
   plateT: 0.012,
-  reteZ: 0.0595,
-  reteT: 0.015,
-  ruleZ: 0.0775,
+  reteZ: 0.0592,
+  reteT: 0.018,
+  ruleZ: 0.0785,
   ruleT: 0.011,
   /** Il perno. */
   pinR: 0.021,
