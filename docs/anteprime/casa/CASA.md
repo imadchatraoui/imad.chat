@@ -116,6 +116,19 @@ No bubble, no word, nothing away from Dot, everything gone in seconds.
 
 **D. Manifesto, the chosen look.** Keep its character (graphic, flat poster cat, long tapered tail, tall ears, ring eyes); fix only what is wrong: a head turned aside must read as a cat's profile (a small muzzle with the nose at its tip, the near ear in front of the fez), never a ball with one eye; the two forelegs of the sitting cat are two legs with two paws, not one column; darker whiskers outside the head on the light theme; the hind legs hang a little apart when it hangs; pink pads when it slides and the paws drawn over the things it holds (as Adesivo did); the eyes keep one clear highlight. Then `look-adesivo.js` and `look-pelo.js` leave the pages and the repo, and the look switch leaves the `/gatto` preview.
 
+**E. Where Dot stays on the home (decided 2026-11-12 night, after seeing the new home online).** Seen on a phone: Dot sitting on a tile's top edge covers the bottom of the tile above it (the "Progetti" title, the Tools line, the name on Su di me).
+
+1. Dot may cover pictures and drawings: the globe, the photo, the cube, the squares of the heatmap, bare glass. Dot never covers words or controls (titles, lines, numbers, labels, buttons, fields, links, chips) and nothing of the Corano. The home passes the whole list as `keep`: no short list, no exceptions.
+2. Three perches are always good, so Dot is still in view most of the time: **the hero ledge** (its home, with the box), **the dock** (the top of the filter pill: it is fixed to the screen, so Dot rides along while the visitor reads) and **the 3x3 logo of the footer** (its own keys). Tile edges stay perches wherever Dot's real outline passes the `keep` test (for example over the heatmap's squares, or beside a title).
+3. Dot follows the visitor. When it has been out of view for about four seconds and the page is still, it comes to a good perch in view; if there is none, to the dock. It never appears from nowhere: it comes up from behind the dock's edge (ears, eyes, then a hop on) and leaves the same way; between two perches that are both in view it walks and jumps as usual.
+4. On the dock Dot is calm: it sits, loafs, sleeps, and watches what scrolls under it (the pupils follow); when a filter is tapped it looks down at it. It stays above the pill: never over a filter's word, the tail on top or behind, and a tap on a filter always reaches the filter.
+5. Measured on a phone (390x844 and 360x780, scripted reading and scrolling): Dot in view at least 85% of the time; 0 frames over a word, a control, the Corano or the quiet tile, travelling included.
+
+**F. Small things of the same round.**
+
+- The intro with the cat lives in its own file, a copy: `docs/anteprime/intro/intro-gatto.js` (versions `gatto`, `stella`, `cursore`), loaded only by the new home. `intro.js` and `intro.css`, the live home's, are not touched: `public/home` stays byte for byte as it is.
+- The Projects list leaves out the profile repository (the one named like the user).
+
 ## 3. Pages
 
 All static, like the home: design sources under `docs/anteprime/casa/`, copied into `public/` by `scripts/home/build.mjs`, plain HTML, CSS and ES2017 scripts, no framework, shared tokens and a shared small header (logo, back, theme follows the phone). Dot comes along on every page, smaller and calmer (a corner, a peek), never on a page of `/mondo`.
