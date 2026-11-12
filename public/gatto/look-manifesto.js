@@ -582,7 +582,7 @@
       hold: withSit({ fs: 1.6, f0x: 7.6, f1x: 6.8 }), sip: withSit({ fs: 1.3 }),
       type: withSit({ f0y: 2.2, f1y: 2.8 }),
       peek: { fs: 10.2 },
-      drape: { f0x: 10.6, f0y: -10.6, f2x: -2.6, f2y: -9.6, te: -1.42, tc: 0.55 },
+      drape: { dy: 4.4, hp: 0.04, f0x: 10.6, f0y: -10.6, f2x: -2.6, f2y: -9.6, te: -1.42, tc: 0.55 },
       /* appeso: le braccia tese in su, larghe, fuori dalla testa; la testa tra le braccia, sotto il bordo;
          il corpo che pende come una goccia, le zampe dietro a penzoloni */
       hang: { hx: 0, hy: -24, cx: 0, cy: -5, dx: 0.3, dy: -4.6, f0x: 0.6, f0y: 0.9, f1x: 0.6, f1y: 0.9, fs: 4, fo: 7.4, f2x: 0.6, f2y: -36.5, f3x: 0.6, f3y: -36, hs: -1.2, ho: 0.8, tby: -4, te: -1.3, tc: 0.95, tw: 0.5, eye: 1.15, hp: 0.12, ear: 0.3, sqx: 1, sqy: 1 },

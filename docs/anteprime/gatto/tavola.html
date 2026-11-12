@@ -65,7 +65,10 @@
     { id: "star", label: "la stella", pose: "bat", yaw: Y.viewRight, look: [-0.5, 0.15], gaze: [0.5, 1], pupil: 1, prop: ["star", "air", 15, 27] },
     { id: "laptop", label: "programma", pose: "type", yaw: Y.right, look: [0, -0.15], prop: ["laptop", "ground", 13, 0] }
   ];
-  if (only) { var ids = only.split(","); LIST = LIST.filter(function (s) { return ids.indexOf(s.id) >= 0; }); }
+  if (only) { var ids = only.split(","); LIST = LIST.filter(function (s) { return ids.indexOf(s.id) >= 0; }).sort(function (m, n) { return ids.indexOf(m.id) - ids.indexOf(n.id); }); }
+  /* ?prova=[{"dy":3},{"dy":5,"hp":0}] : la stessa posa (la prima di ?pose) con numeri diversi, una casella per variante: per cercare i numeri giusti */
+  var prova = null; try { prova = q.get("prova") ? JSON.parse(q.get("prova")) : null; } catch (e) { prova = null; }
+  if (prova && LIST.length) { var s0 = LIST[0]; LIST = prova.map(function (o, i) { var c = {}, k2; for (k2 in s0) c[k2] = s0[k2]; c.over = {}; for (k2 in (s0.over || {})) c.over[k2] = s0.over[k2]; for (k2 in o) { if (k2 === "look" || k2 === "yaw" || k2 === "gaze") c[k2] = o[k2]; else c.over[k2] = o[k2]; } c.label = Object.keys(o).map(function (n) { return n + " " + JSON.stringify(o[n]); }).join("  ") || "com'è"; c.id = "v" + i; return c; }); }
   if (strip) { LIST = []; for (var i = 0; i < N; i++) LIST.push(strip === "walk" ? { id: "w" + i, label: "passo " + (i + 1) + "/" + N, pose: "stand", yaw: Y.right, look: V, walk: i / N }
     : strip === "turn" ? { id: "t" + i, label: "giro " + (i + 1) + "/" + N, pose: i < N / 2 ? "stand" : "sit", yaw: Y.right + (Y.left - Y.right) * i / (N - 1), look: V }
     : { id: "b" + i, label: "occhi " + (i + 1) + "/" + N, pose: "sit", yaw: Y.viewRight, look: V, over: { eye: 1.3 - 1.3 * i / (N - 1), lid: i % 2 ? 0.4 : 0, brow: i % 3 === 0 ? 0.8 : 0 } }); }

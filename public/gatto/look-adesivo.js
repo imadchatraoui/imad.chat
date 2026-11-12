@@ -545,7 +545,7 @@
       loaf: { tby: -6, te: -0.35, tc: 0.6, tw: 0.3 }, sleep: { tby: -6, te: -0.35, tc: 0.45, tw: 0.4 },
       puddle: { dx: 8.4, dy: 5.6, eye: 0.8, lid: 0.3, tby: -3, te: -0.3, tc: 0.8, tw: 0.2 },
       peek: { dy: 15.4, fs: 8.4, f0y: 0.6, f1y: 0.6 },
-      drape: { hy: 5.2, cy: 5.4, sqy: 0.9, dy: 1.0, f0x: 10.4, f0y: -9.4, f2x: -2.8, f2y: -8.6, te: -1.42, tc: -0.42, lid: 0.4, hp: -0.16 },
+      drape: { hy: 5.2, cy: 5.4, sqy: 0.9, dy: 4.4, f0x: 10.4, f0y: -9.4, f2x: -2.8, f2y: -8.6, te: -1.42, tc: -0.42, lid: 0.3, hp: 0.04 },
       hang: { hx: 0, hy: -26.5, cx: 0, cy: -8.4, dx: 0.4, dy: -1.6, f0x: 0.6, f0y: 0.9, f1x: 0.6, f1y: 0.9, fs: 2.6, fo: 5.4, f2x: 0.6, f2y: -39.5, f3x: 0.6, f3y: -39.5, hs: -1.2, ho: 0.6, tby: -4, te: -1.3, tc: 0.9, tw: 0.5, eye: 1.15, hp: 0.12, ear: 0.3, sqx: 1, sqy: 1 },
       belly: { f0x: 8.4, f0y: -8, f1x: 5.6, f1y: -6.4, f2x: -5.6, f2y: -8, f3x: -8.4, f3y: -6.4, hp: 3.14, hr: 0, dx: 4, dy: -4, eye: 0.9, lid: 0.08 },   /* a pancia in su: zampe in aria, la testa all'indietro ci guarda */
       slide: { cy: -8, hy: -17, dy: 9.4, fs: 3.2, fo: 7.4, f0y: 10.5, f1y: 6.5, f2y: -22.5, f3y: -21.2, hs: 1.4, ho: 5.6, sqx: 1.0, sqy: 1.0, ear: 0.3, eye: 1.32, te: -1.35, tc: 0.55, tw: -0.5 }

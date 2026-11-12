@@ -83,7 +83,7 @@
     held: pose({ hx: -0.5, hy: -21, cx: 1, cy: -9, dx: 3, dy: 8.5, f0x: 5.5, f0y: -17, f1x: 4, f1y: -18, f2x: 3.5, f2y: -32, f3x: 2, f3y: -31, tby: -6, te: -1.35, tc: 0.4, eye: 0.9, lid: 0.35, ear: 0.2 }),
     /* sui bordi: l'origine è sul bordo del riquadro (peek, drape, hang) o sulla faccia del riquadro (slide: le zampe davanti stanno sopra) */
     peek: pose({ hx: 0, hy: -18, cx: 0, cy: -7.5, dx: 0, dy: 13.4, f0x: 1.5, f0y: 1, f1x: 1.5, f1y: 1, fs: 8.6, f2x: 0, f2y: -28, f3x: 0, f3y: -28, tby: -6, te: -1.4, eye: 1.05 }),
-    drape: pose({ hx: -7, hy: 5.2, cx: 6.4, cy: 5.4, dx: 7.6, dy: 1.6, f0x: 10.2, f0y: -7.6, f1x: 5, f1y: 2.5, f2x: -3.0, f2y: -6.8, f3x: -6, f3y: 2.5, tby: -1, te: -1.45, tc: -0.4, eye: 0.95, lid: 0.35, hp: -0.1, br: 0.7, sqy: 0.9 }),
+    drape: pose({ hx: -7, hy: 5.2, cx: 6.4, cy: 5.4, dx: 7.6, dy: 4.2, f0x: 10.2, f0y: -7.6, f1x: 5, f1y: 2.5, f2x: -3.0, f2y: -6.8, f3x: -6, f3y: 2.5, tby: -1, te: -1.45, tc: -0.4, eye: 0.95, lid: 0.3, hp: 0.04, br: 0.7, sqy: 0.9 }),   /* la testa sta appoggiata sul bordo, non sotto: gli occhi restano interi */
     hang: pose({ hx: 0, hy: -26.5, cx: 0, cy: -8.4, dx: 0.4, dy: -1.6, f0x: 0.6, f0y: 0.9, f1x: 0.6, f1y: 0.9, fs: 2.6, fo: 5.4, f2x: 0.6, f2y: -39.5, f3x: 0.6, f3y: -39.5, hs: -1.2, ho: 0.6, tby: -4, te: -1.3, tc: 0.9, tw: 0.5, eye: 1.15, hp: 0.12, ear: 0.3 }),
     slide: pose({ hx: 0, hy: -16, cx: 0, cy: -7, dx: 0.6, dy: 8.6, f0x: 0.8, f0y: 6, f1x: 0.8, f1y: 6, fs: 2.4, fo: 10, f2x: 0.8, f2y: -22, f3x: 0.8, f3y: -22, hs: 1.5, ho: 8, tby: -6, te: -1.15, tc: 0.6, tw: -0.5, eye: 1.3, ear: 0.4, puff: 0.5 })
   };

@@ -593,7 +593,7 @@
       hang: { hx: 0, hy: -28, cx: 0, cy: -18.5, dx: 0.2, dy: 4.2, f0x: 0.6, f0y: 0.7, f1x: 0.6, f1y: 0.7, fs: 3.0, fo: 6.6, f2x: 0.6, f2y: -38, f3x: 0.6, f3y: -38, hs: -0.6, ho: 3.0,
         tby: -6, te: -1.0, tc: 1.1, tw: 0.6, eye: 1.08, lid: 0.1, brow: -0.6, hp: 0.12, ear: 0.35, br: 0.4 },
       peek: { cy: -5.2, dy: 13.2, eye: 1.08 },
-      drape: { hy: 5.2, cy: 5.4, dy: 1.2, sqy: 0.9, f0x: 8.6, f0y: -11.5, f2x: -5.2, f2y: -11, lid: 0.4 },
+      drape: { hy: 5.2, cy: 5.4, dy: 4.4, hp: 0.04, sqy: 0.9, f0x: 8.6, f0y: -11.5, f2x: -5.2, f2y: -11, lid: 0.3 },
       sit: { tw: 1.7, te: -0.25, tc: 0.12, tby: -6.4 },
       /* scivola (riferimento 06): un braccio più su dell'altro, cosce larghe, piedi aperti col palmo, pelo gonfio, occhi sbarrati */
       slide: { hx: 0, hy: -15, cx: 0, cy: -6.5, dx: 0.6, dy: 9, f0x: 0.8, f0y: 13, f1x: 0.8, f1y: 7.5, fs: 2.8, fo: 8.0, f2x: 0.8, f2y: -21, f3x: 0.8, f3y: -21, hs: 1.2, ho: 6.4,
