@@ -68,7 +68,8 @@
     if (s < 60) return "adesso";
     var m = Math.floor(s / 60); if (m < 60) return m === 1 ? "1 minuto fa" : m + " minuti fa";
     var h = Math.floor(m / 60); if (h < 24) return h === 1 ? "1 ora fa" : h + " ore fa";
-    var d = Math.floor(h / 24); if (d === 1) return "ieri";
+    var n0 = I.now(), t0 = new Date(t), d = Math.round((new Date(n0.getFullYear(), n0.getMonth(), n0.getDate()) - new Date(t0.getFullYear(), t0.getMonth(), t0.getDate())) / 86400000);   /* da qui, giorni di calendario (come in Progetti): 47 ore fa è «2 giorni fa», non «ieri» */
+    if (d <= 1) return "ieri";
     if (d < 7) return d + " giorni fa";
     if (d < 30) { var w = Math.floor(d / 7); return w === 1 ? "1 settimana fa" : w + " settimane fa"; }
     if (d < 365) { var mo = Math.max(1, Math.floor(d / 30.44)); return mo === 1 ? "1 mese fa" : mo + " mesi fa"; }

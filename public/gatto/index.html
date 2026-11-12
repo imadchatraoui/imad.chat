@@ -40,8 +40,8 @@
 <!-- barra di questa anteprima: non fa parte del design -->
 <div class="barra" role="group" aria-label="comandi dell'anteprima">
   <div class="seg" id="aspetto" role="group" aria-label="aspetto">
-    <button type="button" data-look="adesivo" aria-pressed="true">Adesivo</button>
-    <button type="button" data-look="manifesto" aria-pressed="false">Manifesto</button>
+    <button type="button" data-look="manifesto" aria-pressed="true">Manifesto</button>
+    <button type="button" data-look="adesivo" aria-pressed="false">Adesivo</button>
     <button type="button" data-look="pelo" aria-pressed="false">Pelo</button>
   </div>
   <div class="seg" id="tema" role="group" aria-label="tema">
@@ -72,7 +72,7 @@
   try { q = new URLSearchParams(location.search); } catch (e) { q = { get: function () { return null; } }; }
   if (!DOT || !DOT.start || !DOT.looks) return;
   var LOOKS = ["adesivo", "manifesto", "pelo"];
-  var look = q.get("look"); if (LOOKS.indexOf(look) < 0 || !DOT.looks[look]) look = "adesivo";
+  var look = q.get("look"); if (LOOKS.indexOf(look) < 0 || !DOT.looks[look]) look = "manifesto";   /* Manifesto: lo ha scelto Imad (2026-11-12) */
   var tema = html.getAttribute("data-tema") === "chiaro" ? "chiaro" : "scuro";
   var suono = q.get("suono") !== "no";
   if (q.get("manual") === "1") window.__manual = true;

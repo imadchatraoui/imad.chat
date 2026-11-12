@@ -81,7 +81,11 @@
   .pj-r:hover .pj-r__go { color: var(--ink); transform: translate(2px, -2px); }
   .pj-r__sito:hover { background: var(--fill-2); }
 }
-@media (hover: none) { .pj-cubo__dito { display: block; } }
+@media (hover: none) {
+  .pj-cubo__dito { display: block; }
+  /* la riga sta sotto il disegno, non sopra: un angolo del cubo che gira scendeva fino a lei */
+  .pj-cubo__cv { bottom: 32px; height: calc(100% - 32px); }
+}
 @media (hover: hover) and (pointer: fine) { .pj-cubo__dito { display: none; } }
 @media (prefers-reduced-motion: reduce) {
   .pj-r, .pj-r__go, .pj-r__sito, .pj-cubo__dito { transition: none; }

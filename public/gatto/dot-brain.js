@@ -77,7 +77,8 @@
   /* toglie da una lista di tratti [a, b] l'intervallo [a2, b2] */
   function cutSegs(segs, a2, b2) { var out = [], k, s; for (k = 0; k < segs.length; k++) { s = segs[k]; if (b2 <= s[0] || a2 >= s[1]) out.push(s); else { if (a2 > s[0]) out.push([s[0], a2]); if (b2 < s[1]) out.push([b2, s[1]]); } } return out; }
   /* il riquadro n sta «sopra» un bordo alto y: da 2 px sotto a 84 px sopra (la statura del gatto col fez) */
-  function above(n, y) { return !(n.b < y - 84 || n.t > y + 2); }
+  function above(n, y) { return !(n.b < y - 84 * K / 1.5 || n.t > y + 2); }
+  function hwNo() { return 46 * K / 1.5; }                            /* metà della larghezza del gatto con la coda (seduto, di lato, in volo), in pixel a questa grandezza */
   /* rilegge i riquadri. fast: senza rileggere gli stili (mentre li si segue durante un'animazione).
      Il gatto resta attaccato al suo riquadro anche se si è spostato; se il suo posto non c'è più, B.evict dice perché e step() lo fa spostare */
   function readWorld(fast) {
@@ -92,15 +93,15 @@
     }
     /* le parole (titoli, righe, chip: [data-dot-keep] e il selettore O.keep) sono come il Corano per chi sta sul bordo di sotto:
        il gatto non ci si siede davanti. Il tratto di bordo sotto una parola resta, ma segnato (cov): ci si può cadere, mai restarci */
-    var keep = [], ks = "[data-dot-keep]" + (O.keep ? ", " + O.keep : ""), kel, kr, kh = 74 * K / 1.5, kl = 52 * K / 1.5, km = 46 * K / 1.5;
+    var keep = [], ks = "[data-dot-keep]" + (O.keep ? ", " + O.keep : ""), kel, kr, kh = 74 * K / 1.5, kl = 52 * K / 1.5, km = hwNo();
     try { kel = doc.querySelectorAll(ks); } catch (e) { kel = doc.querySelectorAll("[data-dot-keep]"); }
     for (i = 0; i < kel.length && keep.length < 240; i++) { var rl = keepRects(kel[i]); for (j = 0; j < rl.length; j++) { kr = rl[j]; if (kr.width < 2 || kr.height < 2) continue; keep.push({ l: kr.left + view.sx, t: kr.top + view.sy, r: kr.right + view.sx, b: kr.bottom + view.sy }); } }
     var cut = no.slice(); if (stageOn && stage.rim) { try { var rm = stage.rim(), bh = B.home || { y: rm.y }; cut.push({ l: rm.x - rm.w / 2 - 8, r: rm.x + rm.w / 2 + 8, t: rm.y - 8, b: bh.y, m: 10 }); } catch (e) {} }
     for (i = 0; i < tiles.length; i++) {
       t = tiles[i]; if (t.mode === "no") continue;
       var m = Math.max(24, t.rad * 0.6 + 12), segs = [[t.l + m, t.r - m]], qz = [], k, q;
-      for (j = 0; j < cut.length; j++) { var n = cut[j], mm = n.m || 34; if (above(n, t.t)) segs = cutSegs(segs, n.l - mm, n.r + mm); }   /* mai sopra il Corano (né dentro la scatola): si taglia il tratto che gli sta sotto */
-      for (j = 0; j < qt.length; j++) if (qt[j] !== t && above(qt[j], t.t)) qz.push([qt[j].l - 30, qt[j].r + 30, 0]);
+      for (j = 0; j < cut.length; j++) { var n = cut[j], mm = n.m || hwNo(); if (above(n, t.t)) segs = cutSegs(segs, n.l - mm, n.r + mm); }   /* mai sopra il Corano (né dentro la scatola): si taglia il tratto che gli sta sotto */
+      for (j = 0; j < qt.length; j++) if (qt[j] !== t && above(qt[j], t.t)) qz.push([qt[j].l - hwNo(), qt[j].r + hwNo(), 0]);
       for (j = 0; j < keep.length; j++) { var kp = keep[j]; if (kp.b > t.t - kh && kp.t < t.t + 2 && kp.r > t.l && kp.l < t.r) qz.push([kp.l - km, kp.r + km, t.t - kp.b >= kl ? 2 : 1]); }   /* una parola meno di 74 px sopra il bordo (la statura del gatto seduto, col fez): sopra 52 px ci si può stare sdraiati (2), sotto no (1) */
       /* sotto un riquadro «quiet» (e sul suo bordo) il tratto resta, ma è segnato: ci si può cadere, mai restarci. Così sotto una parola (cov);
          sotto una parola un po' più alta il tratto è «low»: solo sdraiato (pagnotta, sonno) */
@@ -204,7 +205,7 @@
   function onQuiet() { return !!(cat.plat && cat.plat.quiet) || overQuiet(2); }
   function gameRoom() { return !onQuiet() && !rectHits(world.quiet, cat.x - 150, cat.y - 170, cat.x + 150, cat.y + 30); }   /* spazio per un gioco o un oggetto, lontano dal riquadro quiet */
   /* sotto un riquadro «no» (il Corano): fez compreso, il gatto lo coprirebbe */
-  function underNo(x, y) { var j, n; for (j = 0; j < world.no.length; j++) { n = world.no[j]; if (!n.m && above(n, y) && x > n.l - 34 && x < n.r + 34) return true; } return false; }
+  function underNo(x, y) { var j, n, hw = hwNo(); for (j = 0; j < world.no.length; j++) { n = world.no[j]; if (!n.m && above(n, y) && x > n.l - hw && x < n.r + hw) return true; } return false; }
   function platBelow(x, y, any) { var i, p, b = null; for (i = 0; i < world.plats.length; i++) { p = world.plats[i]; if ((any || !p.quiet || true) && x >= p.a - 8 && x <= p.b + 8 && p.y >= y - 3 && (!b || p.y < b.y)) b = p; } return b; }
   function floorAt(x, y) { var p = platBelow(x, y, true); return p ? p.y : Infinity; }
   function tileAt(x, y) { var i, t; for (i = 0; i < world.tiles.length; i++) { t = world.tiles[i]; if (x >= t.l && x <= t.r && y >= t.t && y <= t.b) return t; } return null; }
@@ -370,7 +371,7 @@
   }
   function arcHitsNo(x0, y0, x1, y1, c) { var a = arcNo(x0, y0, x1, y1, c); return a.n > 0; }
   /* il rettangolo del gatto in volo (piedi in x, y) tocca un riquadro «no»? lungo un tratto, un campione ogni 14 px */
-  function boxNo(x, y) { var j, n; for (j = 0; j < world.no.length; j++) { n = world.no[j]; if (n.m) continue; if (x + 34 > n.l && x - 34 < n.r && y + 8 > n.t && y - 70 < n.b) return true; } return false; }
+  function boxNo(x, y) { var j, n, hw = 54 * K / 1.5, hh = 72 * K / 1.5; for (j = 0; j < world.no.length; j++) { n = world.no[j]; if (n.m) continue; if (x + hw > n.l && x - hw < n.r && y + 8 > n.t && y - hh < n.b) return true; } return false; }   /* il corpo in volo: allungato, con la coda dietro, arriva a 54 unità-pixel dal punto dei piedi */
   /* un lancio con questa velocità (la stessa fisica di «fly») passa davanti a un riquadro «no» prima di posarsi? */
   function throwHitsNo(vx, vy) {
     var x = cat.x, y = cat.y + (below() - below("air")) * px(), i, j, q, h = 1 / 60, y0;
