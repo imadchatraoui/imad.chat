@@ -251,7 +251,7 @@
     const tau = t - T.dot0; if (tau < 0) return;
     const R = dotRest(t);
     if (version === "stella") {
-      const xs = R.x + Math.min(W * 0.24, 120), ys = -24;
+      const hm = starHome(), xs = hm.x, ys = hm.y;
       const at = (u) => ({ x: lerp(xs, R.x, Math.pow(u, 0.82)), y: lerp(ys, R.y, u * u) });
       if (tau < 350) {
         const u = tau / 350;
@@ -288,6 +288,37 @@
     ctx.save(); ctx.translate(R.x, baseM); ctx.scale(1 + 0.32 * q, 1 - 0.3 * q); rrect(ctx, -w / 2, -h, w, h, h / 2); ctx.fill(); ctx.restore();
   }
   function drawDot(x, y, r) { if (version === "stella") drawStar(ctx, x, y, Math.min(r, 13), clamp(r * 5.6, 9, 170), 1); else { ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.3); ctx.fill(); } }
+
+  /* ------------------------------------------------------------------ il cielo dell'intro: stelle piccole e grandi che respirano, una stella cadente lontana.
+     Una di quelle stelle ferme è quella che poi scende e diventa il punto. */
+  const SKY = (() => { const r = rng(41), a = []; for (let i = 0; i < 84; i++) { const big = i % 7 === 0; a.push({ x: r(), y: Math.pow(r(), 1.25), r: big ? 1.15 + r() * 0.75 : 0.35 + r() * 0.6, big, a: big ? 0.7 + r() * 0.25 : 0.28 + r() * 0.42, per: 2600 + r() * 3200, ph: r() * 6.283, d: r() * 700 }); } return a; })();
+  function starHome() { const R = dotRest(T.dot1); return { x: Math.min(W - 26, R.x + Math.min(W * 0.26, 130)), y: Math.max(44, anchorY * 0.42) }; }
+  function drawSky(t, k) {
+    if (k <= 0) return;
+    const dim = 1 - 0.45 * seg(t, T.zoom0, T.zoom0 + 320);          /* dietro le lettere-finestra il cielo si abbassa un poco */
+    for (let i = 0; i < SKY.length; i++) {
+      const st = SKY[i], x = st.x * W, y = st.y * H * 0.96, br = 0.5 + 0.5 * Math.sin(t * 6.283 / st.per + st.ph);
+      let a = st.a * (0.62 + 0.38 * br) * sat((t - st.d) / 520) * k * dim;
+      if (Math.abs(y - anchorY) < fm * 1.15) a *= 0.3;                 /* la riga scritta resta pulita */
+      if (a <= 0.01) continue;
+      const rr = st.r * (0.9 + 0.2 * br);
+      if (st.big) { const gl = rr * 5.5, g = ctx.createRadialGradient(x, y, 0, x, y, gl); g.addColorStop(0, `rgba(255,240,212,${(0.34 * a).toFixed(3)})`); g.addColorStop(1, "rgba(255,236,200,0)"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, gl, 0, 6.3); ctx.fill(); }
+      ctx.fillStyle = `rgba(255,250,238,${a.toFixed(3)})`; ctx.beginPath(); ctx.arc(x, y, rr, 0, 6.3); ctx.fill();
+    }
+    /* la stella che diventerà il punto: ferma tra le altre, respira; poco prima di scendere si accende */
+    if (version !== "stella" || t < T.dot0) {
+      const h = starHome(), br = 0.5 + 0.5 * Math.sin(t * 6.283 / 3400 + 1.1), wake = version === "stella" ? eIO(seg(t, T.dot0 - 300, T.dot0)) : 0;
+      drawStar(ctx, h.x, h.y, lerp(1.7 * (0.9 + 0.2 * br), rM * 1.15, wake), lerp(10 + 3 * br, fm * 1.25, wake), sat(t / 520) * k * lerp(0.78 + 0.22 * br, 1, wake));
+    }
+    /* una stella cadente piccola e chiara, lontana, in alto */
+    const s0 = T.key[4] + 40, u = (t - s0) / 760;
+    if (u > 0 && u < 1) {
+      const ax = W * 0.1, ay = H * 0.06, bx = W * 0.66, by = H * 0.15, e = Math.sin(Math.PI * u) * 0.42 * k;
+      ctx.lineCap = "round";
+      for (let j = 14; j >= 1; j--) { const u1 = u - j * 0.016, u2 = u - (j - 1) * 0.016; if (u1 <= 0) continue; const f = 1 - j / 15; ctx.strokeStyle = `rgba(235,240,255,${(e * f * f).toFixed(3)})`; ctx.lineWidth = 0.5 + 0.8 * f; ctx.beginPath(); ctx.moveTo(lerp(ax, bx, u1), lerp(ay, by, u1)); ctx.lineTo(lerp(ax, bx, u2), lerp(ay, by, u2)); ctx.stroke(); }
+      ctx.fillStyle = `rgba(245,248,255,${Math.min(1, e * 1.6).toFixed(3)})`; ctx.beginPath(); ctx.arc(lerp(ax, bx, u), lerp(ay, by, u), 0.9, 0, 6.3); ctx.fill();
+    }
+  }
 
   /* ------------------------------------------------------------------ 1. la riga a macchina, poi le lettere diventano piene */
   function haze(a) { /* il nero non è piatto: un chiarore blu, appena accennato, dietro la scritta */
@@ -471,7 +502,7 @@
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
     ctx.clearRect(0, 0, W, H);
     const bg = 1 - eIO(seg(t, T.fly0 + 30, T.fly0 + 560));
-    if (bg > 0) { ctx.globalAlpha = bg; ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+    if (bg > 0) { ctx.globalAlpha = bg; ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; drawSky(t, bg); }
     if (t >= T.zoom0 - 40 && t < T.fly1) updateScenes(t);
     if (t < T.bold1) phaseType(t);
     else if (t < T.back1) phaseCam(t);
