@@ -155,8 +155,19 @@
   /* ------------------------------------------------------------------ Dot: arriva quando l'intro ha finito */
   /* Il suo strato (#dotclip) sta sopra i riquadri e sotto ogni pagina aperta; app.js lo ferma (DOT.pause) mentre una pagina è aperta.
      La prima volta in una sessione del browser c'è l'apertura (i nove tasti, la scatola, «salam, sono Dot.»); dopo, Dot è già in giro. */
-  var clip = $("#dotclip"), mqDark = window.matchMedia("(prefers-color-scheme: dark)");
+  var clip = $("#dotclip"), fisso = $("#dotfixe"), mqDark = window.matchMedia("(prefers-color-scheme: dark)");
   function bottomInset() { var r = dock.getBoundingClientRect(); return r.height ? Math.max(0, window.innerHeight - r.top) + 12 : 0; }
+  /* le parole e i comandi che Dot non copre mai (CASA.md 2c E): nella riga in alto, nell'hero, in «Ciao», in ogni riquadro, nel fondo.
+     Sono selettori, non rettangoli: Dot li rilegge da solo (le righe di testo vere) a ogni lettura della pagina. Il Corano è tutto
+     «no» e Nel mondo tutto «quiet» (data-dot); i disegni (il globo, la foto, il cubo, i quadretti della heatmap) si possono coprire. */
+  var KEEP = [
+    "#bar .logo", "#bar .iconbtn",
+    ".hero__word", ".riga",
+    ".ciao__t", ".ciao__p", ".ciao__b .pill",
+    ".grid .label", ".grid h2", ".grid p", ".grid li", ".grid input", ".grid .tile__in button", ".grid .tile__in a", ".grid .tile__go", ".grid .qr__carta", ".grid .marq",
+    ".foot__sky", ".foot__cred", ".foot .l9--big i"
+  ].join(", ");
+  window.__dotKeep = KEEP;                                             /* per gli strumenti di prova */
   /* la prima volta in questa sessione del browser? (deciso al caricamento: l'intro deve saperlo prima di finire) */
   var first = true; try { first = sessionStorage.getItem("imad.dot.aperto") !== "1"; } catch (e) { }
   if (I.shot || Q.get("primo") === "0") first = false;
@@ -172,14 +183,29 @@
     if (first) { try { sessionStorage.setItem("imad.dot.aperto", "1"); } catch (e) { } }
     if (Q.get("seme") && DOT.debug && DOT.debug.seed) DOT.debug.seed(+Q.get("seme"));
     try {
-      DOT.start({ tiles: ".testa > .tile, .grid > .tile", home: $("#hero"), homeX: HOME_X, parent: clip, look: look, firstVisit: first, keysFormed: !!(first && keysFormed), dark: I.isDark(), bottomInset: bottomInset });
+      /* i posatoi sempre buoni: la mensola (il bordo alto dell'hero, con la scatola), il dock (fisso sullo schermo: ci va in groppa) e il
+         logo 3x3 del fondo (data-dot="perch": solo la sua fila di tasti in alto) */
+      DOT.start({ tiles: ".testa > .tile, .grid > .tile, .foot [data-dot=\"perch\"]", home: $("#hero"), homeX: HOME_X, parent: clip, look: look, firstVisit: first, keysFormed: !!(first && keysFormed), dark: I.isDark(), bottomInset: bottomInset,
+        keep: KEEP, strict: true, dock: dock, fixedParent: fisso });
     } catch (e) { if (window.console) console.error(e); return; }
+    seguiPagina();
     if (root.classList.contains("is-sheet") && DOT.pause) DOT.pause();   /* un foglio aperto mentre i tasti volavano: Dot aspetta sotto */
     if (DOT.sound && DOT.sound.setMuted) { DOT.sound.setMuted(!I.sound.on()); I.sound.listen(function (on) { DOT.sound.setMuted(!on); }); }
     var dark = function () { if (DOT.setDark) DOT.setDark(I.isDark()); };
     if (mqDark.addEventListener) mqDark.addEventListener("change", dark); else if (mqDark.addListener) mqDark.addListener(dark);
     window.__dot = true;
   }
+  /* le parole si spostano senza che i riquadri si muovano: i caratteri che arrivano, i dati di GitHub (Sto imparando, la Heatmap), il
+     QR, la città del globo. Dot rilegge la pagina subito (al più ogni 250 ms), così non resta mai davanti a una parola appena arrivata */
+  var mo = null, moT = 0, moLast = 0;
+  function rilegge() { moT = 0; moLast = Date.now(); I.relayout(0); }
+  function seguiPagina() {
+    if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(function () { I.relayout(0); });
+    if (!("MutationObserver" in window) || mo) return;
+    mo = new MutationObserver(function () { if (moT) return; var w = Math.max(0, 250 - (Date.now() - moLast)); moT = setTimeout(rilegge, w); });
+    [$(".testa"), grid, $(".foot")].forEach(function (n) { if (n) mo.observe(n, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["hidden"] }); });
+  }
+
   /* il passaggio (intro versione «gatto», CASA.md 2c B): i nove tasti dell'intro volano sulla mensola e qui la scena di Dot li prende
      sullo stesso fotogramma. L'intro legge passage e anchor(); se fa il passaggio mette wait = true e alla fine chiama handover(formed):
      formed = i tasti sono già fermi ai loro posti (l'apertura parte da lì); false = un giro rotto (rotazione): l'apertura intera */

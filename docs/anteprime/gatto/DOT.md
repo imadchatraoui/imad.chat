@@ -130,19 +130,31 @@ Without the clipping parent the cat's canvas sticks out on the right near the sc
 - `quiet` (the page about the world's conflicts): strict. Dot never chooses its edge nor an edge right under it (these are kept, but flagged); if it lands there (dropped, thrown, falling) it leaves at once with a quick jump: no shake, no bubble, no game, no sound; a tap there only hurries it away; dropped on its face it leaps away (no scratches, no hanging); no object, game, pounce, petting or bubble starts while any part of Dot is over it or within about 150 px; objects never rest on it. Jumping past in front of it is allowed. If no other edge is visible, Dot hides behind the edge and waits out of sight.
 - `data-home` (or `home:` in the options): the tile whose top edge holds the box (at 58% of its width if wider than 220 px, else in the middle; `homeX` changes the 58%). It must have headroom: no `no` tile right above it (if there is one, the opening is skipped).
 
+- `perch` (the home's footer 3x3 logo): only its top edge is used, sitting compact (pose `ride`); nobody slides down its face or hangs from it.
+
 **`data-dot-keep` on any element** (or a selector in `DOT.start({ keep })`): words Dot must never sit in front of (titles, lines of text, chips, a chart). Dot reads where the text really is (the line boxes of the text, so a short title in a wide block only blocks its own piece; text that overflows its box, like a scrolling row of greetings, blocks the whole box). For the edge under it:
 - a word less than 52 px above the edge (at phone size; it scales with Dot): that part of the edge is flagged like a quiet one: Dot never chooses it; dropped there it walks to the nearest clear part of the same edge, or jumps away;
 - a word 52 to 74 px above: Dot may only **lie** there (loaf, sleep): it arrives with a jump and crouches at once, never sits, stretches, shakes or yawns there; a tap sends it to an edge where it can sit (there it meows and plays); no petting, bubble or game there;
 - 74 px or more: free.
 The margin on each side of a word is about 46 px (Dot's half-width with the tail). A guard checks Dot's real outline five times a second while it rests: if any part of it is in front of a word or of the Corano (a layout change, a landing at the end of an edge), it walks to the nearest clear spot of the same edge, or jumps away. **On a phone, with words at the bottom of almost every tile and 12 px gaps, this leaves very few edges** (see section 6).
 
+**Controls** (inside the keep list: links, buttons, fields, anything with `tabindex`, `.pill`, `.qr__carta`) count more than words: Dot riding the dock never stays at rest over one (it steps aside, or ducks behind the pill until the page moves), because a tap there would go to the cat.
+
+**Perches, on a page with `dock` (`strict`)** (CASA.md 2c E). The keep list stays whole, so on a phone few tile edges are left; three perches are always good:
+- **the home ledge** (the home tile's top edge, with the box);
+- **the dock**: its top edge, read again at every frame (page coordinates = scroll + its place on the screen). While Dot is on it its canvas, the touch target and the bubble live in the fixed layer and are placed in screen coordinates, so the cat rides with the screen and does not tremble while the page scrolls (that is the point of the fixed layer: a canvas in page coordinates moved by script lags behind iOS's own scrolling). The cat is drawn above the dock (z 51 over 50), nothing below the top of the pill is drawn (a clip at the top edge + 1.5 px: the tail and paws never cover a filter's word), the contact shadow falls on the pill; the touch target is trimmed so it never reaches into the dock, so a tap on a filter always reaches the filter;
+- **perch tiles** (`data-dot="perch"`: the footer logo).
+
+Ordinary tile edges stay perches where the keep test allows them. **Travel** in strict mode never passes in front of a word, a control, the quiet tile or behind the dock: every jump is checked on its true arc with a body box (`arcKeep`), the come-back never jumps in from off screen (it peeks from behind an edge, comes out of the box or comes up from behind the dock), a spot that becomes bad is left by two steps or by ducking behind the edge (never a fall across the words below), the fez toss, the star and the knocked cube start only where their path is clear. **The follow rule** (`follow2`, every frame): out of view about `followAfter` seconds with the page still for half a second (or 2.5 s more while it scrolls), Dot comes back: to the home ledge if it is in view (from behind the hero's edge, or out of its box), else the footer logo, else a free tile edge in the middle of the screen, else the dock (it comes up from behind the pill: ears and fez, eyes, paws, a look, a hop on: state `dockup`); it leaves the same way (`dockdown`). Back at the top and still for 3 s: it goes home. On the dock: it sits (pose `ride`), loafs, sleeps, walks along the pill, grooms; while the page scrolls it watches what passes (the pupils follow a point of the page, a small lean); a filter tapped: it looks down at it; the Corano or the quiet tile coming behind it: it ducks (`ducked`) and comes up when its place is clear; at rest with words behind it, it walks along the pill to a clear place (or loafs where a lower cat fits), with a control behind it and no clear place, it ducks. A tile edge it sits on that the scroll brings against the dock: it steps onto the dock (`board`). A filter tapped while it sits on a tile that is about to travel: it ducks behind the edge at once and comes back later. Taps work on the dock (meow, hop, purr; no fez toss there), a drag takes it off the dock.
+- `DOT.debug` has `dock()`, `riding()`, `follow()`, `choice()`, `dockup(x)`, `dockdown()`, `home()`, `blocked(x)`, `dockFree()` for the tools.
+
 **Scripts, in this order** (plain scripts, no modules):
 
 ```html
 <script>window.DOT = window.DOT || {}; window.DOT.mediaBase = "/gatto/media/";</script>   <!-- where the sounds are (or data-media="..." on the .dot-clip layer: dot-sound.js reads it at the first touch, even before DOT.start) -->
 <script src="dot-rig.js"></script>
-<script src="look-base.js"></script>          <!-- the fallback look, always -->
-<script src="look-adesivo.js"></script>       <!-- and/or look-manifesto.js, look-pelo.js: only the looks the page offers -->
+<script src="look-base.js"></script>          <!-- the plain fallback look (optional: without it a look that throws is simply not drawn) -->
+<script src="look-manifesto.js"></script>     <!-- the look (Imad's choice); adesivo and pelo no longer exist -->
 <script src="dot-stage.js"></script>          <!-- the keys and the box (without it: no opening, no box) -->
 <script src="dot-sound.js"></script>          <!-- optional -->
 <script src="dot-fx.js"></script>
@@ -157,7 +169,7 @@ The keys of the opening use Manrope 800 (the stage redraws its letters when the 
 | --- | --- | --- |
 | `tiles` | CSS selector of the tiles | `".t, [data-tile]"` |
 | `home` | the home tile (an element), or a page point `{ x, y }` on a top edge | the first ordinary tile wider than 150 px |
-| `look` | `"adesivo"`, `"manifesto"`, `"pelo"` (must be loaded) | `"base"` if missing |
+| `look` | `"manifesto"` (or `"base"`, the test look; must be loaded). The look also reads `env.rim` (`"notte"` for the intro's near-black sky), the frame fields `legs[i].fd`, `legs[i].pad` and the pose keys `fo0`, `fo1`, `pad`, `pad1` (section 2 and 6) | `"base"` if missing |
 | `firstVisit` | `true`: the opening (keys, box, "salam, sono Dot."). `false`: no opening; from the very first painted frame the box stands closed in its place and Dot is already around: asleep on a visible edge (fez over one eye), loafing, or peeking from behind an edge, chosen at random | `true` |
 | `reducedMotion` | force reduced motion (it is also read from `prefers-reduced-motion`): never the opening, Dot sits still and only blinks | `false` |
 | `dark` | dark theme (whiskers, scratches, steam); change later with `DOT.setDark(bool)` | from `prefers-color-scheme` |
@@ -167,6 +179,11 @@ The keys of the opening use Manrope 800 (the stage redraws its letters when the 
 | `k` | pixels per model unit (Dot's size) | 1.5 on phones, up to 1.9 on wide screens |
 | `keep` | CSS selector of extra words to keep clear (added to `[data-dot-keep]`) | none |
 | `homeX` | where the box stands on a home tile wider than 220 px, as a fraction of its width | `0.58` |
+| `keysFormed` | the intro has already put the nine keys in place (the passage): the opening starts from "keys formed" | `false` |
+| `dock` | an element fixed to the screen (the home's filter pill) whose top is a perch: Dot rides it (see "Perches" below) | none |
+| `fixedParent` | a `position: fixed` container above the dock and under every sheet: Dot's fixed layer goes inside it (the cat while it rides, the touch target, the bubble while riding). Without it, and with a `dock`, the brain makes one in `body` at z-index 51 | none |
+| `strict` | the home's rules: no travel in front of a word, a control, the quiet tile or behind the dock; the perches; the follow rule | `true` when `dock` is given |
+| `followAfter` | seconds out of view (with the page still) before Dot comes back to a perch in view | `3.6` |
 
 The page decides what a first visit is (for example a `sessionStorage` flag set after the opening) and passes `firstVisit`. The French bubble shows once per browser session by itself.
 

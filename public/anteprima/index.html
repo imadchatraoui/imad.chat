@@ -195,7 +195,7 @@
   </div>
 
   <footer class="foot">
-    <div class="l9 l9--big" role="img" aria-label="imad.chat"><i>i</i><i>m</i><i>a</i><i>d</i><i class="s"></i><i>c</i><i>h</i><i>a</i><i>t</i></div>
+    <div class="l9 l9--big" role="img" aria-label="imad.chat" data-dot="perch"><i>i</i><i>m</i><i>a</i><i>d</i><i class="s"></i><i>c</i><i>h</i><i>a</i><i>t</i></div>
     <p class="foot__sky"><i class="skydot js-tordot" aria-hidden="true"></i><span>Il cielo e la luce di questa pagina sono quelli di Torino, adesso: <time class="js-tortime"></time>, <span class="js-torpart"></span>.</span></p>
     <p class="foot__cred">Il cubo ha i colori Kukko del gioco di Imad, un fork di «The Cube» di Boris Šehovac. Le terre del globo vengono da Natural Earth. Foto provvisoria di Torino: Konstantin&nbsp;Dacosta, CC&nbsp;BY&nbsp;3.0. Il Corano: testo di quran.com, traduzione di Hamza Roberto Piccardo.</p>
   </footer>
@@ -213,6 +213,8 @@
   <button class="dock__b" type="button" data-filtro="tools" aria-pressed="false">Tools</button>
 </div>
 <p class="sr" id="filtroDetto" aria-live="polite"></p>
+<!-- Dot in groppa al dock: uno strato fisso sullo schermo, sopra il dock e sotto le pagine aperte (ci stanno anche la maniglia e la nuvoletta) -->
+<div class="dot-fixe" id="dotfixe"></div>
 
 <!-- pagina aperta sopra la casa: Le città, Lascia un saluto, il lettore del Corano -->
 <div class="sheet" id="sheet" hidden>

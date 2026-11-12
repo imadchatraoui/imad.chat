@@ -8,6 +8,8 @@
    window.__niDot.passage, lo decide casa.js): i nove quadrati si premono uno dopo l'altro e si dividono in due; la base resta, la
    finestra si accende e vola al suo riquadro; il tasto sale verso chi guarda e i nove tasti, insieme, volano sulla mensola di Dot e
    lì la scena di Dot (dot-stage.js, lo stesso pittore) li prende sullo stesso fotogramma. In ogni altro caso la fine è quella di oggi.
+   «gatto» ha anche Dot (parte 6, se ci sono dot-rig.js e look-manifesto.js): è lui a buttare giù «raoui» dalla riga, al posto della
+   cancellazione (mezzo secondo in più prima della griglia); col passaggio salta nel quadrato del punto prima della pressione.
    Tutto dipende da un solo tempo t (ms): ?seek=1 ferma la riproduzione e window.__ni.seek(ms) disegna quell'istante. */
 (() => {
   "use strict";
@@ -232,6 +234,7 @@
     cvs.width = win.width = Math.round(W * DPR); cvs.height = win.height = Math.round(H * DPR);
     fm = clamp(W * 0.082, 24, 40);
     ctx.font = `500 ${fm}px ${MONO}`; adv = ctx.measureText("m").width;
+    const mx = ctx.measureText("x"); xh = mx.actualBoundingBoxAscent > 0 ? mx.actualBoundingBoxAscent : fm * 0.52;   /* «gatto»: l'altezza delle lettere, il bordo su cui Dot appoggia le zampe */
     xA = W / 2 - (TEXT.length * adv) / 2; anchorY = Math.round(H * 0.47); baseM = anchorY + fm * 0.28; rM = fm * 0.098;
     ctx.font = `800 100px ${SANS}`; let x = 0; EM.e.length = 0; EM.a.length = 0;
     for (const ch of NAME) { const a = ctx.measureText(ch).width / 100; EM.e.push(x); EM.a.push(a); x += a + TRACK; }
@@ -246,6 +249,7 @@
     SQ.length = 0;
     TILES.forEach((id, k) => { const el = doc.querySelector('[data-tile="' + id + '"]'); const r = el ? el.getBoundingClientRect() : { left: W / 2, top: H, width: cell, height: cell }; SQ.push({ k, el, x: r.left, y: r.top, w: r.width, h: r.height }); });
     const order = SQ.slice().sort((p, q) => p.y - q.y || p.x - q.x); order.forEach((q, i) => { q.t0 = T.fly0 + i * 26; });
+    TAS.gag.ok = TAS.jump.ok = false;                                     /* «gatto»: con le misure nuove il fiocco riparte da capo (stesso risultato di un seek) */
     if (capsCv && PASS && stg()) { CDPR = stg().dpr(); capsCv.width = Math.round(W * CDPR); capsCv.height = Math.round((H + CAPS_PAD) * CDPR); capsCv.style.width = W + "px"; capsCv.style.height = (H + CAPS_PAD) + "px"; capsTop = 0; capsCv.style.top = "0px"; }
   }
 
@@ -371,11 +375,13 @@
     const sx = shiftX(t), pressed = T.key.filter((k) => k <= t).length, deleted = T.del.filter((k) => k <= t).length, n = pressed - deleted;
     const boldP = (i) => eOut(seg(t, T.bold0 + i * 24, T.bold0 + i * 24 + 170));
     const yB = anchorY + 0.27 * fb;
+    if (GAGON) drawGag(t);                                                /* «gatto»: Dot sta dietro le lettere */
     for (let i = 0; i < TEXT.length; i++) {
       if (t < T.key[i] || i === 4) continue;
       let a = 1, dy = 0;
       const ti = t - T.key[i]; if (ti < 90) { const p = ti / 90; a = 0.4 + 0.6 * p; dy = (1 - eOut(p)) * fm * 0.16; }
-      if (i >= 9) { const td = T.del[13 - i]; if (t >= td) { const p = (t - td) / 100; if (p >= 1) continue; a *= (1 - p) * 0.5; dy -= p * fm * 0.1; } }
+      if (i >= 9 && GAGON) { if (letterBody(i, t)) continue; }          /* «gatto»: spinta da Dot, la lettera è un oggetto che cade (più sotto) */
+      else if (i >= 9) { const td = T.del[13 - i]; if (t >= td) { const p = (t - td) / 100; if (p >= 1) continue; a *= (1 - p) * 0.5; dy -= p * fm * 0.1; } }
       const x = xA + sx + i * adv, ch = TEXT[i];
       if (i < 9) {
         const p = boldP(i), yy = lerp(baseM, yB, p) + dy + hop(i, t), xx = lerp(x, W / 2 + (EM.e[i] - EM.E / 2) * fb, p), pop = 1 + 0.1 * Math.sin(Math.PI * p);
@@ -384,6 +390,7 @@
       } else { ctx.globalAlpha = a; ctx.fillStyle = INK; ctx.font = `500 ${fm}px ${MONO}`; ctx.fillText(ch, x, baseM + dy); }
     }
     ctx.globalAlpha = 1;
+    if (GAGON) for (let i = 9; i < 14; i++) drawLetterBody(i, letterBody(i, t));   /* le lettere che cadono stanno davanti a tutto */
     /* il punto */
     if (t >= T.dot0) {
       if (t < T.dot1) drawDotArrival(t);
@@ -464,11 +471,16 @@
     for (let i = 0; i < 9; i++) {
       const t0 = T.back1 + i * 14, p = seg(t, t0, t0 + 330), pe = eOutQ(p), ps = eBack(p, 1.3), A = gCam(i, c), B = gCell(i);
       const pa = eOut(seg(t, t0 + 110, t0 + 360)), oa = eOut(seg(t, T.open0 + i * 16, T.open0 + i * 16 + 240)), wh = eOut(seg(t, t0 + 90, t0 + 330));
-      const sc = lerp(0.82, 1, eBack(seg(t, t0 + 110, t0 + 400), 1.6)), s = cell * sc, px = B.cx - s / 2, py = B.cy - s / 2;
+      const sc = lerp(0.82, 1, eBack(seg(t, t0 + 110, t0 + 400), 1.6)) * (i === 4 ? 1 - dipAt(t) : 1), s = cell * sc, px = B.cx - s / 2, py = B.cy - s / 2;   /* «gatto»: il quadrato del punto sotto il peso di Dot */
       /* il riquadro: già vivo, ma in penombra finché la lettera è accesa */
       if (pa > 0) { ctx.save(); ctx.globalAlpha = pa; rrect(ctx, px, py, s, s, s * 0.24); ctx.clip(); CONTENT[CELLS[i]](ctx, px, py, s, s, t); ctx.fillStyle = `rgba(6,7,13,${(0.62 * (1 - oa)).toFixed(3)})`; ctx.fillRect(px, py, s, s); ctx.restore(); }
       GEO.sq[i] = { x: px, y: py, w: s, h: s, ds: 1 };                 /* solo un appunto per chi disegna Dot nell'intro: il disegno non cambia */
-      if (i === 4) { const r0 = 0.095 * c.size, rb = cell * 0.075; drawDot(lerp(A.x + EM.a[4] * c.size / 2, B.cx, pe), lerp(A.y - r0, B.cy, pe), lerp(r0, rb, ps)); continue; }
+      if (i === 4) {
+        const r0 = 0.095 * c.size, rb = cell * 0.075, dx = lerp(A.x + EM.a[4] * c.size / 2, B.cx, pe), dyy = lerp(A.y - r0, B.cy, pe), bk = blinkAt(t);
+        if (bk < 1) { ctx.save(); ctx.translate(dx, dyy); ctx.scale(1, bk); ctx.translate(-dx, -dyy); }   /* «gatto»: il punto d'oro chiude e riapre l'occhio */
+        const fd = dotFront(t); if (fd > 0) ctx.globalAlpha = 1 - fd;      /* «gatto»: mentre Dot entra, il punto passa davanti a lui (drawJump) */
+        drawDot(dx, dyy, lerp(r0, rb, ps)); if (fd > 0) ctx.globalAlpha = 1; if (bk < 1) ctx.restore(); continue;
+      }
       const g = { ch: NAME[i], x: lerp(A.x, B.x, pe), y: lerp(A.y, B.y, pe), size: lerp(A.size, B.size, ps) };
       if (wh < 1) glyphs.push(Object.assign({ a: 1 - wh }, g));
       whites.push(Object.assign({ a: wh * (1 - oa) }, g));
@@ -662,6 +674,294 @@
     for (const fn of HOOKS) { ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); try { fn(info); } catch (e) { if (window.console) console.error(e); } ctx.restore(); }
   }
 
+  /* ------------------------------------------------------------------ 6. «gatto»: Dot nell'intro (CASA.md 2c A). Solo nella versione «gatto»,
+     solo se ci sono lo scheletro e l'aspetto Manifesto (dot-rig.js, look-manifesto.js: lo stesso disegno del sito), mai con ?dot=no.
+     a) Al posto della cancellazione di «raoui». Dot sale da dietro la fine della riga: le lettere sono il suo bordo (le zampe ci
+        stanno sopra, da dietro) e niente di lui scende sotto la riga di base. Guarda il cursore, chi guarda, la «i»; spinge la «i»
+        piano, guardando chi guarda (la pausa è la battuta); poi u, o, a, r con una zampata sola, la testa dietro la zampa. Ogni
+        lettera è un oggetto: si inclina in avanti sul suo piede, scivola giù, cade per gravità girando un poco e sparisce sotto la
+        riga, sfumando solo alla fine della caduta; il cursore torna indietro con loro. Dot guarda «imad chat», chiude piano gli occhi
+        e torna giù, le orecchie per ultime, mentre «chat» scivola al suo posto. Mezzo secondo in più (GD) prima della griglia.
+     b) Solo col passaggio (prima visita della sessione): quando le nove lettere stanno in griglia Dot salta da sotto nel quadrato
+        del punto: un arco scuro, schiacciato alla partenza e all'arrivo, la coda per ultima; il quadrato si abbassa sotto il suo
+        peso e torna, il punto d'oro chiude e riapre l'occhio. Poi la pressione del passaggio. Mai vicino alla Kaʿba o alla bandiera
+        (i quadrati a sinistra): l'arco viene da destra.
+     Tutto è funzione di t: __ni.seek(ms) disegna qualunque istante (anche il fiocco del fez: si rifà dall'inizio a passi fissi). */
+  const GD = 500;                 /* ms in più prima della griglia, al massimo mezzo secondo */
+  const UL = 24.8 / 3;            /* una lettera della riga, in unità del modello: la testa di Dot (2 × 12.4) è larga tre lettere */
+  /* i tempi della scenetta, in ms dall'ultimo tasto (T.key[13]); le lettere: i, u, o, a, r */
+  const GA = {
+    up0: 40, up1: 112, up2: 152, up3: 206, up4: 310, /* le punte delle orecchie; ferme (uno scatto); orecchie e fez; poi gli occhi, con un rimbalzo */
+    paw0: 262, paw1: 300,                            /* le zampe salgono sulle lettere, una e poi l'altra */
+    caret1: 440, view0: 472,                         /* guarda il cursore fino a caret1; chi guarda da view0 (almeno 180 ms) */
+    glance: 660, stare: 735,                         /* guarda la «i»; poi di nuovo chi guarda, mentre la spinge */
+    reach0: 630, reach1: 722,                        /* la zampa destra va sulla «i» */
+    push0: 722, over: 848, iGo: 880,                 /* la «i»: si inclina piano; passa il punto di non ritorno; se ne va */
+    wind: 882, sw0: 910, sw1: 1064,                  /* la zampa si alza e carica; la zampata */
+    hits: [935, 968, 1001, 1034], leave: 22,         /* u, o, a, r: la zampa passa; ognuna se ne va LEAVE ms dopo */
+    lower0: 1050, lower1: 1170,                      /* senza più lettere sotto si appoggia alla riga */
+    blink0: 1084, blink1: 1290,                      /* chiude piano gli occhi guardando «imad chat», li riapre */
+    sink0: 1190, sink1: 1376,                        /* torna giù; alla fine rallenta: un orecchio resta per ultimo sopra la riga */
+  };
+  /* il salto nel quadrato del punto: t0 in ms da T.back1 (le lettere arrivano in griglia; settled = back1 + 520), gli altri dall'inizio del salto */
+  const JA = { t0: 300, crouch: 70, launch: 128, land: 420, in0: 478, in1: 612, blink0: 604, blink1: 744, press: 646 };
+  const DOT_GAP_J = JA.t0 + JA.press - 520;    /* col salto, la pressione parte quando il punto chiude l'occhio */
+  let GAGON = false, JUMP = false, cat = null, xh = 17, jcv = null, jctx = null, catBB = null;
+  /* dove sta Dot sullo schermo (per gli strumenti): il rettangolo che lo contiene, da un fotogramma dello scheletro */
+  function catBox(f, ox, oy, K, dy, clipY) {
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    const add = (x, y, r) => { if (clipY != null && y + r < clipY) return; x0 = Math.min(x0, x - r); x1 = Math.max(x1, x + r); y0 = Math.min(y0, y - r); y1 = Math.max(y1, y + r); };
+    add(f.head.x, f.head.y, Math.max(f.head.rx, f.head.ry)); f.ears.forEach((e) => add(e.tx, e.ty, 0.5)); if (f.fez) { add(f.fez.tx, f.fez.ty, f.fez.rTop); add(f.fez.tassel.x1, f.fez.tassel.y1, 0.6); }
+    add(f.body.hips.x, f.body.hips.y, f.body.hips.r); add(f.body.chest.x, f.body.chest.y, f.body.chest.r);
+    f.legs.forEach((l) => { add(l.fx, l.fy, l.paw); add(l.kx, l.ky, l.r0); }); f.tail.pts.forEach((q) => add(q.x, q.y, q.r));
+    return x1 < x0 ? null : { x: ox + K * x0, y: oy - K * (y1 - dy), w: K * (x1 - x0), h: K * (y1 - y0) };
+  }
+  const gagWanted = () => { const D = window.DOT; return version === "gatto" && Q.get("dot") !== "no" && !!(D && D.makeRig && D.looks && D.looks.manifesto && D.YAW && D.POSES && D.POSES.peek); };
+  function makeCat() {
+    const D = window.DOT, look = D.looks.manifesto, rig = D.makeRig(look.preset);
+    rig.autoBlink = false; rig.earTwitch = false; rig.spring = 0; rig.headMax = 0.7; rig.grounded = false;
+    return { D, look, rig };
+  }
+  /* le chiavi: [[t, valore, curva]], la curva è quella del tratto che arriva alla chiave */
+  const spr = (p) => 1 - Math.exp(-6.2 * p) * Math.cos(9.6 * p) + (Math.exp(-6.2) * Math.cos(9.6)) * p;    /* arriva, passa un filo oltre, si posa */
+  const EZ = { io: eIO, o: eOut, i: eIn, s: eSine, l: (p) => p, b: (p) => eBack(p, 1.8), sp: spr, oq: eOutQ };
+  function kv(ks, t) {
+    if (t <= ks[0][0]) return ks[0][1];
+    for (let i = 1; i < ks.length; i++) if (t < ks[i][0]) { const a = ks[i - 1], b = ks[i]; return a[1] + (b[1] - a[1]) * EZ[b[2] || "io"]((t - a[0]) / (b[0] - a[0])); }
+    return ks[ks.length - 1][1];
+  }
+  /* una curva morbida che passa per i punti [[t, v]] (ferma ai due capi): la zampata */
+  function spline(ks, t) {
+    const n = ks.length; if (t <= ks[0][0]) return ks[0][1]; if (t >= ks[n - 1][0]) return ks[n - 1][1];
+    let i = 0; while (t >= ks[i + 1][0]) i++;
+    const a = ks[i], b = ks[i + 1], h = b[0] - a[0], u = (t - a[0]) / h, u2 = u * u, u3 = u2 * u;
+    const m = (j) => (j <= 0 || j >= n - 1 ? 0 : (ks[j + 1][1] - ks[j - 1][1]) / (ks[j + 1][0] - ks[j - 1][0]) * h);
+    return (2 * u3 - 3 * u2 + 1) * a[1] + (u3 - 2 * u2 + u) * m(i) + (-2 * u3 + 3 * u2) * b[1] + (u3 - u2) * m(i + 1);
+  }
+
+  /* ---- a) la scenetta della riga: i numeri a un istante (tau = ms dall'ultimo tasto) */
+  const FS = 1.6, SHL = 3.6 + FS;                    /* le spalle strette (la «peek» del Manifesto le ha a 10.2): gli avambracci corti, appoggiati sulle lettere */
+  const PX1 = [[0, UL], [GA.reach0, UL], [GA.reach1, 2 * UL, "io"], [GA.iGo, 2 * UL + 1.1, "io"], [GA.wind, 2 * UL + 1.1], [GA.sw0, 2 * UL + 1.9, "io"]];
+  const SWEEP = [[GA.sw0, 2 * UL + 1.9], [GA.hits[0], UL], [GA.hits[1], 0], [GA.hits[2], -UL], [GA.hits[3], -2 * UL], [GA.hits[3] + 36, -2.2 * UL], [GA.sw1 + 40, -1.75 * UL]];   /* passata la «r» la zampa torna subito: l'avambraccio non resta lungo */
+  const BX = [[0, 0], [GA.reach0, 0], [GA.reach1, 2.6, "io"], [GA.wind, 2.6], [GA.sw0, 3.4, "io"], [GA.hits[3] + 20, -10.4, "io"], [GA.sw1 + 40, -11.6, "o"]];   /* il corpo va dietro alla zampa: si sporge a destra per la «i», poi scivola a sinistra con la zampata */
+  const tr = {
+    h: [[0, 27], [GA.up0, 27], [GA.up1, 23.4, "o"], [GA.up2, 23.1, "io"], [GA.up3, 12.6, "io"], [GA.up4, 0, "sp"], [GA.sink0, 0], [GA.sink0 + 34, -0.7, "o"], [GA.sink1 - 64, 22.4, "io"], [GA.sink1 - 20, 24.1, "io"], [GA.sink1, 27, "i"]],   /* 27: tutto sotto il bordo; 22.6: solo la punta di un orecchio (la testa è inclinata); 12.6: orecchie e fez, non gli occhi */
+    ly: [[0, 0], [GA.lower0, 0], [GA.lower1, 1, "io"]],
+    f1y: [[0, -11], [GA.paw1, -11], [GA.paw1 + 74, 1, "b"], [GA.reach0, 1], [GA.reach0 + 52, 4.4, "o"], [GA.reach1, 1.8, "i"], [GA.iGo, 0.6, "io"], [GA.wind, 0.6], [GA.sw0, 3.4, "o"], [GA.hits[0], 2.4, "i"], [GA.hits[3], 2.2, "l"], [GA.hits[3] + 36, 3.0, "o"], [GA.lower1, 1, "io"]],   /* la zampata passa appena sopra le lettere: si vede */
+    f0y: [[0, -11], [GA.paw0, -11], [GA.paw0 + 74, 1, "b"], [GA.sw0 - 10, 1], [GA.hits[0] + 6, -7.5, "io"], [GA.lower0 + 20, -7.5], [GA.lower1, 1, "o"]],
+    px0: [[0, -UL]],
+    dy: [[0, 14.1], [GA.push0, 14.1], [GA.push0 + 80, 14.5], [GA.sw1, 14.3], [GA.lower1, 14.1]],
+    yaw: [[0, 0], [GA.up3, -0.12], [GA.up4 + 10, -0.36, "io"], [GA.caret1, -0.36], [GA.view0 + 18, 0.02, "io"], [GA.glance - 24, 0.02], [GA.glance + 24, -0.32, "io"], [GA.glance + 52, -0.32], [GA.stare + 46, -0.13, "io"], [GA.wind, -0.13], [GA.sw0, -0.3, "io"]],
+    pitch: [[0, 0.06], [GA.up4, -0.2, "io"], [GA.caret1, -0.2], [GA.view0 + 18, 0.03, "io"], [GA.glance - 24, 0.03], [GA.glance + 24, -0.26, "io"], [GA.glance + 52, -0.26], [GA.stare + 46, -0.04, "io"], [GA.wind, -0.04], [GA.sw0, -0.2, "io"], [GA.sw1, -0.16], [GA.sw1 + 90, -0.05], [GA.sink0 + 60, 0.14], [GA.sink1, 0.18]],
+    gx: [[0, 0.25], [GA.up4 - 30, 0.86, "io"], [GA.caret1, 0.86], [GA.view0, 0, "io"], [GA.glance - 4, 0], [GA.glance + 22, 0.72, "io"], [GA.stare, 0.72], [GA.stare + 28, 0, "io"], [GA.wind, 0], [GA.wind + 26, 0.75, "io"]],
+    gy: [[0, -0.1], [GA.up4 - 30, -0.62, "io"], [GA.caret1, -0.62], [GA.view0, 0, "io"], [GA.glance - 4, 0], [GA.glance + 22, -0.78, "io"], [GA.stare, -0.78], [GA.stare + 28, 0, "io"], [GA.wind, 0], [GA.wind + 26, -0.7, "io"]],
+    eye: [[0, 1.14], [GA.up4, 1.14], [GA.view0 + 18, 1.06], [GA.stare, 1.04], [GA.stare + 60, 0.97], [GA.iGo, 0.97], [GA.iGo + 24, 1.16, "o"], [GA.sw1, 1.12], [GA.lower1, 1.04]],
+    lid: [[0, 0], [GA.stare, 0], [GA.stare + 64, 0.3, "io"], [GA.iGo - 6, 0.3], [GA.iGo + 22, 0, "o"]],
+    ear: [[0, -0.75], [GA.up2, -0.75], [GA.up3, -0.55, "io"], [GA.up4 + 40, -0.12, "io"], [GA.stare, -0.12], [GA.stare + 70, 0.06, "io"], [GA.iGo, 0.06], [GA.iGo + 30, -0.28, "o"], [GA.sw1, -0.22], [GA.blink0 + 60, 0.08, "io"], [GA.sink0 + 30, -0.62, "io"], [GA.sink1, -0.72]],
+    hr: [[0, 0.3], [GA.up2, 0.3], [GA.up3, 0.16, "io"], [GA.up4, -0.05, "sp"], [GA.up4 + 40, 0.07, "io"], [GA.caret1, 0.07], [GA.view0 + 18, 0, "io"], [GA.stare, 0], [GA.stare + 70, -0.1, "io"], [GA.iGo, -0.1], [GA.sw0, 0.02, "io"], [GA.sw1, 0.12, "io"], [GA.blink0 + 80, 0.13], [GA.sink0 + 90, 0.46, "io"]],   /* scendendo inclina la testa: un orecchio resta l'ultima cosa sopra la riga, più alto del fez */
+    roll: [[0, 0], [GA.wind, 0], [GA.sw0, -0.035, "io"], [GA.hits[2], 0.06, "io"], [GA.sw1 + 70, 0, "io"]],
+    pupil: [[0, 0.8], [GA.up4, 1], [GA.blink0, 1], [GA.blink0 + 60, 0.9], [GA.blink1, 0.9], [GA.sink0 + 60, 1]],
+    blink: [[0, 1], [GA.blink0, 1], [GA.blink0 + 86, 0.02, "io"], [GA.blink0 + 128, 0.02], [GA.blink1, 1, "io"]],
+  };
+  /* la testa e gli occhi seguono la zampa durante la zampata, poi guardano «imad chat» che arriva, poi su, verso la stella */
+  function lookAt(tau, p1) {
+    let yaw = kv(tr.yaw, tau), gx = kv(tr.gx, tau), gy = kv(tr.gy, tau);
+    if (tau >= GA.sw0) {
+      const pr = clamp(p1 / (2.4 * UL), -1, 1), w = sat((tau - GA.sw0) / 30);         /* dov'è la zampa: da -1 (a sinistra) a 1 (a destra) */
+      yaw = lerp(yaw, -0.36 * pr, w); gx = lerp(gx, 0.92 * pr, w); gy = lerp(gy, -0.68, w);
+      const a = eIO(seg(tau, GA.sw1 - 10, GA.sw1 + 90)), b = eIO(seg(tau, GA.lower1, GA.sink0 + 40)), c = eIO(seg(tau, GA.sink0 + 30, GA.sink1 - 40));
+      yaw = lerp(lerp(yaw, 0.44, a), 0.24, b); yaw = lerp(yaw, 0.12, c);
+      gx = lerp(lerp(gx, -0.9, a), -0.62, b); gx = lerp(gx, -0.35, c);
+      gy = lerp(lerp(gy, -0.24, a), -0.3, b); gy = lerp(gy, 0.72, c);
+    }
+    return { yaw, gx, gy };
+  }
+  function gagState(tau) {
+    const s = {};
+    for (const k in tr) s[k] = kv(tr[k], tau);
+    s.bx = kv(BX, tau);
+    s.p1 = tau < GA.sw0 ? kv(PX1, tau) : tau < GA.sw1 + 40 ? spline(SWEEP, tau) : lerp(-1.75 * UL, s.bx + UL, eIO(seg(tau, GA.sw1 + 40, GA.lower1 + 20)));   /* la zampa destra, x dal centro di Dot all'inizio */
+    s.p0 = s.px0;
+    const L = lookAt(tau, s.p1 - s.bx);
+    s.yaw = L.yaw; s.gx = L.gx; s.gy = L.gy;
+    s.earT = tau < 600 ? (GA.up1 + 18) / 1000 : tau < GA.sink0 + 80 ? 0.52 : (GA.sink0 + 112) / 1000; s.earSide = tau < 600 ? -1 : 1;   /* piccoli scatti d'orecchio */
+    return s;
+  }
+  /* il fiocco del fez: un pendolo spinto dai movimenti della testa, a passi fissi da t0. Lo stato si tiene (c): andando avanti si
+     continua, tornando indietro (seek) si riparte da t0; essendo la griglia dei passi sempre la stessa, il risultato è identico */
+  function tasselAt(tau, xOf, t0, c) {
+    const h = 1000 / 120, n = Math.max(0, Math.floor((tau - t0) / h));
+    if (!c.ok || c.t0 !== t0 || n < c.n) { c.ok = true; c.t0 = t0; c.n = 0; c.a = 0; c.w = 0; c.x0 = xOf(t0 - h); c.x1 = xOf(t0); }
+    for (let i = c.n + 1; i <= n; i++) {
+      const x2 = xOf(t0 + i * h), ax = (x2 - 2 * c.x1 + c.x0) / ((h / 1000) * (h / 1000));
+      c.w += (-81 * Math.sin(c.a) - 5 * c.w - clamp(ax, -4000, 4000) / 6.6 * Math.cos(c.a)) * (h / 1000); c.a = clamp(c.a + c.w * (h / 1000), -1.5, 1.5);
+      c.x0 = c.x1; c.x1 = x2;
+    }
+    c.n = n;
+    return c.a;
+  }
+  const TAS = { gag: {}, jump: {} };
+  /* mette lo scheletro nella posa voluta e dà il fotogramma da disegnare */
+  function catFrame(base, set, o) {
+    const r = cat.rig, A = r.A;
+    if (Array.isArray(base)) { const P0 = r.poses[base[0]], P1 = r.poses[base[1]], w = base[2]; for (const k in P0) A[k] = P0[k] + (P1[k] - P0[k]) * w; }   /* tra due pose */
+    else { const P = r.poses[base]; for (const k in P) A[k] = P[k]; }
+    for (const k in set) A[k] = set[k];
+    r.yaw = r.yawT = o.yaw; r.pitch = r.pitchT = o.pitch || 0; r.roll = r.rollT = o.roll || 0; r.rollPivotY = null;
+    r.look.yaw = r.look.ty = o.lyaw || 0; r.look.pitch = r.look.tp = o.lpitch || 0; r.headRoll = 0;
+    for (let i = 0; i < 2; i++) { r.gaze[i].x = r.gazeT[i].x = o.gx || 0; r.gaze[i].y = r.gazeT[i].y = o.gy || 0; }
+    r.pupil = r.pupilT = o.pupil == null ? 0.8 : o.pupil; r.pupilDot = r.pupilDotT = 0; r.blink = o.blink == null ? 1 : o.blink;
+    r.walk = r.walkT = 0; r.long = r.longT = 0; r.fezOn = true; r.fezRoll = 0; r._ws = Math.cos(o.yaw) >= 0 ? 1 : -1;
+    r.t = o.t; r._ta = o.ta || 0; r._tw = 0; r._dt = 0; r._tp = null; r._earT = o.earT == null ? -9 : o.earT; r._earSide = o.earSide || 1;
+    return r.frame();
+  }
+  function gagGeo() { const K = 3 * adv / (2 * cat.rig.P.headRx); return { K, x: xA + 11.5 * adv, top: baseM - xh + 0.6, base: baseM }; }
+  function drawGag(t) {
+    const tau = t - T.key[13];
+    if (!GAGON || tau < GA.up0 || tau > GA.sink1) return;
+    const s = gagState(tau), g = gagGeo(), K = g.K;
+    const X = g.x + s.bx * K, Y = lerp(g.top, g.base, s.ly);
+    const xf = (u) => { const q = gagState(u); return q.bx + 14 * Math.sin(-q.yaw) - 9 * q.hr; };
+    const set = { fs: FS, fo: 0, dy: s.dy, f0x: 1.5, f1x: 1.5, f0y: s.f0y, f1y: s.f1y, fo0: -s.p0 - SHL, fo1: s.p1 - s.bx - SHL, eye: s.eye, lid: s.lid, brow: 0, ear: s.ear, hr: s.hr, hp: 0, mouth: 0 };
+    const f = catFrame("peek", set, { yaw: cat.D.YAW.front, roll: s.roll, lyaw: s.yaw, lpitch: s.pitch, gx: s.gx, gy: s.gy, pupil: s.pupil, blink: s.blink, t: tau / 1000 + 1.3, ta: tasselAt(tau, xf, GA.up0, TAS.gag), earT: s.earT + 1.3, earSide: s.earSide });
+    ctx.save();
+    /* le lettere sono un bordo pieno (Dot sta dietro): si vede solo ciò che sta sopra il bordo, più le zampe che ci poggiano; mai sotto la riga di base */
+    ctx.beginPath(); ctx.rect(0, 0, W, Math.min(g.base, Y + 1.7 * K)); ctx.clip();
+    ctx.translate(X, Y); ctx.scale(K, -K); ctx.translate(0, -s.h);
+    cat.look.draw(ctx, f, { dark: true, rim: "notte", scale: K, shadow: null, clipY: s.h, pawsOnEdge: true });
+    ctx.restore();
+    catBB = catBox(f, X, Y, K, s.h, s.h - 1.7);
+  }
+  /* le lettere i, u, o, a, r come oggetti: null = ancora ferma al suo posto (la disegna la riga) */
+  function letterHit(i) { return i === 13 ? GA.push0 : GA.hits[12 - i]; }
+  const INK3 = [243, 244, 248];
+  function letterBody(i, t) {
+    const tau = t - T.key[13], j = 13 - i, h0 = letterHit(i), go = j === 0 ? GA.iGo : GA.hits[j - 1] + GA.leave;
+    if (tau < h0 + 4) return null;
+    ctx.font = `500 ${fm}px ${MONO}`; const m = ctx.measureText(TEXT[i]);
+    const side = j === 0 ? 1 : -1, xc = xA + (i + 0.5) * adv;                /* la «i» va a destra (la zampa arriva da sinistra), le altre a sinistra */
+    const ink = side > 0 ? (m.actualBoundingBoxRight || adv * 0.3) : -(m.actualBoundingBoxLeft || adv * 0.3);
+    const b = { side, px: xc + ink, py: baseM, dx: -ink, ph: 0, sc: 1, a: 1 };   /* il piede su cui si inclina: lo spigolo in basso dalla parte della spinta */
+    if (j === 0) {                                     /* la «i»: la zampa la spinge piano (resiste), poi passa il punto e va giù da sola */
+      b.ph = tau < GA.over ? 0.36 * eIO(seg(tau, h0, GA.over)) : 0.36 + 0.86 * eIn(seg(tau, GA.over, go));
+    } else {                                           /* u, o, a, r: la zampata le prende e le butta giù di colpo */
+      b.ph = -[0, 0.95, 0.68, 1.02, 0.78][j] * eOut(seg(tau, h0, go));   /* ognuna a modo suo: non cadono come un blocco */
+    }
+    if (tau > go) {                                    /* scivola giù dal bordo e cade, gira ancora un poco, viene verso chi guarda */
+      const d = (tau - go) / 1000, k = fm / 32, vx = (j === 0 ? 40 : -[0, 62, 30, 58, 74][j]) * k, w = j === 0 ? 1.1 : -[0, 1.5, 0.4, 1.8, 0.8][j];   /* quasi dritte giù: la zampata le rovescia, non le lancia (così non si ammucchiano) */
+      b.px += vx * d; b.py += 0.5 * 2900 * k * d * d + (j === 0 ? 30 : 90) * k * d;
+      b.ph += w * d; b.sc = 1 + 0.55 * d;
+      const dur = 0.3; if (d > dur) return { gone: true };
+      b.a = 1 - eIO(seg(d, dur * 0.56, dur));
+    }
+    return b;
+  }
+  function drawLetterBody(i, b) {
+    if (!b || b.gone || b.a <= 0) return;
+    ctx.save(); ctx.globalAlpha = b.a; ctx.translate(b.px, b.py); ctx.rotate(b.side > 0 ? b.ph : b.ph); ctx.scale(b.sc, b.sc);
+    ctx.font = `500 ${fm}px ${MONO}`; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    const k = 1 - 0.16 * Math.min(1, Math.abs(b.ph));                     /* inclinata prende meno luce da sopra */
+    ctx.fillStyle = `rgb(${Math.round(INK3[0] * k)},${Math.round(INK3[1] * k)},${Math.round(INK3[2] * k)})`; ctx.fillText(TEXT[i], b.dx, 0);
+    ctx.restore(); ctx.textAlign = "left";
+  }
+
+  /* ---- b) il salto nel quadrato del punto (solo col passaggio) */
+  function dipAt(t) {                                  /* il quadrato del punto sotto il peso di Dot: scende, torna con un filo di rimbalzo */
+    if (!JUMP) return 0; const tau = t - (T.back1 + JA.t0 + JA.land); if (tau <= 0 || tau > 520) return 0;
+    return 0.12 * Math.sin(Math.PI * tau / 110) * Math.exp(-tau / 85);
+  }
+  function blinkAt(t) {                                /* il punto d'oro chiude e riapre l'occhio, una volta */
+    if (!JUMP) return 1; const tau = t - (T.back1 + JA.t0 + JA.blink0), d = JA.blink1 - JA.blink0; if (tau <= 0 || tau >= d) return 1;
+    return tau < 52 ? 1 - 0.9 * eIO(tau / 52) : 0.1 + 0.9 * eOut((tau - 52) / (d - 52));
+  }
+  function dotFront(t) {                               /* quanto del punto d'oro sta davanti a Dot mentre entra nel tasto */
+    if (!JUMP) return 0; const tau = t - T.back1 - JA.t0; if (tau <= JA.in0 || tau > JA.in1) return 0;
+    return eIO(seg(seg(tau, JA.in0, JA.in1), 0.12, 0.5));
+  }
+  function jumpGeo() {
+    const step = cell + gap, K = cell / 56, cx = gridX + step + cell / 2, cy = gridY + step + cell / 2;
+    return { K, cx, cy, x0: gridX + 3 * cell + 2 * gap - 0.2 * cell, y0: H + 13 * K, x1: cx + 0.06 * cell, y1: cy + 0.2 * cell, apex: 0.16 * cell };   /* l'arco resta basso e a destra: lontano dal quadrato della Kaʿba (in alto a sinistra) */
+  }
+  /* il volo: una parabola vera (gravità), dal fondo dello schermo a destra fino al quadrato del punto */
+  function flight(g, s) {
+    const Tf = (JA.land - JA.launch) / 1000, D = g.y0 - g.y1, A = g.apex, sg = (Math.sqrt(2 * (D + A)) + Math.sqrt(2 * A)) / Tf, gr = sg * sg, vy0 = Math.sqrt(2 * gr * (D + A));
+    const vx = (g.x1 - g.x0) / Tf;
+    return { x: g.x0 + vx * s, y: g.y0 - vy0 * s + 0.5 * gr * s * s, vx, vy: -vy0 + gr * s };
+  }
+  /* la carica, il volo, l'arrivo, l'entrata: una sola linea del tempo (ms dall'inizio del salto), tutto continuo ai passaggi */
+  const JL = JA.launch, JD = JA.land, JI0 = JA.in0, JI1 = JA.in1;
+  const jt = {
+    sqx: [[0, 1], [36, 1], [JL - 16, 1.13, "io"], [JL + 18, 0.9, "o"], [JL + 90, 1, "io"], [JD - 26, 1], [JD - 4, 0.96, "i"], [JD + 14, 1.18, "o"], [JD + 74, 0.97, "io"], [JI0 + 10, 1.02, "io"], [JI1, 0.96]],
+    sqy: [[0, 1], [36, 1], [JL - 16, 0.8, "io"], [JL + 18, 1.16, "o"], [JL + 90, 1, "io"], [JD - 26, 1], [JD - 4, 1.06, "i"], [JD + 14, 0.8, "o"], [JD + 74, 1.04, "io"], [JI0 + 10, 0.98, "io"], [JI1, 1.04]],
+    te: [[0, 0.3], [JL, 0.1], [JL + 60, -0.6, "o"], [JL + 170, 0.3, "io"], [JD, 0.62, "io"], [JD + 60, 0.78, "o"], [JI1, 1.25, "io"]],
+    tc: [[0, 0.6], [JL, 0.5], [JL + 70, 0.15, "o"], [JD, 0.95, "io"], [JD + 70, 1.1, "io"], [JI1, 0.3, "io"]],
+    ear: [[0, 0.05], [36, 0.05], [JL - 10, 0.3, "io"], [JL + 40, 0.42, "o"], [JL + 160, 0.05, "io"], [JD + 40, -0.1, "io"]],
+    lp: [[0, 0.5], [JL, 0.45], [JL + 120, 0.05, "io"], [JD, -0.28, "io"], [JI1, -0.45]],
+    gy: [[0, 0.85], [JL + 60, 0.7], [JL + 180, -0.5, "io"], [JD, -0.9, "io"]],
+    gx: [[0, -0.55], [JL + 120, -0.35, "io"], [JD, -0.12, "io"]],
+    eye: [[0, 1.12], [JL, 1.18], [JD, 1.12], [JD + 40, 1.0, "io"]],
+  };
+  function jumpState(t) {
+    const tau = t - T.back1 - JA.t0, g = jumpGeo(), YW = cat.D.YAW;
+    if (tau < 0 || tau > JI1) return null;
+    const o = { g, x: g.x0, y: g.y0, z: 1, yaw: YW.left + 0.16, pitch: 0, inK: 0 };
+    o.base = ["crouch", "air", eIO(seg(tau, JL - 12, JL + 46))];
+    if (tau >= JD - 80) o.base = ["air", "land", eIO(seg(tau, JD - 80, JD))];
+    o.set = {}; for (const k of ["sqx", "sqy", "te", "tc", "ear", "eye"]) o.set[k] = kv(jt[k], tau);
+    o.lp = kv(jt.lp, tau); o.gy = kv(jt.gy, tau); o.gx = kv(jt.gx, tau); o.ly = 0.12; o.pupil = 1;
+    const fp = (s) => { const p = flight(g, s); return clamp(Math.atan2(-p.vy, -p.vx) * 0.6, -0.5, 0.9); };   /* il muso segue la strada */
+    if (tau < JL) {                                    /* sale dal fondo dello schermo già accucciato (le orecchie prima), si schiaccia: la carica */
+      o.y = g.y0 + 22 * g.K * (1 - eOut(seg(tau, 0, JA.crouch)));
+      o.pitch = lerp(0, fp(0), eIO(seg(tau, JL - 40, JL)) * 0.35);
+    } else if (tau < JD) {                             /* in volo: una parabola vera; stirato in salita, raccolto in cima, la coda dietro */
+      const s = (tau - JL) / 1000, p = flight(g, s), u = (tau - JL) / (JD - JL);
+      o.x = p.x; o.y = p.y;
+      o.pitch = lerp(fp(0) * 0.35, fp(s), eIO(seg(u, 0, 0.18))) * (1 - eIO(seg(u, 0.8, 1)));
+      o.z = 1 + 0.08 * Math.sin(Math.PI * u);            /* in cima è un filo più vicino a chi guarda */
+    } else {                                           /* sul tasto: si schiaccia, il tasto scende; poi entra a testa in giù, la coda per ultima */
+      const d = dipAt(t), zi = seg(tau, JI0, JI1);
+      o.x = g.x1; o.y = g.cy + (g.y1 - g.cy) * (1 - d) + 0.1 * cell * eIn(zi);
+      o.pitch = -0.95 * eIn(seg(tau, JI0 - 24, JI1));
+      o.z = lerp(1, 0.06, eIn(zi)) * (1 - d); o.inK = zi;
+    }
+    return o;
+  }
+  function drawJump(t) {
+    if (!JUMP) return;
+    const o = jumpState(t); if (!o) return;
+    const g = o.g, K = g.K * o.z, tau = t - T.back1 - JA.t0;
+    const xf = (u) => { const q = jumpState(T.back1 + JA.t0 + clamp(u, 0, JI1)); return q ? q.x / g.K : g.x0 / g.K; };
+    const f = catFrame(o.base, o.set, { yaw: o.yaw, pitch: o.pitch, lyaw: o.ly, lpitch: o.lp, gx: o.gx, gy: o.gy, pupil: o.pupil, t: tau / 1000 + 2.1, ta: tasselAt(tau, xf, 0, TAS.jump) });
+    const env = { dark: true, rim: "notte", scale: K, shadow: null, clipY: null, pawsOnEdge: false };
+    if (!o.inK) {                                      /* fuori dal tasto: sopra tutto, sulla tela dell'intro */
+      ctx.save(); ctx.translate(o.x, o.y); ctx.scale(K, -K); cat.look.draw(ctx, f, env); ctx.restore(); catBB = catBox(f, o.x, o.y, K, 0, null); return;
+    }
+    /* dentro il tasto: su una tela a parte, ritagliato dal tasto e sempre più buio (è il fondo della scatola) */
+    const s = cell * (1 - dipAt(t)), kx = g.cx - s / 2, ky = g.cy - s / 2, pad = 2;
+    const wpx = Math.ceil((s + 2 * pad) * DPR), hpx = wpx;
+    if (!jcv) { jcv = doc.createElement("canvas"); jctx = jcv.getContext("2d"); }
+    if (jcv.width < wpx || jcv.height < hpx) { jcv.width = wpx; jcv.height = hpx; }
+    jctx.setTransform(1, 0, 0, 1, 0, 0); jctx.globalCompositeOperation = "source-over"; jctx.globalAlpha = 1; jctx.clearRect(0, 0, jcv.width, jcv.height);
+    jctx.setTransform(DPR, 0, 0, DPR, DPR * (pad - kx), DPR * (pad - ky));
+    jctx.save(); rrect(jctx, kx, ky, s, s, s * 0.24); jctx.clip();
+    const ox = lerp(o.x, g.cx, eIO(o.inK)), oy = lerp(o.y, g.cy + 0.12 * cell, eIO(o.inK));
+    jctx.translate(ox, oy); jctx.scale(K, -K); cat.look.draw(jctx, f, env); jctx.restore(); catBB = catBox(f, ox, oy, K, 0, null);
+    jctx.setTransform(1, 0, 0, 1, 0, 0); jctx.globalCompositeOperation = "source-atop";
+    jctx.fillStyle = `rgba(6,8,20,${(0.95 * eIO(sat(o.inK * 1.15))).toFixed(3)})`; jctx.fillRect(0, 0, wpx, hpx);
+    jctx.globalCompositeOperation = "source-over";
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(jcv, 0, 0, wpx, hpx, Math.round((kx - pad) * DPR), Math.round((ky - pad) * DPR), wpx, hpx); ctx.restore();
+    /* Dot è passato dietro la faccia del tasto: il punto d'oro, che sta sulla faccia, adesso gli sta davanti (sotto, la sua copia si spegne altrettanto) */
+    const fa = dotFront(t); if (fa <= 0) return;
+    const bk = blinkAt(t); ctx.save(); ctx.globalAlpha = fa; ctx.translate(g.cx, g.cy); ctx.scale(1, bk); drawDot(0, 0, cell * 0.075); ctx.restore();
+  }
+  /* dove disegna Dot adesso (per gli strumenti: ritagli delle strisce) */
+  function gagBox(t) {
+    if (!cat) return null;
+    if (GAGON && t < T.zoom0) { const g = gagGeo(); return { x: xA - 0.4 * adv, y: g.top - 31 * g.K, w: 15.6 * adv, h: 31 * g.K + xh + 3.6 * fm }; }
+    if (JUMP) { const g = jumpGeo(); return { x: gridX - gap, y: gridY - gap, w: 3 * cell + 4 * gap, h: H - gridY + gap }; }
+    return null;
+  }
+
   /* ------------------------------------------------------------------ la pagina sotto: compare mentre i quadrati atterrano */
   function applyDom(t) {
     const live = t < (PASS ? T.landed : T.end), typing = t < T.end;   /* col passaggio la pagina è libera prima che finisca di scrivere */
@@ -679,7 +979,7 @@
 
   /* ------------------------------------------------------------------ un fotogramma */
   function frame(t) {
-    lastT = t; GEO.sq = []; GEO.phase = "";
+    lastT = t; GEO.sq = []; GEO.phase = ""; catBB = null;
     if (!(PASS && freed)) {                                             /* col passaggio, dopo l'atterraggio la tela dell'intro è già via */
       if (cvs.style.background !== "transparent") cvs.style.background = "transparent";
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
@@ -689,13 +989,26 @@
       if (t >= T.zoom0 - 40 && t < T.fly1) updateScenes(t);
       if (t < T.bold1) phaseType(t);
       else if (t < T.back1) phaseCam(t);
-      else if (PASS) { if (t < T.press) phaseGrid(t); else if (t < T.fly1) phaseKeys(t); }
+      else if (PASS) { if (t < T.press) { phaseGrid(t); if (JUMP) drawJump(t); } else if (t < T.fly1) phaseKeys(t); }
       else if (t < T.open1) phaseGrid(t);
       else if (t < T.fly1) phaseSquares(t);
     }
     applyDom(t);
     if (PASS) drawCaps(t);                                             /* dopo applyDom: i tasti mirano all'hero com'è in questo istante (anche con seek) */
     hooks(t);
+  }
+
+  /* «gatto»: i tempi con la scenetta (le lettere se ne vanno quando Dot le butta giù, tutto il resto GD ms dopo) e, col passaggio, il salto */
+  function gagTimes() {
+    const k = T.key[13];
+    T.del = [k + GA.iGo].concat(GA.hits.map((h) => k + h + GA.leave));
+    for (const n in T_TODAY) if (n !== "key" && n !== "del" && n !== "flyDur") T[n] = T_TODAY[n] + GD;
+    T.gag = k; T.gagUp = k + GA.up4; T.iGo = k + GA.iGo; T.swept = k + GA.hits[3] + GA.leave; T.gagEnd = k + GA.sink1;
+    if (JUMP) {
+      T.press = T.settled + DOT_GAP_J; T.split = T.press + G.DIP; T.capsGo = T.press + G.CAPS_AFTER;
+      T.handover = T.capsGo + 2 * G.ROWLAG + G.CAPDUR + G.SETTLE; T.landed = T.press + G.FLY_AFTER + T.flyDur + 8 * 26;
+      T.jump = T.back1 + JA.t0; T.jumpLand = T.jump + JA.land; T.jumpIn = T.jump + JA.in1;
+    }
   }
 
   /* ------------------------------------------------------------------ avvio, fine, comandi dell'anteprima */
@@ -705,7 +1018,9 @@
     window.scrollTo(0, 0);
     /* il passaggio c'è solo se l'apertura di Dot sta per partire e la sua scena c'è; altrimenti la fine è quella di oggi */
     PASS = passWanted(); freed = false; handed = false; cut = false; setupDone = true;
-    Object.assign(T, T_TODAY); if (PASS) Object.assign(T, passTimes());
+    GAGON = gagWanted(); if (GAGON && !cat) { try { cat = makeCat(); } catch (e) { cat = null; } } if (!cat) GAGON = false;
+    JUMP = GAGON && PASS;
+    Object.assign(T, T_TODAY); if (GAGON) gagTimes(); if (PASS) Object.assign(T, passTimes());
     if (window.__niDot) window.__niDot.wait = PASS;
     if (PASS) { makeCaps(); FORMED = stg().formed(); } else if (capsCv) capsCv.style.display = "none";
     heroEl = doc.getElementById("hero"); barEl = doc.getElementById("bar"); footEl = doc.querySelector(".foot"); wordEl = prepareWord();
@@ -763,7 +1078,10 @@
   /* __ni.T: i tempi (con i momenti del passaggio: settled, press, split, capsGo, landed, handover); __ni.G: i numeri del passaggio;
      __ni.onFrame(fn): fn(info) a ogni fotogramma della versione «gatto», dopo il disegno, con la tela dell'intro (info.ctx, in px CSS),
      quella dei tasti (info.caps), i tempi, dove stanno i quadrati e i tasti (info.geo.sq, info.geo.cap, info.centre: il quadrato del punto),
-     info.press(i) (quanto è premuto il quadrato i). Serve a disegnare Dot nell'intro; questa parte non disegna niente di Dot. */
+     info.press(i) (quanto è premuto il quadrato i). Dot nell'intro lo disegna questo file (parte 6), non serve un aggancio.
+     Per gli strumenti: __ni.t (l'ultimo istante disegnato), __ni.gag / __ni.jump (la scenetta e il salto ci sono?), __ni.GA / __ni.JA
+     (i loro tempi), __ni.box(ms) (dove ritagliare le strisce), __ni.catBox() (il rettangolo di Dot nell'ultimo fotogramma),
+     __ni.squares() (i nove quadrati della griglia). */
   window.__ni = { seek, play, T, G, onFrame(fn) { if (typeof fn === "function") HOOKS.push(fn); }, offFrame(fn) { const i = HOOKS.indexOf(fn); if (i >= 0) HOOKS.splice(i, 1); },
-    get pass() { return PASS; }, get version() { return version; }, set version(v) { if (VERSIONS.includes(v)) { version = v; paint(); } } };
+    get pass() { return PASS; }, get t() { return lastT; }, get gag() { return GAGON; }, get jump() { return JUMP; }, GA, JA, box: (ms) => gagBox(ms), catBox: () => catBB, squares: () => { const st = cell + gap; return [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({ x: gridX + (i % 3) * st, y: gridY + ((i / 3) | 0) * st, w: cell, h: cell })); }, get version() { return version; }, set version(v) { if (VERSIONS.includes(v)) { version = v; paint(); } } };
 })();
