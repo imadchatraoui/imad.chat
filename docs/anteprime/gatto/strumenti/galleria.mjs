@@ -9,7 +9,7 @@ const require = createRequire(path.join(root, "package.json")); const { chromium
 const [out = "galleria.png", look = "adesivo", tema = "scuro", mode = "", only = ""] = process.argv.slice(2);
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".mp3": "audio/mpeg", ".m4a": "audio/mp4" };
 const server = http.createServer((req, res) => { let f = path.join(dir, decodeURIComponent(new URL(req.url, "http://x").pathname)); if (fs.existsSync(f) && fs.statSync(f).isDirectory()) f = path.join(f, "index.html"); if (!fs.existsSync(f)) { res.writeHead(404).end(); return; } res.writeHead(200, { "content-type": MIME[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(res); });
-await new Promise((r) => server.listen(0, "127.0.0.1", r)); const base = `http://127.0.0.1:${server.address().port}/`;
+await new Promise((r) => server.listen(+(process.env.PORT || 0), "127.0.0.1", r)); const base = `http://127.0.0.1:${server.address().port}/`;
 
 /* le scene: js prepara (D = DOT.debug, P = i bordi, T = i riquadri liberi, L = l'ultimo riquadro); t = istante della foto; c = istanti candidati */
 const top0 = `D.place(P[0].a + 70, 0); D.tick(0.6);`;

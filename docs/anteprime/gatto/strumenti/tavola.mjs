@@ -9,7 +9,7 @@ const require = createRequire(path.join(root, "package.json")); const { chromium
 const [out = "tavola.png", query = "look=base", width = "920", pageName = "tavola.html"] = process.argv.slice(2);
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".jpg": "image/jpeg", ".mp3": "audio/mpeg", ".m4a": "audio/mp4" };
 const server = http.createServer((req, res) => { let f = path.join(dir, decodeURIComponent(new URL(req.url, "http://x").pathname)); if (fs.existsSync(f) && fs.statSync(f).isDirectory()) f = path.join(f, "index.html"); if (!fs.existsSync(f)) { res.writeHead(404).end(); return; } res.writeHead(200, { "content-type": MIME[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(res); });
-await new Promise((r) => server.listen(0, "127.0.0.1", r)); const base = `http://127.0.0.1:${server.address().port}/`;
+await new Promise((r) => server.listen(+(process.env.PORT || 0), "127.0.0.1", r)); const base = `http://127.0.0.1:${server.address().port}/`;
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: +width, height: 800 }, deviceScaleFactor: 2 });
 const page = await ctx.newPage(); const errs = [];

@@ -116,11 +116,13 @@
       walk: 0, walkT: 0, speedU: 0, gait: 0, gaitT: null,        /* passo: peso 0..1, velocità in unità al secondo, fase, durata del ciclo (null = P.gaitT) */
       long: 0, longT: 0,                                         /* allungamento del corpo quando è preso */
       fezOn: true, fezRoll: 0,                                   /* il fez è in testa?; inclinazione di lato in più */
+      headMax: null,                                             /* quanto la testa può girarsi via da chi guarda (rad, 0 = di fronte); null = senza limite (di spalle, di corsa) */
+      breathRate: 1.9,                                           /* il respiro: radianti al secondo (più basso = più lento) */
       tailSwish: 0, tailRate: 0, grounded: true,                 /* coda: nervosa di quanto, quanto veloce; a terra non buca il suolo */
       autoBlink: true, blink: 1, wx: 0, wy: 0,                   /* wx, wy: posizione nel mondo in unità (serve al fiocco per sentire il movimento) */
       earTwitch: true,                                           /* false: niente scatti d'orecchio a caso (li dà chi guida con rig.earKick) */
       _blinkAt: 2.5, _earAt: 3, _earT: -9, _earSide: 1, _ws: 1, _ta: 0, _tw: 0, _tp: null, _tvx: 0, _dt: 0,
-      _yv: 0, _pv: 0, _rv: 0, _lyv: 0, _lpv: 0
+      _yv: 0, _pv: 0, _rv: 0, _lyv: 0, _lpv: 0, _bp: 0
     };
     rig.earKick = function (side) { rig._earT = rig.t; rig._earSide = side < 0 ? -1 : 1; };   /* un colpetto d'orecchio adesso */
 
@@ -130,7 +132,7 @@
     /* una molla smorzata: x insegue g con velocità v (o è la vecchia rincorsa esponenziale se la molla è spenta) */
     function sp(x, v, g, w, h) { var a = w * w * (g - x) - 2 * rig.zeta * w * v; v += a * h; return [x + v * h, v]; }
     rig.step = function (dt) {
-      rig.t += dt; rig._dt += dt;
+      rig.t += dt; rig._dt += dt; rig._bp += dt * ((rig.breathRate == null ? 1.9 : rig.breathRate) - 1.9);   /* la fase in più del respiro: cambiando ritmo non salta */
       var tgt = rig.poses[rig.pose] || rig.poses.stand, k = 1 - Math.exp(-dt * rig.rate), kf = 1 - Math.exp(-dt * rig.rate * 1.8), i, key, v, r, j;
       if (rig.spring) {
         var n = Math.max(1, Math.ceil(dt / 0.0175)), h = dt / n, w0 = rig.rate * 1.35;
@@ -166,7 +168,7 @@
       var psi = rig.yaw, cps = Math.cos(psi), sps = Math.sin(psi), cpt = Math.cos(rig.pitch), spt = Math.sin(rig.pitch), cr = Math.cos(rig.roll), sr = Math.sin(rig.roll), tilt = P.tilt;
       /* il passo: i fianchi salgono e scendono due volte per ciclo, il petto un po' dopo e meno, la testa quasi ferma */
       var gph = rig.gait * PI * 4, bob = rig.walk * Math.sin(gph) * P.bob, bobC = rig.walk * Math.sin(gph - 1.1) * P.bob;
-      var bph = Math.sin(rig.t * 1.9), br = 1 + A.br * P.breath * bph, lift = A.br * P.breathLift * 0.5 * (1 + bph) * (1 - rig.walk);
+      var bph = Math.sin(rig.t * 1.9 + rig._bp), br = 1 + A.br * P.breath * bph, lift = A.br * P.breathLift * 0.5 * (1 + bph) * (1 - rig.walk);
       var cx = A.cx, cy = A.cy + bobC * 0.55 + lift, hx = A.hx, hy = A.hy + bob + lift * 0.35;
       var ddx = hx - cx, ddy = hy - cy, dl = Math.sqrt(ddx * ddx + ddy * ddy) || 1, lx = ddx / dl * rig.long, ly = ddy / dl * rig.long;
       hx += lx; hy += ly;
@@ -184,7 +186,13 @@
       /* la testa: punti in (avanti, su, lato) della testa → corpo → schermo. Di lato si gira un poco verso chi guarda;
          con hu la testa non segue il rotolare del corpo (a pancia in su il muso resta verso di noi) */
       var ft = rig.faceTurn == null ? P.faceTurn : rig.faceTurn, tv = wrap(-PI / 2 - rig.yaw);
-      var HX = cx + A.dx, HY = cy + A.dy + bob * 0.15 + lift * 0.25, hyw = rig.look.yaw + clamp(tv - rig.look.yaw, -ft, ft) * smooth(0.25, 0.9, Math.abs(cps)), hpt = A.hp + rig.look.pitch + rig.walk * 0.03 * Math.sin(gph - 0.6), hrl = A.hr + rig.headRoll;
+      var HX = cx + A.dx, HY = cy + A.dy + bob * 0.15 + lift * 0.25, hyw = rig.look.yaw + clamp(tv - rig.look.yaw, -ft, ft) * smooth(0.25, 0.9, Math.abs(cps));
+      if (rig.headMax != null) {                                 /* la testa non si gira troppo via da chi guarda: oltre il limite si vedrebbe un occhio solo.
+        Il limite è morbido (si avvicina senza scatti), la correzione non supera 0.9 rad e sparisce di spalle (lì serve il profilo vero) */
+        var hoff = wrap(rig.yaw + hyw + PI / 2), ah = Math.abs(hoff), HL = rig.headMax, kn = 0.2;
+        if (ah > HL - kn) { var hw2 = HL - kn + kn * (1 - Math.exp(-(ah - HL + kn) / kn)), dl = clamp(ah - hw2, 0, 0.9) * (1 - smooth(2.45, 2.95, ah)); hyw -= (hoff > 0 ? 1 : -1) * dl; }
+      }
+      var hpt = A.hp + rig.look.pitch + rig.walk * 0.03 * Math.sin(gph - 0.6), hrl = A.hr + rig.headRoll;
       var chy = Math.cos(hyw), shy = Math.sin(hyw), chp = Math.cos(hpt), shp = Math.sin(hpt), chr = Math.cos(hrl), shr = Math.sin(hrl);
       var hu = sat(A.hu), rl2 = rig.roll * (1 - hu), cr2 = Math.cos(rl2), sr2 = Math.sin(rl2), hc0 = P3(HX, HY, 0), hc1 = P3c(HX, HY, 0, cr2, sr2);
       function HQ(f, u, s) {

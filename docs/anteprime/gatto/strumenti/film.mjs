@@ -9,7 +9,7 @@ const [outDir = ".", look = "adesivo", tema = "scuro"] = process.argv.slice(2);
 fs.mkdirSync(outDir, { recursive: true });
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".mp3": "audio/mpeg", ".m4a": "audio/mp4" };
 const server = http.createServer((req, res) => { let f = path.join(dir, decodeURIComponent(new URL(req.url, "http://x").pathname)); if (fs.existsSync(f) && fs.statSync(f).isDirectory()) f = path.join(f, "index.html"); if (!fs.existsSync(f)) { res.writeHead(404).end(); return; } res.writeHead(200, { "content-type": MIME[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(res); });
-await new Promise((r) => server.listen(0, "127.0.0.1", r)); const base = `http://127.0.0.1:${server.address().port}/`;
+await new Promise((r) => server.listen(+(process.env.PORT || 0), "127.0.0.1", r)); const base = `http://127.0.0.1:${server.address().port}/`;
 
 const FPS = 60, END = 31.5;
 const KEY = [1.25, 4.35, 5.5, 8.4, 16.6, 25.1];   /* i fotogrammi chiave (secondi) */
