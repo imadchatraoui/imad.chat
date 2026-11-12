@@ -1965,7 +1965,7 @@
     if (!a) { release(0, 0); return; }
     var dtt = Math.max(0.016, rt - a.rt); release(clamp((b.x - a.x) / dtt, -2400, 2400), clamp((b.y - a.y) / dtt, -2400, 2400));
   }
-  function onKey(e) { if (B.paused) return; if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") { e.preventDefault(); tap(); } }
+  function onKey(e) { if (B.paused) return; if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") { e.preventDefault(); sgTouch(); if (SG.g) ghostCancel("touch"); tap(); } }
   function onPtr(e) {
     var t = now, dx = e.pageX - ptr.x, dy = e.pageY - ptr.y, dd = hyp(dx, dy), dtp = t - ptr.t;
     if (dtp > 0.0001) ptr.sp = dd / dtp; if (dd > 3) ptr.still = 0;
@@ -2031,6 +2031,8 @@
     grab.addEventListener("keydown", onKey); grab.addEventListener("contextmenu", function (e) { e.preventDefault(); });
     window.addEventListener("pointermove", onPtr, { passive: true }); window.addEventListener("pointerdown", onPtrDown, { passive: true });
     window.addEventListener("scroll", onScroll, { passive: true }); window.addEventListener("resize", onResize); doc.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pointerup", onPtrUp, { passive: true }); window.addEventListener("pointercancel", onPtrUp, { passive: true }); window.addEventListener("mouseout", onPtrOut, { passive: true });
+    window.addEventListener("keydown", onKeyAny, { passive: true }); doc.addEventListener("input", onKeyAny, { passive: true });   /* chi scrive: niente suggerimenti */
     if (window.ResizeObserver) { try { RO = new ResizeObserver(function () { world.at = -9; }); RO.observe(doc.body); } catch (e) { RO = null; } }
     stillI = setInterval(stillTick, 250);
     B.fromKeys = !!O.keysFormed;                                        /* keysFormed: l'intro ha già messo i nove tasti al loro posto: l'apertura parte da lì (stage.TS.keys) */
@@ -2094,6 +2096,8 @@
   DOT.stop = function () {
     if (!B.on) return; B.on = false; B.paused = false; cancelAnimationFrame(raf); clearInterval(stillI); sound("purr", false);
     window.removeEventListener("pointermove", onPtr); window.removeEventListener("pointerdown", onPtrDown); window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onResize); doc.removeEventListener("visibilitychange", onVis);
+    window.removeEventListener("pointerup", onPtrUp); window.removeEventListener("pointercancel", onPtrUp); window.removeEventListener("mouseout", onPtrOut); window.removeEventListener("keydown", onKeyAny); doc.removeEventListener("input", onKeyAny);
+    sgClear(); SG.on = false; drag = null; grabbing(false); if (fake && fake.ghost) fake = null;
     if (RO) { try { RO.disconnect(); } catch (e) {} RO = null; }
     if (stageOn && stage.unmount) { try { stage.unmount(); } catch (e) {} } stageOn = false; B.mounted = false;
     killFez(); props = []; scratches = []; if (layer && layer.parentNode) layer.parentNode.removeChild(layer); layer = null; catSp = null; cat.state = "off";
