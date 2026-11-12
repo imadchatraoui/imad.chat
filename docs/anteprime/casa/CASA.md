@@ -76,6 +76,46 @@ Nine tiles besides the hero. The intro's nine squares fly to them in this order 
 
 **Pages in this round** (under the preview address for now, built so that moving them to the root later is one setting in `build.mjs`): `anteprima/progetti`, `anteprima/mondo` (and one page per file in `content/mondo/`), `anteprima/su-di-me`. `tools` and `tools/qr` come with QR Studio in the next round.
 
+## 2c. Dot in the intro, the passage to the box, the hint (asked on 2026-11-12; built after the home, as previews)
+
+His words: "voglio che tu faccia capire che puoi interagire con il gatto, trascinarlo ecc, in una maniera subdola semplice furba, senza invadere troppo lo schermo; trova anche un modo (con un'animazione) per passare dall'animazione iniziale all'animazione del cubo che si piega su se stesso in una scatola; poi vorrei che il gatto fosse implementato anche nella intro in qualche maniera". He chose the look first: **Manifesto**.
+
+Common rules:
+
+- Everything is drawn with the real skeleton and the Manifesto look (`dot-rig.js`, `look-manifesto.js`): never a second drawing of the cat.
+- The live home at `/` and the intro he loves stay exactly as they are. The new pieces are a version of the intro called `gatto` (the default on the new home's preview; `?v=stella` shows today's intro to compare) and they run only where Dot's scripts are loaded.
+- Like the rest of the intro: one time `t` drives everything and `__ni.seek(ms)` draws any instant. With reduced motion none of this plays.
+- Dot is never drawn in the letter-windows, never near the picture of the Kaʿba or the flag.
+
+**A. Dot in the intro: one gag. The cat is the reason for the name** ("chat" is cat). At most half a second longer than today.
+
+1. While `imad chatraoui` is typed, nothing of Dot is seen.
+2. In the pause after the last letter Dot comes up from behind the end of the line, behind `raoui`: the peek pose, cut at the top of the letters as if the line were a ledge (on the dark screen its black body under the line is not seen): ears, fez, eyes, two paws resting on the letters. It looks at the caret, then at the visitor; a short hold.
+3. It pushes the letters off, as cats do with things on a table: first `i`, slowly, with a look at the visitor; then `u`, `o`, `a`, `r` in one quick sweep of the paw. Each letter tips forward around its foot, falls with gravity, turning a little, and fades below the line. No letter just disappears. The caret goes back to the end of `chat`.
+4. Dot looks at what is left, `imad chat`, blinks slowly and sinks back behind the line, ears last.
+5. The star falls and becomes the dot, as today.
+6. When the nine characters have settled in the 3x3, Dot jumps from below into the centre square (a dark arc, the tail last); the square dips under its weight and the gold dot blinks once. That is the key that becomes its box.
+
+**B. The passage from the intro to the box: one shot, no cut.**
+
+1. The 3x3 has settled and Dot is inside the centre key.
+2. A press runs over the nine squares in reading order, about 30 ms apart. Each dips and, coming back up, splits in two: its cap (the letter, now a cream key cap: the very picture the stage draws) lifts toward the viewer with a soft shadow; its base stays behind.
+3. The nine bases fly out and grow into the nine tiles (today's landing). The nine caps keep their 3x3, shrink to the size of the stage's keys and travel together along one arc to Dot's ledge above the hero, the rows arriving one after another, the bottom row last, with a small settle.
+4. On arrival the stage takes over on the same frame: `DOT.stage` gives the intro the nine key rectangles for a given place and a painter for one cap, so both draw the same thing; the intro's canvas lets go, and Dot's opening goes on from "keys formed" (fold by columns, then by rows, the key drops, becomes the box, the lid, two eyes, Dot comes out, "salam, sono Dot."). Meanwhile the wordmark is typed in the hero, as today.
+5. The passage adds about one second before the page is free; the page can be scrolled as soon as the tiles have landed. Later in the same session: no passage and no opening (the tiles land as today, Dot is simply around).
+
+**C. The hint that Dot can be touched: no words, small, on Dot only.**
+
+1. On a computer the pointer is a hand over Dot (`grab`, then `grabbing`).
+2. Dot notices a finger or a pointer that comes near: ears up, head and pupils turn to it, the pupils widen; a finger scrolling past close to it gets a quick bat of the paw.
+3. **The ghost fingertip, once.** The first time in a session, about four seconds after "salam, sono Dot." has gone, if the visitor has not touched Dot yet: a small translucent round fingertip (about 24 px, like the touch dot of a screen recording) fades in on Dot's back, presses (a ring), lifts Dot a little along an arc (Dot hangs long and unimpressed), holds half a second, puts it down (Dot lands and shakes), lets go (a ring) and fades. Dot looks at where it went, then at the visitor. About 2.6 s in all. A real touch at any moment cancels it. Never again once the visitor has dragged Dot (remembered on the device); in two sessions at most.
+4. **Dot knocks.** If still nobody has touched it and the page has been still for a while with Dot in view: Dot walks to the edge, lifts a paw toward the viewer and knocks twice on the inside of the screen (a small ring spreads on the glass at each knock; silent), tilts its head and waits with big pupils; then it gives up and loafs. Twice in a session at most, never while the visitor is scrolling or typing.
+5. The first real touch gets the warmest answer (a happy hop and a purr): it must be clear that the cat responds.
+
+No bubble, no word, nothing away from Dot, everything gone in seconds.
+
+**D. Manifesto, the chosen look.** Keep its character (graphic, flat poster cat, long tapered tail, tall ears, ring eyes); fix only what is wrong: a head turned aside must read as a cat's profile (a small muzzle with the nose at its tip, the near ear in front of the fez), never a ball with one eye; the two forelegs of the sitting cat are two legs with two paws, not one column; darker whiskers outside the head on the light theme; the hind legs hang a little apart when it hangs; pink pads when it slides and the paws drawn over the things it holds (as Adesivo did); the eyes keep one clear highlight. Then `look-adesivo.js` and `look-pelo.js` leave the pages and the repo, and the look switch leaves the `/gatto` preview.
+
 ## 3. Pages
 
 All static, like the home: design sources under `docs/anteprime/casa/`, copied into `public/` by `scripts/home/build.mjs`, plain HTML, CSS and ES2017 scripts, no framework, shared tokens and a shared small header (logo, back, theme follows the phone). Dot comes along on every page, smaller and calmer (a corner, a peek), never on a page of `/mondo`.
