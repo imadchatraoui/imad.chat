@@ -249,3 +249,14 @@ Il gatto Dot suona solo quando lo si tocca. Quattro registrazioni da Wikimedia C
 - `fusa` (.m4a, .mp3): «Purr (10 sec loopable)», di Insanejeff (en.wikipedia, trasferita su Commons). Licenza: pubblico dominio (`PD-user-en`). Pagina: https://commons.wikimedia.org/wiki/File:Purr_(10_sec_loopable).ogg . Modifiche: preso il tratto da 2,0 s a 3,9 s; mono, passa-alto a 40 Hz; ricavato un ciclo di 1,5 s senza scatti con una sfumatura incrociata di 0,2 s tra la fine e l'inizio; volume a circa -19 LUFS, limitatore.
 
 Tutti i file sono stati codificati con ffmpeg (AAC 56 kbit/s e MP3 56 kbit/s), ognuno sotto i 12 kB.
+
+## Strumenti: QR
+
+Il motore dei codici QR (`docs/anteprime/casa/tools/qr/qr-core.js`, scritto da noi) usa due librerie copiate così come sono dai pacchetti npm, non installate nel progetto (non sono in `package.json`). Ogni licenza è accanto al suo file, in `docs/anteprime/casa/tools/qr/vendor/`.
+
+- `vendor/qrcode-generator.js`: **qrcode-generator 2.0.4** di Kazuhiko Arase, file `dist/qrcode.js` del pacchetto npm `qrcode-generator` (integrità `sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==`). Licenza MIT, Copyright (c) 2009 Kazuhiko Arase; l’intestazione originale del file è intatta. Il pacchetto non contiene un file di licenza: `vendor/qrcode-generator.LICENSE` riporta il testo standard della MIT con quel copyright, come dichiarato nell’intestazione del file e nel campo `license` del pacchetto. Sorgente: https://github.com/kazuhikoarase/qrcode-generator . Costruisce la matrice del codice. In `qr-core.js` è ricopiata anche la sua tabella dei blocchi Reed-Solomon (`RS_BLOCK_TABLE`, cioè la tabella 9 della norma ISO/IEC 18004), per calcolare quanto un’immagine al centro consuma della correzione d’errore.
+- `vendor/jsQR.js`: **jsQR 1.4.0**, file `dist/jsQR.js` del pacchetto npm `jsqr` (integrità `sha512-dxLob7q65Xg2DvstYkRpkYtmKm2sPJ9oFhrhmudT1dZvNFFTlroai3AWSpLey/w5vMcLBXRgOJsbXpdN9HzU/A==`). Licenza Apache 2.0, testo completo in `vendor/jsQR.LICENSE` (copiato dal pacchetto). Il file è identico a quello del pacchetto tranne un commento iniziale di tre righe che dice da dove viene e con quale licenza. Sorgente: https://github.com/cozmo/jsQR . Rilegge il codice disegnato per controllare che si possa scansionare.
+- Le posizioni dei pattern di allineamento (versioni 1-40) in `qr-core.js` vengono dalla norma ISO/IEC 18004, annesso E.
+- Il banco di prova `strumenti/qr-prova.mjs` usa come secondo lettore, fuori dal browser, **zxing-cpp** (pacchetto Python `zxing-cpp`, licenza Apache 2.0, https://github.com/zxing-cpp/zxing-cpp), installato solo in un ambiente temporaneo per la prova e non incluso nel sito.
+
+“QR Code” è un marchio registrato di DENSO WAVE INCORPORATED.

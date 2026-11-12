@@ -1,17 +1,14 @@
-/* Riquadri vivi della bento: la luce del sole vero, il globo a puntini, la bandiera, il cubo che si risolve, la riga dei saluti.
-   Viene dopo app.js. Scritto per girare anche su Safari non recente: niente sintassi oltre ES2017. */
+/* imad.chat — la casa nuova (anteprima): i riquadri vivi del primo giro, rimessi in casa.
+   La luce del sole vero su Torino, il globo a puntini (Le città), il cubo che si mescola e si risolve (Progetti),
+   la riga dove si battono i saluti sotto imad.chat_. Viene dopo app.js (usa window.IMAD) e terra.js.
+   Plain script, ES2017 al massimo. */
 (function () {
   "use strict";
-  var root = document.documentElement, doc = document, A = window.ImadAstro, D = window.IMAD_DATA, TERRA = window.IMAD_TERRA;
-  if (!A || !D) return;
-  var Q = new URLSearchParams(location.search), SHOT = Q.get("shot") === "1";
-  var frozen = Q.get("t") ? new Date(Q.get("t")) : null; if (frozen && isNaN(frozen.getTime())) frozen = null;
-  function now() { return frozen ? new Date(frozen.getTime()) : new Date(); }
-  var mq = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
-  function still() { return SHOT || mq.matches; }
+  var root = document.documentElement, doc = document, A = window.ImadAstro, D = window.IMAD_DATA, TERRA = window.IMAD_TERRA, I = window.IMAD;
+  if (!A || !D || !I) return;
   var RAD = Math.PI / 180;
   function $(s, r) { return (r || doc).querySelector(s); }
-  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  var clamp = I.clamp;
   function lerp(a, b, p) { return a + (b - a) * p; }
   function eIO(p) { return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; }
   function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
@@ -20,18 +17,15 @@
   var TOR = city("torino");
 
   /* ------------------------------------------------------------------ la luce: da dove sta il sole su Torino (di notte, la luna) */
-  var WIND = ["nord", "nord-est", "est", "sud-est", "sud", "sud-ovest", "ovest", "nord-ovest"];
   function luce() {
-    var d = now(), s = A.sun(d, TOR.lat, TOR.lon), m = A.moon(d, TOR.lat, TOR.lon), ph = A.moonPhase(d);
-    var src = null, k = 0.28, rgb = [255, 246, 232], txt = "";
+    var d = I.now(), s = A.sun(d, TOR.lat, TOR.lon), m = A.moon(d, TOR.lat, TOR.lon), ph = A.moonPhase(d);
+    var src = null, k = 0.28, rgb = [255, 246, 232];
     if (s.altitude > -1) {
       var h = Math.max(0, s.altitude), warm = 1 - Math.min(1, h / 24);
       src = s; k = 0.5 + 0.5 * Math.min(1, h / 30);
       rgb = [255, Math.round(lerp(247, 198, warm)), Math.round(lerp(236, 140, warm))];
-      txt = ", sole da " + WIND[Math.round(s.azimuth / 45) % 8];
     } else if (m.altitude > 3 && ph.fraction > 0.1) {
       src = m; k = 0.2 + 0.25 * ph.fraction; rgb = [200, 214, 255];
-      txt = ", luce della luna da " + WIND[Math.round(m.azimuth / 45) % 8];
     }
     /* guardando verso sud: il mattino la luce viene da sinistra, la sera da destra; più il sole è alto, più viene dall'alto */
     var ang = 180, shx = 0, shy = 12;
@@ -43,17 +37,9 @@
     var st = root.style;
     st.setProperty("--sun-ang", ang.toFixed(1) + "deg"); st.setProperty("--sun-a", (0.2 * k).toFixed(3)); st.setProperty("--sun-rgb", rgb.join(" "));
     st.setProperty("--shx", shx.toFixed(1) + "px"); st.setProperty("--shy", shy.toFixed(1) + "px");
-    var el = $("#luceTxt"); if (el) el.textContent = txt;
   }
   Array.prototype.forEach.call(doc.querySelectorAll(".tile:not(.hero)"), function (t) { var i = doc.createElement("i"); i.className = "luce"; i.setAttribute("aria-hidden", "true"); t.insertBefore(i, t.firstChild); });
 
-  /* ------------------------------------------------------------------ strumenti per le tele */
-  function fit(cv) {
-    var r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
-    if (r.width < 2 || r.height < 2) return null;
-    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
-    return { W: r.width, H: r.height, dpr: dpr };
-  }
   function v3(lat, lon) { var cl = Math.cos(lat * RAD); return [cl * Math.sin(lon * RAD), Math.sin(lat * RAD), cl * Math.cos(lon * RAD)]; }
   function slerp(a, b, t) {
     var om = Math.acos(clamp(dot(a, b), -1, 1)), so = Math.sin(om); if (so < 1e-6) return a;
@@ -79,31 +65,27 @@
         for (var k = 0; k < m; k++, n++) if ((bin.charCodeAt(n >> 3) >> (n & 7)) & 1) dots.push(v3(lat, -180 + (k + 0.5) * (360 / m)));
       }
     }
-    var home = { lon: 16, lat: 27 }, off = { lon: 0, lat: 0 }, drag = null, touched = -1e9, suppress = false, active = 0, swapAt = 0;
+    var home = { lon: 16, lat: 27 }, off = { lon: 0, lat: 0 }, drag = null, touched = -1e9, suppress = false, active = 0, swapAt = 0, n2 = 0;
     var now_ = $("#mCity") ? $("#mCity").parentNode : null;
     function sunUpdate() {
-      var d = now(), e = A.sunEquatorial(d), lon = (e.ra - A.lstHours(d, 0)) * 15; lon = ((lon % 360) + 540) % 360 - 180;
+      var d = I.now(), e = A.sunEquatorial(d), lon = (e.ra - A.lstHours(d, 0)) * 15; lon = ((lon % 360) + 540) % 360 - 180;
       sunV = v3(e.dec, lon); cls = new Uint8Array(dots.length);
       for (var i = 0; i < dots.length; i++) { var s = dot(dots[i], sunV); cls[i] = s > 0.12 ? 2 : s > -0.1 ? 1 : 0; }
     }
-    function size() { var f = fit(cv); if (f) { W = f.W; H = f.H; dpr = f.dpr; } }
+    function size() { var f = I.fit(cv); if (f) { W = f.W; H = f.H; dpr = f.dpr; } }
+    /* sotto il globo: la città di turno, la sua ora, la parte del giorno */
     function readout(fade) {
       if (!now_) return;
-      var c = cs[active], li = $('#cities li[data-city="' + c.id + '"]');
-      function put() {
-        $("#mCity").textContent = c.name;
-        $("#mTime").textContent = li ? $(".city__time", li).textContent : "";
-        $("#mPart").textContent = li ? $(".city__part", li).textContent : "";
-        now_.classList.remove("is-out");
-      }
-      if (fade && !still()) { now_.classList.add("is-out"); setTimeout(put, 270); } else put();
+      var c = I.city(cs[active].id);
+      function put() { $("#mCity").textContent = c.name; $("#mTime").textContent = c.time; $("#mPart").textContent = c.label; now_.classList.remove("is-out"); }
+      if (fade && !I.still()) { now_.classList.add("is-out"); setTimeout(put, 270); } else put();
     }
     function bucket(arr, fill) { if (!arr.length) return; ctx.fillStyle = fill; ctx.beginPath(); for (var i = 0; i < arr.length; i += 3) { var s = arr[i + 2]; ctx.rect(arr[i] - s / 2, arr[i + 1] - s / 2, s, s); } ctx.fill(); }
     function draw(t) {
       if (!W) return;
       if (!cls) sunUpdate();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-      var rad = Math.min(W, H) * 0.385, cx = W / 2, cy = H * 0.515, live = !still();
+      var rad = Math.min(W, H) * 0.385, cx = W / 2, cy = H * 0.515, live = !I.still();
       if (!drag && t - touched > 3200) { off.lon *= 0.94; off.lat *= 0.94; }
       if (live && t - swapAt > 3200) { swapAt = t; active = (active + 1) % cs.length; readout(true); }
       var lon0 = home.lon + off.lon + (live ? 8 * Math.sin(t / 5200) : 0), lat0 = clamp(home.lat + off.lat + (live ? 2.5 * Math.sin(t / 7400) : 0), -70, 70);
@@ -156,36 +138,17 @@
         if (!drag || e.pointerId !== drag.id) return;
         var dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!drag.moved && Math.abs(dx) < 7 && Math.abs(dy) < 7) return;
         drag.moved = true; off.lon = drag.lon - dx * 0.42; if (e.pointerType === "mouse") off.lat = clamp(drag.lat + dy * 0.3, -50, 50); touched = performance.now();
+        if (I.still()) draw(touched);              /* senza movimento il globo non gira da solo, ma il dito lo gira lo stesso */
       });
       var end = function () { if (!drag) return; if (drag.moved) { suppress = true; setTimeout(function () { suppress = false; }, 380); } drag = null; };
       window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
       hit.addEventListener("click", function (e) { if (suppress) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
     }
-    return { size: size, draw: draw, sun: sunUpdate, readout: readout, every: 2 };
+    /* il globo si ridisegna un fotogramma sì e uno no: basta, e costa la metà */
+    return { size: size, draw: function (t) { if ((n2++ & 1) === 0) draw(t); }, still: draw, sun: sunUpdate, readout: readout };
   }
 
-  /* ------------------------------------------------------------------ la bandiera della Palestina, che sventola */
-  function Bandiera(cv) {
-    var ctx = cv.getContext("2d"), W = 0, H = 0, dpr = 1;
-    function size() { var f = fit(cv); if (f) { W = f.W; H = f.H; dpr = f.dpr; } }
-    function draw(t) {
-      if (!W) return;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = "#0b0d10"; ctx.fillRect(0, 0, W, H);
-      var FH = H * 1.18, L = Math.max(W * 1.06, FH * 2), x0 = -(L - W) * 0.2, top = (H - FH) / 2, ph = still() ? 1.2 : t * 0.0030, b = FH / 3;
-      for (var x = 0; x < W; x += 2) {
-        var u = (x - x0) / L, k = u * 10.5 - ph, amp = FH * 0.026 * (0.3 + u * 1.7);
-        var y = top + Math.sin(k) * amp + Math.sin(k * 0.47 + 1.3) * amp * 0.5, sl = Math.cos(k);
-        ctx.fillStyle = "#000000"; ctx.fillRect(x, y, 2, b + 0.5);
-        ctx.fillStyle = "#ffffff"; ctx.fillRect(x, y + b, 2, b + 0.5);
-        ctx.fillStyle = "#009736"; ctx.fillRect(x, y + 2 * b, 2, b);
-        if (u < 1 / 3) { var hh = (1 - u * 3) * FH / 2; ctx.fillStyle = "#ee2a35"; ctx.fillRect(x, y + FH / 2 - hh, 2, hh * 2); }
-        ctx.fillStyle = sl > 0 ? "rgba(255,255,255," + (0.11 * sl).toFixed(3) + ")" : "rgba(0,0,0," + (-0.24 * sl).toFixed(3) + ")"; ctx.fillRect(x, y, 2, FH);
-      }
-    }
-    return { size: size, draw: draw, every: 2 };
-  }
-
-  /* ------------------------------------------------------------------ il cubo di Imad: si mescola, si ferma, si risolve */
+  /* ------------------------------------------------------------------ il cubo di Imad (colori Kukko): si mescola, si ferma, si risolve */
   function Cubo(cv) {
     var ctx = cv.getContext("2d"), W = 0, H = 0, dpr = 1;
     var C = D.cube || {}, COL = [C.R || "#77dd77", C.L || "#ff6961", C.U || "#ffb6c1", C.D || "#fdfd96", C.F || "#ffb347", C.B || "#aec6cf"], PL = C.plastic || "#f4f3ef";
@@ -204,10 +167,10 @@
       for (i = seq.length - 1; i >= 0; i--) todo.push({ a: seq[i].a, l: seq[i].l, s: -seq[i].s, gap: i ? 150 : 2600 });
     }
     var DUR = 400, tPrev = 0;
-    function size() { var f = fit(cv); if (f) { W = f.W; H = f.H; dpr = f.dpr; } }
+    function size() { var f = I.fit(cv); if (f) { W = f.W; H = f.H; dpr = f.dpr; } }
     function draw(t) {
       if (!W) return;
-      var live = !still();
+      var live = !I.still();
       if (live) {
         var dt = Math.min(64, t - tPrev); tPrev = t;
         if (cur) { if (t - cur.t0 >= DUR) { apply(cur); wait = cur.gap; cur = null; } }
@@ -241,35 +204,27 @@
         if (q.S) { var c = mix(q.col, q.k); ctx.fillStyle = c; ctx.strokeStyle = c; ctx.lineWidth = s * 0.075; path(q.S); ctx.fill(); ctx.stroke(); }
       });
     }
-    return { size: size, draw: draw, every: 1 };
+    return { size: size, draw: draw, still: draw };
   }
 
-  /* ------------------------------------------------------------------ avvio: ogni tela si disegna solo se si vede */
+  /* ------------------------------------------------------------------ avvio: ogni tela si disegna solo se si vede (il giro è IMAD.loop) */
   var mods = [];
-  function add(id, make, hit) { var cv = doc.getElementById(id); if (!cv || !cv.getContext) return null; var m = make(cv, hit); m.cv = cv; m.vis = true; m.size(); mods.push(m); return m; }
-  var globo = add("globo", Globo, $(".mondo .tile__hit"));
-  add("bandiera", Bandiera);
+  function add(id, make, hit) {
+    var cv = doc.getElementById(id); if (!cv || !cv.getContext) return null;
+    var m = make(cv, hit); m.cv = cv; m.size(); mods.push(m);
+    I.loop(cv, function (t) { m.draw(t); });
+    return m;
+  }
+  var globo = add("globo", Globo, $(".citta .tile__hit"));
   add("cuboCv", Cubo);
-  if ("IntersectionObserver" in window) {
-    var io = new IntersectionObserver(function (es) { es.forEach(function (e) { mods.forEach(function (m) { if (m.cv === e.target) m.vis = e.isIntersecting; }); }); }, { rootMargin: "80px" });
-    mods.forEach(function (m) { io.observe(m.cv); });
-  }
-  function drawAll(t) { mods.forEach(function (m) { m.draw(t); }); }
+  function stillAll() { var t = performance.now(); mods.forEach(function (m) { m.still(t); }); }
   function refresh() { luce(); if (globo) { globo.sun(); globo.readout(false); } }
-  var n = 0;
-  function loop(t) {
-    requestAnimationFrame(loop);
-    if (doc.hidden || root.classList.contains("is-sheet") || root.classList.contains("ni-on")) return;
-    n++;
-    mods.forEach(function (m, i) { if (m.vis && (m.every === 1 || (n + i) % m.every === 0)) m.draw(t); });
-  }
   var rz = 0;
-  window.addEventListener("resize", function () { clearTimeout(rz); rz = setTimeout(function () { mods.forEach(function (m) { m.size(); }); drawAll(performance.now()); }, 120); });
-  refresh(); drawAll(0);
-  /* le ore delle città le scrive app.js: quando sono pronte, e poi ogni mezzo minuto, si rilegge tutto */
-  setTimeout(function () { mods.forEach(function (m) { m.size(); }); refresh(); drawAll(still() ? 0 : performance.now()); }, 400);
-  if (!frozen) setInterval(refresh, 30000);
-  if (!still()) requestAnimationFrame(loop);
+  window.addEventListener("resize", function () { clearTimeout(rz); rz = setTimeout(function () { mods.forEach(function (m) { m.size(); }); stillAll(); }, 120); });
+  refresh(); stillAll();
+  /* quando i caratteri sono pronti le misure sono quelle vere; poi, ogni mezzo minuto, la luce e la notte sul globo */
+  I.whenFree(function () { mods.forEach(function (m) { m.size(); }); refresh(); stillAll(); });
+  if (!(new URLSearchParams(location.search).get("t"))) setInterval(refresh, 30000);
 
   /* ------------------------------------------------------------------ la riga dei saluti: il saluto viene battuto sotto imad.chat_, poi sale in cielo */
   var riga = doc.getElementById("riga"), pending = null, busy = false;
@@ -294,7 +249,7 @@
     (function type() { if (i < chars.length) { tx.textContent += chars[i++]; setTimeout(type, 75 + Math.random() * 60); } else setTimeout(rise, 950); })();
   }
   function kick() {
-    if (!riga || !pending || busy || still()) return;
+    if (!riga || !pending || busy || I.still()) return;
     if (root.classList.contains("is-sheet") || root.classList.contains("ni-on")) return;
     var g = pending; pending = null; setTimeout(function () { play(g); }, 420);
   }

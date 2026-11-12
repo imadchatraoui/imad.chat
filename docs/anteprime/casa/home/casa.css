@@ -1,0 +1,351 @@
+/* imad.chat — la casa nuova (anteprima): la disposizione e le parti nuove. Viene dopo style.css (il sistema del disegno).
+   La riga in alto è la mensola di Dot; sotto, l'hero e «Ciao, sono Imad.»; poi i nove riquadri, che il dock in basso
+   riordina (Tutto · Su di me · Progetti · Tools). Le mappe dei riquadri stanno qui, una per filtro e per misura di schermo:
+   le misure dei riquadri non cambiano mai con il filtro, cambia solo il posto (così le tele non si ridisegnano mentre viaggiano).
+   Safari non recente: niente :has(), niente inset, -webkit- per backdrop-filter e clip-path. */
+
+/* ------------------------------------------------------------------ la riga in alto e la mensola di Dot */
+:root { --mensola: 116px; }       /* dalla fine della zona sicura al bordo alto dell'hero: qui si apre la scatola di Dot */
+.home { position: relative; z-index: 1; padding-top: calc(env(safe-area-inset-top) + var(--mensola)); padding-bottom: calc(env(safe-area-inset-bottom) + 108px); }
+.is-shot .home { padding-bottom: calc(env(safe-area-inset-bottom) + 30px); }
+.bar {
+  position: absolute; z-index: 2; left: 0; right: 0; top: calc(env(safe-area-inset-top) + 6px);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 calc(var(--gutter) - 4px) 0 calc(var(--gutter) - 2px);
+}
+/* il logo a nove caratteri: una faccia del cubo, il punto al centro */
+.logo { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: var(--ink); }
+.l9 { display: grid; grid-template-columns: repeat(3, 8px); grid-auto-rows: 8px; gap: 3px; color: var(--ink); }
+.l9 i { display: block; border-radius: 2.4px; background: currentColor; opacity: .88; }
+.l9 i:nth-child(2n) { opacity: .6; }
+.l9 .s { border-radius: 50%; background: var(--gold-ink, #d9a441); opacity: 1; transform: scale(.8); box-shadow: 0 0 7px 1.5px rgba(232, 180, 88, .7); }
+
+/* ------------------------------------------------------------------ la testa: l'hero e «Ciao, sono Imad.» */
+.testa {
+  display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); gap: var(--gap); justify-content: center; padding: 0 var(--gutter);
+  grid-template-rows: calc(var(--cell) * 2.06) auto;
+  grid-template-areas: "hero hero hero hero" "ciao ciao ciao ciao";
+}
+.hero { grid-area: hero; }
+.ciao { grid-area: ciao; align-self: center; padding: 24px 4px 16px 6px; }
+.ciao__t { font: 800 clamp(30px, calc(var(--cell) * .45), 46px)/1.02 var(--font-sans); letter-spacing: -.05em; margin-left: -.03em; text-wrap: balance; }
+/* la frase sua non c'è ancora: questa riga è nostra e lo dice */
+.ciao__p { margin-top: 10px; font: 500 16px/22px var(--font-sans); letter-spacing: -.012em; color: var(--ink-3); }
+.ciao__b { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 17px 0 16px; border-radius: 22px;
+  font: 600 15px/1 var(--font-sans); letter-spacing: -.012em; color: var(--ink); white-space: nowrap;
+  background: var(--btn-glass);
+  box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--ring), 0 8px 18px -12px rgb(var(--sh) / .5);
+  -webkit-backdrop-filter: saturate(1.6) blur(16px); backdrop-filter: saturate(1.6) blur(16px);
+  transition: transform var(--d-press) var(--ease-out);
+}
+.pill:active { transform: scale(.96); }
+.pill svg { flex: none; opacity: .72; }
+.pill--clay { color: #fff; background: linear-gradient(180deg, var(--clay-a) 0%, var(--clay-b) 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .34), inset 0 0 0 .5px rgba(255, 255, 255, .1), 0 10px 18px -10px rgba(150, 70, 44, .8); -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* ------------------------------------------------------------------ i nove riquadri: telefono, 4 colonne */
+.grid {
+  display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-auto-rows: var(--cell); gap: var(--gap);
+  justify-content: center; padding: 0 var(--gutter); margin-top: 6px;
+  grid-template-rows: calc(var(--cell) * 2.82);              /* la riga del Corano; le altre sono celle */
+  grid-template-areas:
+    "corano corano corano corano"
+    "citta citta citta citta" "citta citta citta citta" "citta citta citta citta" "citta citta citta citta"
+    "mondo mondo mondo mondo" "mondo mondo mondo mondo"
+    "sudime sudime progetti progetti" "sudime sudime progetti progetti"
+    "sudime sudime imparando imparando" "sudime sudime imparando imparando"
+    "tools tools tools tools" "tools tools tools tools" "tools tools tools tools"
+    "heatmap heatmap heatmap heatmap" "heatmap heatmap heatmap heatmap"
+    "saluti saluti saluti saluti" "saluti saluti saluti saluti";
+}
+.grid[data-filtro="sudime"] {
+  grid-template-areas:
+    "corano corano corano corano"
+    "sudime sudime imparando imparando" "sudime sudime imparando imparando"
+    "sudime sudime progetti progetti" "sudime sudime progetti progetti"
+    "heatmap heatmap heatmap heatmap" "heatmap heatmap heatmap heatmap"
+    "saluti saluti saluti saluti" "saluti saluti saluti saluti"
+    "citta citta citta citta" "citta citta citta citta" "citta citta citta citta" "citta citta citta citta"
+    "mondo mondo mondo mondo" "mondo mondo mondo mondo"
+    "tools tools tools tools" "tools tools tools tools" "tools tools tools tools";
+}
+.grid[data-filtro="progetti"] {
+  grid-template-areas:
+    "corano corano corano corano"
+    "progetti progetti sudime sudime" "progetti progetti sudime sudime"
+    "imparando imparando sudime sudime" "imparando imparando sudime sudime"
+    "heatmap heatmap heatmap heatmap" "heatmap heatmap heatmap heatmap"
+    "citta citta citta citta" "citta citta citta citta" "citta citta citta citta" "citta citta citta citta"
+    "mondo mondo mondo mondo" "mondo mondo mondo mondo"
+    "tools tools tools tools" "tools tools tools tools" "tools tools tools tools"
+    "saluti saluti saluti saluti" "saluti saluti saluti saluti";
+}
+.grid[data-filtro="tools"] {
+  grid-template-areas:
+    "corano corano corano corano"
+    "tools tools tools tools" "tools tools tools tools" "tools tools tools tools"
+    "citta citta citta citta" "citta citta citta citta" "citta citta citta citta" "citta citta citta citta"
+    "mondo mondo mondo mondo" "mondo mondo mondo mondo"
+    "sudime sudime progetti progetti" "sudime sudime progetti progetti"
+    "sudime sudime imparando imparando" "sudime sudime imparando imparando"
+    "heatmap heatmap heatmap heatmap" "heatmap heatmap heatmap heatmap"
+    "saluti saluti saluti saluti" "saluti saluti saluti saluti";
+}
+.grid > [data-tile="corano"] { grid-area: corano; }
+.grid > [data-tile="citta"] { grid-area: citta; }
+.grid > [data-tile="mondo"] { grid-area: mondo; }
+.grid > [data-tile="sudime"] { grid-area: sudime; }
+.grid > [data-tile="progetti"] { grid-area: progetti; }
+.grid > [data-tile="imparando"] { grid-area: imparando; }
+.grid > [data-tile="tools"] { grid-area: tools; }
+.grid > [data-tile="heatmap"] { grid-area: heatmap; }
+.grid > [data-tile="saluti"] { grid-area: saluti; }
+
+/* un filtro scelto: i suoi riquadri davanti, gli altri si abbassano ma restano da toccare */
+.tile.is-dim { opacity: .38; }
+.grid.is-moving > .tile { will-change: transform; }
+
+/* ------------------------------------------------------------------ dentro i riquadri */
+/* una piccola freccia: questo riquadro apre una pagina (›) o un altro sito (↗); le pagine aperte qui sopra non ce l'hanno */
+.tile__go { position: absolute; z-index: 3; top: 16px; right: 16px; width: 18px; height: 18px; color: var(--t-ink-2); opacity: .8; pointer-events: none; }
+.win .tile__go { color: #fff; filter: drop-shadow(0 1px 6px rgba(4, 6, 18, .5)); }
+
+/* la luce: da dove sta il sole su Torino (i valori li scrive vivo.js ogni mezzo minuto) */
+:root { --sun-ang: 180deg; --sun-a: .05; --sun-rgb: 255 246 232; --shx: 0px; --shy: 12px; }
+.tile {
+  box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgb(var(--sh) / calc(var(--s1) * .35)),
+    var(--shx) var(--shy) 28px -12px rgb(var(--sh) / var(--s1)), calc(var(--shx) * 2.4) calc(var(--shy) * 2.6) 64px -36px rgb(var(--sh) / var(--s2));
+}
+@supports ((-webkit-mask-composite: xor) or (mask-composite: exclude)) {
+  .tile::after { background: linear-gradient(var(--sun-ang), var(--e1) 0%, var(--e2) 34%, var(--e3) 100%); }
+}
+.luce { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 1; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(var(--sun-ang), rgb(var(--sun-rgb) / var(--sun-a)) 0%, rgb(var(--sun-rgb) / 0) 50%); }
+
+/* finestre: il contenuto arriva fino al bordo (Le città, Su di me) */
+.win { --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .8); color: #fff; }
+.win__cv, .win__img { position: absolute; top: 0; left: 0; z-index: 0; display: block; width: 100%; height: 100%; }
+.win__img { object-fit: cover; animation: win-kb 36s ease-in-out infinite alternate; }
+@keyframes win-kb { from { transform: scale(1.03); } to { transform: scale(1.13) translate(-1.5%, -2%); } }
+.win__scrim { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 1; pointer-events: none; }
+.win .tile__hit { z-index: 2; }
+.win .tile__in { z-index: 3; }
+.win .label, .win .me__line { text-shadow: 0 1px 10px rgba(4, 6, 18, .5); }
+
+/* Le città: il globo a puntini, e sotto la città di turno con la sua ora */
+.citta .tile__in { padding: 16px 18px 15px; justify-content: space-between; }
+.citta .tile__hit { touch-action: pan-y; cursor: grab; }
+.citta .tile__hit:active { cursor: grabbing; }
+.citta__now { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-height: 24px; font: 600 15px/22px var(--font-sans); letter-spacing: -.012em; transition: opacity 260ms ease; }
+.citta__now.is-out { opacity: 0; }
+.citta__now b { font-weight: 700; font-size: 17px; letter-spacing: -.025em; }
+.citta__now time { font-weight: 700; font-size: 20px; letter-spacing: -.03em; }
+.citta__now i { margin-left: 9px; font-size: 13px; color: rgba(255, 255, 255, .74); }
+
+/* Nel mondo: fermo e sobrio; le parole sono sue */
+.mondo .tile__in { padding: 20px var(--p) 18px; }
+.mondo__t { font: 700 calc(var(--cell) * .4)/1 var(--font-sans); letter-spacing: -.045em; margin-left: -.02em; }
+.mondo__p { margin-top: 10px; font: 500 15px/21px var(--font-sans); letter-spacing: -.012em; color: var(--t-ink-2); }
+
+/* Su di me: una finestra su una foto (provvisoria) */
+.me .win__scrim { background: linear-gradient(180deg, rgba(6, 8, 20, .46) 0%, rgba(6, 8, 20, 0) 30%, rgba(6, 8, 20, .1) 46%, rgba(6, 8, 20, .82) 100%); }
+.me .tile__in { padding: 15px 17px 17px; }
+.me__name { margin-top: auto; font: 800 clamp(26px, calc(var(--cell) * .4), 34px)/1 var(--font-sans); letter-spacing: -.045em; text-shadow: 0 2px 18px rgba(4, 6, 18, .5); }
+.me__line { margin-top: 8px; font: 500 13.5px/1.44 var(--font-sans); letter-spacing: -.006em; color: rgba(255, 255, 255, .88); text-wrap: pretty; }
+
+/* Progetti: il cubo che si mescola e si risolve da solo */
+.progetti .tile__in { padding: 6px var(--ps) 15px; }
+.cubo__cv { flex: 1 1 0; min-height: 0; width: 100%; display: block; }
+
+/* i tre riquadri vivi: qui c'è solo il posto; il contenuto lo mettono vivi.css e vivi.js */
+.vivo { position: relative; flex: 1 1 auto; min-height: 0; margin-top: 10px; }
+.vivo--tocca { pointer-events: auto; }
+.vivo__riposo { font: 500 13px/18px var(--font-sans); letter-spacing: -.006em; color: var(--t-ink-2); }
+.imparando .tile__in { padding: var(--ps); }
+.tools .tile__in, .heatmap .tile__in { padding: 18px var(--p) 16px; }
+
+/* Saluti: le parole scorrono per tutta la larghezza; sotto, la tua stella se l'hai accesa */
+.saluti .title + .sub { margin-top: 3px; }
+.saluti__mine { display: flex; align-items: center; gap: 8px; margin-top: 12px; font: 600 13px/18px var(--font-sans); letter-spacing: -.006em; color: var(--t-ink-2); white-space: nowrap; }
+.saluti__mine b { color: var(--t-ink); }
+.saluti .stardot { background: var(--gold-ink); box-shadow: 0 0 0 2.5px rgba(232, 180, 88, .22), 0 0 8px 0 rgba(232, 180, 88, .55); }
+
+/* ------------------------------------------------------------------ la riga dei saluti, sotto imad.chat_ */
+.riga { display: flex; align-items: center; min-height: 18px; margin-top: 3px; font: 500 13px/18px var(--font-mono); letter-spacing: -.01em; color: rgba(255, 255, 255, .95); white-space: nowrap; text-shadow: 0 1px 10px rgba(6, 10, 44, .3); }
+.riga .rg-p { margin-right: .55em; opacity: .62; }
+.riga .rg-c { display: inline-block; width: .55em; height: 1.04em; margin-left: .14em; background: currentColor; opacity: .9; }
+.rg-fly { position: fixed; z-index: 60; left: 0; top: 0; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #fff6dc; box-shadow: 0 0 0 3px rgba(255, 226, 160, .28), 0 0 14px 3px rgba(255, 214, 140, .8); pointer-events: none; }
+
+/* ------------------------------------------------------------------ il dock: i quattro filtri, in basso al centro */
+.dock {
+  position: fixed; z-index: 50; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 12px); margin: 0 auto;
+  display: flex; width: -webkit-max-content; width: max-content; max-width: calc(100vw - 24px); padding: 4px; border-radius: 26px;
+  background: var(--bar-glass);
+  -webkit-backdrop-filter: saturate(1.8) blur(22px); backdrop-filter: saturate(1.8) blur(22px);
+  box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--hair), 0 16px 34px -14px rgb(var(--sh) / .45);
+  transition: opacity 320ms ease, transform 560ms var(--spring, cubic-bezier(.2, .9, .25, 1));
+}
+.dock__b { position: relative; z-index: 1; height: 44px; padding: 0 14px; border-radius: 22px; font: 600 14px/44px var(--font-sans); letter-spacing: -.012em; color: var(--ink-2); white-space: nowrap; transition: color 240ms ease; }
+.dock__b[aria-pressed="true"] { color: var(--ink); }
+.dock__b:focus-visible { outline-offset: -2px; }
+/* la pillola che scivola sotto il filtro scelto: dice dov'è, senza parole */
+.dock__pill { position: absolute; z-index: 0; top: 4px; left: 0; height: 44px; width: 60px; border-radius: 22px; background: #fff; box-shadow: 0 1px 2px rgb(var(--sh) / .12), 0 6px 14px -8px rgb(var(--sh) / .4);
+  transition: transform 460ms var(--spring, cubic-bezier(.2, .9, .25, 1)), width 460ms var(--spring, cubic-bezier(.2, .9, .25, 1)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dock__pill { background: rgba(255, 255, 255, .15); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12); } }
+:root[data-theme="dark"] .dock__pill { background: rgba(255, 255, 255, .15); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12); }
+.dock.is-still .dock__pill { transition: none; }
+.is-sheet .dock { opacity: 0; pointer-events: none; transform: translateY(18px); }
+.is-shot .dock { display: none; }
+
+/* ------------------------------------------------------------------ Dot: il suo strato sta sopra i riquadri e sotto le pagine aperte */
+.dot-clip { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 40; overflow: hidden; pointer-events: none;
+  -webkit-clip-path: inset(env(safe-area-inset-top) 0 0 0); clip-path: inset(env(safe-area-inset-top) 0 0 0); }   /* niente sotto la barra di stato */
+
+/* ------------------------------------------------------------------ l'intro: copre tutto finché non atterra sui nove riquadri */
+.ni-on .ciao, .ni-on .dock { opacity: 0; transition: none !important; }
+.ni-on .ciao { transform: translateY(14px); }
+.ni-on .dock { transform: translateY(28px); }
+/* quando l'hero comincia a comparire (casa.js lo vede), «Ciao» e il dock arrivano con i riquadri, un passo dopo */
+.ni-on.ni-ciao .ciao, .ni-on.ni-ciao .dock { opacity: 1; transform: none; }
+.ni-on.ni-ciao .ciao { transition: opacity 520ms ease 260ms, transform 720ms var(--spring, cubic-bezier(.2, .9, .25, 1)) 260ms !important; }
+.ni-on.ni-ciao .dock { transition: opacity 420ms ease 620ms, transform 640ms var(--spring, cubic-bezier(.2, .9, .25, 1)) 620ms !important; }
+.ciao { transition: opacity 520ms ease, transform 680ms var(--spring, cubic-bezier(.2, .9, .25, 1)); }   /* se l'intro finisce senza accendere l'hero */
+.is-shot.ni-done .hero__word .cur { animation: none; }
+
+/* ------------------------------------------------------------------ fondo pagina */
+.foot { display: flex; flex-direction: column; align-items: center; padding: 36px calc(var(--gutter) + 8px) 0; text-align: center; color: var(--ink-2); }
+.l9--big { grid-template-columns: repeat(3, 38px); grid-auto-rows: 38px; gap: 5px; margin-bottom: 20px; }
+.l9--big i, .l9--big i:nth-child(2n) { display: grid; place-items: center; border-radius: 11px; background: var(--fill); opacity: 1; box-shadow: inset 0 0 0 1px var(--hair); font: 800 18px/1 var(--font-sans); letter-spacing: -.03em; color: var(--ink); }
+.l9--big .s { position: relative; transform: none; border-radius: 11px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); }
+.l9--big .s::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--gold-ink, #d9a441); box-shadow: 0 0 8px 2px rgba(232, 180, 88, .62); }
+.foot__sky { display: inline-flex; align-items: flex-start; gap: 9px; text-align: left; max-width: 25em; font: 500 13px/19px var(--font-sans); letter-spacing: -.006em; text-wrap: pretty; }
+.foot__sky .skydot { margin-top: 3px; }
+.foot__cred { margin-top: 14px; max-width: 30em; font: 500 12px/18px var(--font-sans); letter-spacing: 0; color: var(--ink-3); text-wrap: pretty; }
+
+/* ------------------------------------------------------------------ tablet: 8 colonne; l'hero e «Ciao» uno accanto all'altro */
+@media (min-width: 700px) {
+  .testa { grid-template-rows: calc(var(--cell) * 2 + var(--gap)); grid-template-areas: "hero hero hero hero ciao ciao ciao ciao"; }
+  .ciao { padding: 0 0 4px 14px; }
+  .grid {
+    margin-top: var(--gap); grid-template-rows: none;
+    grid-template-areas:
+      "corano corano corano corano citta citta citta citta"
+      "corano corano corano corano citta citta citta citta"
+      "corano corano corano corano citta citta citta citta"
+      "mondo mondo mondo mondo citta citta citta citta"
+      "mondo mondo mondo mondo sudime sudime progetti progetti"
+      "tools tools tools tools sudime sudime progetti progetti"
+      "tools tools tools tools sudime sudime imparando imparando"
+      "tools tools tools tools sudime sudime imparando imparando"
+      "heatmap heatmap heatmap heatmap saluti saluti saluti saluti"
+      "heatmap heatmap heatmap heatmap saluti saluti saluti saluti";
+  }
+  .grid[data-filtro="sudime"] {
+    grid-template-areas:
+      "corano corano corano corano sudime sudime imparando imparando"
+      "corano corano corano corano sudime sudime imparando imparando"
+      "corano corano corano corano sudime sudime progetti progetti"
+      "heatmap heatmap heatmap heatmap sudime sudime progetti progetti"
+      "heatmap heatmap heatmap heatmap saluti saluti saluti saluti"
+      "tools tools tools tools saluti saluti saluti saluti"
+      "tools tools tools tools citta citta citta citta"
+      "tools tools tools tools citta citta citta citta"
+      "mondo mondo mondo mondo citta citta citta citta"
+      "mondo mondo mondo mondo citta citta citta citta";
+  }
+  .grid[data-filtro="progetti"] {
+    grid-template-areas:
+      "corano corano corano corano progetti progetti sudime sudime"
+      "corano corano corano corano progetti progetti sudime sudime"
+      "corano corano corano corano imparando imparando sudime sudime"
+      "heatmap heatmap heatmap heatmap imparando imparando sudime sudime"
+      "heatmap heatmap heatmap heatmap citta citta citta citta"
+      "tools tools tools tools citta citta citta citta"
+      "tools tools tools tools citta citta citta citta"
+      "tools tools tools tools citta citta citta citta"
+      "mondo mondo mondo mondo saluti saluti saluti saluti"
+      "mondo mondo mondo mondo saluti saluti saluti saluti";
+  }
+  .grid[data-filtro="tools"] {
+    grid-template-areas:
+      "corano corano corano corano citta citta citta citta"
+      "corano corano corano corano citta citta citta citta"
+      "corano corano corano corano citta citta citta citta"
+      "tools tools tools tools citta citta citta citta"
+      "tools tools tools tools mondo mondo mondo mondo"
+      "tools tools tools tools mondo mondo mondo mondo"
+      "sudime sudime progetti progetti heatmap heatmap heatmap heatmap"
+      "sudime sudime progetti progetti heatmap heatmap heatmap heatmap"
+      "sudime sudime imparando imparando saluti saluti saluti saluti"
+      "sudime sudime imparando imparando saluti saluti saluti saluti";
+  }
+  .bar { padding-left: calc(var(--gutter) - 2px); padding-right: calc(var(--gutter) - 4px); }
+  .mondo__t { font-size: calc(var(--cell) * .42); }
+}
+
+/* ------------------------------------------------------------------ computer: 12 colonne, tre pile di quattro */
+@media (min-width: 1100px) {
+  .home { max-width: 1140px; margin: 0 auto; }
+  .testa { grid-template-areas: "hero hero hero hero hero hero ciao ciao ciao ciao ciao ciao"; }
+  .ciao { padding-left: 26px; }
+  .ciao__t { font-size: 50px; }
+  .ciao__p { font-size: 17px; line-height: 24px; }
+  .grid {
+    grid-template-areas:
+      "corano corano corano corano citta citta citta citta sudime sudime progetti progetti"
+      "corano corano corano corano citta citta citta citta sudime sudime progetti progetti"
+      "corano corano corano corano citta citta citta citta sudime sudime imparando imparando"
+      "mondo mondo mondo mondo citta citta citta citta sudime sudime imparando imparando"
+      "mondo mondo mondo mondo tools tools tools tools sudime sudime imparando imparando"
+      "saluti saluti saluti saluti tools tools tools tools heatmap heatmap heatmap heatmap"
+      "saluti saluti saluti saluti tools tools tools tools heatmap heatmap heatmap heatmap";
+  }
+  .grid[data-filtro="sudime"] {
+    grid-template-areas:
+      "corano corano corano corano sudime sudime imparando imparando citta citta citta citta"
+      "corano corano corano corano sudime sudime imparando imparando citta citta citta citta"
+      "corano corano corano corano sudime sudime imparando imparando citta citta citta citta"
+      "saluti saluti saluti saluti sudime sudime progetti progetti citta citta citta citta"
+      "saluti saluti saluti saluti sudime sudime progetti progetti tools tools tools tools"
+      "mondo mondo mondo mondo heatmap heatmap heatmap heatmap tools tools tools tools"
+      "mondo mondo mondo mondo heatmap heatmap heatmap heatmap tools tools tools tools";
+  }
+  .grid[data-filtro="progetti"] {
+    grid-template-areas:
+      "corano corano corano corano progetti progetti sudime sudime citta citta citta citta"
+      "corano corano corano corano progetti progetti sudime sudime citta citta citta citta"
+      "corano corano corano corano imparando imparando sudime sudime citta citta citta citta"
+      "mondo mondo mondo mondo imparando imparando sudime sudime citta citta citta citta"
+      "mondo mondo mondo mondo imparando imparando sudime sudime tools tools tools tools"
+      "saluti saluti saluti saluti heatmap heatmap heatmap heatmap tools tools tools tools"
+      "saluti saluti saluti saluti heatmap heatmap heatmap heatmap tools tools tools tools";
+  }
+  .grid[data-filtro="tools"] {
+    grid-template-areas:
+      "corano corano corano corano tools tools tools tools sudime sudime progetti progetti"
+      "corano corano corano corano tools tools tools tools sudime sudime progetti progetti"
+      "corano corano corano corano tools tools tools tools sudime sudime imparando imparando"
+      "mondo mondo mondo mondo citta citta citta citta sudime sudime imparando imparando"
+      "mondo mondo mondo mondo citta citta citta citta sudime sudime imparando imparando"
+      "saluti saluti saluti saluti citta citta citta citta heatmap heatmap heatmap heatmap"
+      "saluti saluti saluti saluti citta citta citta citta heatmap heatmap heatmap heatmap";
+  }
+  .me__name { font-size: 28px; }
+  .mondo__t { font-size: 34px; }
+}
+
+/* ------------------------------------------------------------------ puntatore fine */
+@media (hover: hover) and (pointer: fine) {
+  .pill:hover { transform: translateY(-1px); }
+  .dock__b:hover { color: var(--ink); }
+  .logo:hover { opacity: .72; }
+  .tile.is-dim:hover { opacity: .7; }
+}
+
+/* ------------------------------------------------------------------ meno movimento, fotografie */
+@media (prefers-reduced-motion: reduce) {
+  .win__img { animation: none; }
+  .pill, .dock, .dock__b, .dock__pill, .ciao { transition: none; }
+}
+.is-shot .win__img { animation: none; }

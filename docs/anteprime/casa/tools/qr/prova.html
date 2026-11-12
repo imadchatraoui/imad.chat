@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Banco QR</title>
+<style>
+  :root {
+    --bg: #f4f2ee; --card: #ffffff; --ink: #1d1b16; --muted: #6d675c; --line: #e3ded4; --accent: #a8761c;
+    --ok: #2f7a3f; --warn: #a06a00; --bad: #b3261e;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111110; --card: #1c1b19; --ink: #f1ede4; --muted: #a39d90; --line: #2e2c28; --accent: #e0b25a;
+      --ok: #7cc68a; --warn: #f0b74a; --bad: #ff8a80; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-style: normal; }
+  header { padding: 20px 16px 8px; max-width: 1120px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; font-weight: 650; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  main { max-width: 1120px; margin: 0 auto; padding: 8px 16px 40px; display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 860px) { main { grid-template-columns: 360px 1fr; align-items: start; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 16px; }
+  fieldset { border: 0; margin: 0 0 12px; padding: 0; }
+  legend { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
+  label { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0; font-size: 14px; }
+  input[type=text], input[type=password], textarea, select {
+    font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px 10px; width: 62%; min-width: 0;
+  }
+  textarea { width: 100%; min-height: 64px; resize: vertical; }
+  input[type=range] { width: 62%; }
+  input[type=color] { width: 44px; height: 32px; border: 0; background: none; padding: 0; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+  button:active { transform: scale(0.97); }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .stage canvas { display: block; max-width: 100%; height: auto; border-radius: 12px; background-image: linear-gradient(45deg, rgba(128,128,128,.12) 25%, transparent 25%, transparent 75%, rgba(128,128,128,.12) 75%), linear-gradient(45deg, rgba(128,128,128,.12) 25%, transparent 25%, transparent 75%, rgba(128,128,128,.12) 75%); background-size: 16px 16px; background-position: 0 0, 8px 8px; }
+  .status { font-size: 14px; text-align: center; min-height: 3em; }
+  .status b { font-weight: 650; }
+  .ok { color: var(--ok); } .avviso { color: var(--warn); } .errore { color: var(--bad); }
+  .mono { font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); word-break: break-all; white-space: pre-wrap; max-height: 120px; overflow: auto; width: 100%; }
+  .sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 12px; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+  .cell canvas { border-radius: 10px; }
+  .hide { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Banco QR</h1>
+  <p>Prova a mano del motore <code>QRCore</code>. Non è per i visitatori: niente viene inviato, tutto si calcola qui.</p>
+</header>
+<main>
+  <section class="card" id="form">
+    <fieldset>
+      <legend>Contenuto</legend>
+      <label>Tipo
+        <select id="tipo">
+          <option value="url">Link</option><option value="text">Testo</option><option value="wifi">Wi-Fi</option>
+          <option value="vcard">Contatto</option><option value="email">E-mail</option><option value="tel">Telefono</option><option value="sms">SMS</option>
+        </select>
+      </label>
+      <div data-for="url"><label>Link <input type="text" id="url" value="imad.chat" autocomplete="off" autocapitalize="off" spellcheck="false"></label></div>
+      <div data-for="text" class="hide"><textarea id="text">Ciao da Torino.</textarea></div>
+      <div data-for="wifi" class="hide">
+        <label>Nome rete <input type="text" id="ssid" value="Casa"></label>
+        <label>Password <input type="text" id="pw" value=""></label>
+        <label>Sicurezza <select id="sec"><option>WPA</option><option>WEP</option><option value="nopass">nessuna</option></select></label>
+        <label>Nascosta <input type="checkbox" id="hidden"></label>
+      </div>
+      <div data-for="vcard" class="hide">
+        <label>Nome <input type="text" id="vname" value=""></label>
+        <label>Telefono <input type="text" id="vphone" value=""></label>
+        <label>E-mail <input type="text" id="vemail" value=""></label>
+        <label>Sito <input type="text" id="vurl" value=""></label>
+      </div>
+      <div data-for="email" class="hide">
+        <label>A <input type="text" id="eto" value=""></label>
+        <label>Oggetto <input type="text" id="esub" value=""></label>
+        <textarea id="ebody"></textarea>
+      </div>
+      <div data-for="tel" class="hide"><label>Numero <input type="text" id="tnum" value=""></label></div>
+      <div data-for="sms" class="hide">
+        <label>Numero <input type="text" id="snum" value=""></label>
+        <textarea id="sbody"></textarea>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Aspetto</legend>
+      <label>Correzione <select id="ecc"><option>L</option><option selected>M</option><option>Q</option><option>H</option></select></label>
+      <label>Moduli <select id="shape"><option>quadrati</option><option>punti</option><option>tondi</option><option>uniti</option></select></label>
+      <label>Occhi <select id="eye"><option>quadrato</option><option>tondo</option><option>goccia</option></select></label>
+      <label>Colore <span class="row"><input type="color" id="fg" value="#1d1b16"><input type="color" id="fg2" value="#a8761c"></span></label>
+      <label>Sfumatura <input type="checkbox" id="grad"></label>
+      <label>Angolo <input type="range" id="ang" min="0" max="360" value="45"></label>
+      <label>Fondo <input type="color" id="bg" value="#ffffff"></label>
+      <label>Fondo trasparente <input type="checkbox" id="transp"></label>
+      <label>Misura <input type="range" id="size" min="96" max="480" value="260"></label>
+      <label>Margine <input type="range" id="quiet" min="2" max="8" value="4"></label>
+      <label>Densità schermo <select id="dpr"><option value="">questo schermo</option><option>1</option><option>2</option><option>3</option></select></label>
+    </fieldset>
+    <fieldset>
+      <legend>Immagine al centro</legend>
+      <label>File <input type="file" id="logo" accept="image/*"></label>
+      <label>Grandezza <input type="range" id="lscale" min="12" max="30" value="22"></label>
+      <label>Bordo pulito <input type="range" id="lpad" min="0" max="3" value="1"></label>
+      <label>Angoli tondi <input type="checkbox" id="lround" checked></label>
+    </fieldset>
+    <fieldset>
+      <legend>Disegno</legend>
+      <label>Ordine <select id="order"><option>onda</option><option>righe</option><option>caso</option></select></label>
+      <div class="row"><button id="play" type="button">Ridisegna</button><button id="png" type="button">Salva PNG</button><button id="svgb" type="button">Salva SVG</button></div>
+    </fieldset>
+  </section>
+  <section class="card stage">
+    <canvas id="out" width="260" height="260"></canvas>
+    <div class="status" id="status" aria-live="polite"></div>
+    <div class="mono" id="payload"></div>
+    <div style="width:100%">
+      <p style="margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Campionario: tutte le forme a 132 px, lette di nuovo</p>
+      <div class="sheet" id="sheet"></div>
+    </div>
+  </section>
+</main>
+<script src="vendor/qrcode-generator.js"></script>
+<script src="vendor/jsQR.js"></script>
+<script src="qr-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var out = $('out'), status = $('status');
+  var logoImg = null, anim = 0, lastText = '', lastQr = null;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function payload() {
+    var P = QRCore.payload, t = $('tipo').value;
+    if (t === 'url') return P.url($('url').value);
+    if (t === 'text') return P.text($('text').value);
+    if (t === 'wifi') return P.wifi({ ssid: $('ssid').value, password: $('pw').value, security: $('sec').value, hidden: $('hidden').checked });
+    if (t === 'vcard') return P.vcard({ name: $('vname').value, phone: $('vphone').value, email: $('vemail').value, url: $('vurl').value });
+    if (t === 'email') return P.email({ to: $('eto').value, subject: $('esub').value, body: $('ebody').value });
+    if (t === 'tel') return P.tel($('tnum').value);
+    return P.sms({ to: $('snum').value, body: $('sbody').value });
+  }
+  function opts() {
+    var o = {
+      size: +$('size').value, quiet: +$('quiet').value, shape: $('shape').value, eye: $('eye').value,
+      fg: $('grad').checked ? { from: $('fg').value, to: $('fg2').value, angle: +$('ang').value } : $('fg').value,
+      bg: $('transp').checked ? 'transparent' : $('bg').value, order: $('order').value
+    };
+    if ($('dpr').value) o.dpr = +$('dpr').value;
+    if (logoImg) o.logo = { image: logoImg, scale: $('lscale').value / 100, pad: +$('lpad').value, round: $('lround').checked };
+    return o;
+  }
+  function say(level, html) { status.className = 'status ' + level; status.innerHTML = html; }
+
+  function draw(animate) {
+    cancelAnimationFrame(anim);
+    var text = payload();
+    $('payload').textContent = text;
+    var qr;
+    try { qr = QRCore.encode(text, { ecc: $('ecc').value }); }
+    catch (e) { say('errore', e.message); var c = out.getContext('2d'); c.clearRect(0, 0, out.width, out.height); return; }
+    lastQr = qr; lastText = text;
+    var o = opts();
+    var finish = function () {
+      var t0 = performance.now();
+      var v = QRCore.verify(out, text);
+      var ms = Math.round(performance.now() - t0);
+      var sc = QRCore.scannable(o, qr);
+      var d = sc.details;
+      var bits = 'versione ' + qr.version + ', ' + qr.n + '×' + qr.n + ' moduli, ' + d.moduleCss + ' px CSS per modulo, contrasto ' + d.contrast +
+        (d.logoLoad !== undefined ? ', immagine: ' + Math.round(d.logoLoad * 100) + '% della correzione' : '');
+      if (!v.ok) say('errore', '<b>Non si legge</b> (verifica in ' + ms + ' ms). ' + (sc.why || '') + '<br>' + bits);
+      else if (sc.level === 'errore') say('errore', '<b>Si legge qui, ma</b> ' + sc.why + '<br>' + bits);
+      else if (sc.level === 'avviso') say('avviso', '<b>Si legge</b>' + (v.inverted ? ' (invertito)' : '') + '. ' + sc.why + '<br>' + bits);
+      else say('ok', '<b>Si legge</b> (verifica in ' + ms + ' ms, scala ' + v.scale + ').<br>' + bits);
+    };
+    if (!animate || reduce) { QRCore.render(out, qr, o); finish(); return; }
+    var start = performance.now(), dur = 700;
+    var step = function (now) {
+      var p = Math.min(1, (now - start) / dur);
+      QRCore.render(out, qr, Object.assign({}, o, { progress: p }));
+      if (p < 1) anim = requestAnimationFrame(step); else finish();
+    };
+    anim = requestAnimationFrame(step);
+  }
+
+  function sheet() {
+    var box = $('sheet');
+    box.innerHTML = '';
+    var text = lastText || 'https://imad.chat';
+    var qr;
+    try { qr = QRCore.encode(text, { ecc: 'M' }); } catch (e) { return; }
+    ['quadrati', 'punti', 'tondi', 'uniti'].forEach(function (shape) {
+      ['quadrato', 'tondo', 'goccia'].forEach(function (eye) {
+        var cell = document.createElement('div'); cell.className = 'cell';
+        var cv = document.createElement('canvas');
+        var o = { size: 132, shape: shape, eye: eye, fg: '#1d1b16', bg: '#ffffff' };
+        QRCore.render(cv, qr, o);
+        var v = QRCore.verify(cv, text), sc = QRCore.scannable(o, qr);
+        var lab = document.createElement('span');
+        lab.textContent = shape + ' · ' + eye + ' · ' + (v.ok ? (sc.level === 'errore' ? 'si legge, regola: no' : 'si legge') : 'NON si legge');
+        lab.className = v.ok && sc.level !== 'errore' ? 'ok' : 'errore';
+        cell.appendChild(cv); cell.appendChild(lab); box.appendChild(cell);
+      });
+    });
+  }
+
+  function save(blob, name) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  }
+
+  $('tipo').addEventListener('change', function () {
+    var t = this.value;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-for]'), function (el) { el.classList.toggle('hide', el.getAttribute('data-for') !== t); });
+    draw(true);
+  });
+  $('logo').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) { logoImg = null; draw(true); return; }
+    var img = new Image();
+    var r = new FileReader();
+    r.onload = function () { img.onload = function () { logoImg = img; $('ecc').value = QRCore.suggestEcc(true); draw(true); }; img.src = r.result; };
+    r.readAsDataURL(f);
+  });
+  var timer = 0;
+  Array.prototype.forEach.call(document.querySelectorAll('#form input, #form select, #form textarea'), function (el) {
+    if (el.id === 'logo' || el.id === 'tipo') return;
+    el.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(function () { draw(el.type !== 'range' && el.type !== 'color'); sheet(); }, 120); });
+  });
+  $('play').addEventListener('click', function () { draw(true); });
+  $('png').addEventListener('click', function () {
+    if (!lastQr) return;
+    var cv = document.createElement('canvas');
+    QRCore.render(cv, lastQr, Object.assign({}, opts(), { size: 1024, dpr: 1, style: false }));
+    if (!QRCore.verify(cv, lastText).ok) { say('errore', '<b>Non salvo</b>: a 1024 px il codice non si legge.'); return; }
+    cv.toBlob(function (b) { save(b, 'qr.png'); }, 'image/png');
+  });
+  $('svgb').addEventListener('click', function () {
+    if (!lastQr) return;
+    save(new Blob([QRCore.svg(lastQr, opts())], { type: 'image/svg+xml' }), 'qr.svg');
+  });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) cancelAnimationFrame(anim); });
+  draw(true);
+  sheet();
+})();
+</script>
+</body>
+</html>

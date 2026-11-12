@@ -52,41 +52,128 @@ for (const f of ["intro.css", "intro.js"]) fs.copyFileSync(path.join(intro, f), 
 for (const f of fs.readdirSync(path.join(intro, "media"))) fs.copyFileSync(path.join(intro, "media", f), path.join(out, "media", f));
 console.log("public/home pronta:", fs.readdirSync(out).join(", "), "| media:", fs.readdirSync(path.join(out, "media")).length, "immagini");
 
-// ------------------------------------------------------------------ l'anteprima della bento nuova: /anteprima (non indicizzata)
-// Stessa intro, ma atterra sui riquadri nuovi (docs/anteprime/bento). Qui l'intro si innesta a programma nella pagina.
+// ------------------------------------------------------------------ la casa nuova: /anteprima (non indicizzata)
+// Sorgente: docs/anteprime/casa/home (la casa) e ogni docs/anteprime/casa/<nome>/ con un index.html (le pagine interne, anche
+// annidate: casa/mondo/<luogo>/index.html). Le pagine si aprono così come sono da un server statico su docs/anteprime
+// (node docs/anteprime/casa/strumenti/servi.mjs), con indirizzi relativi; qui gli indirizzi diventano assoluti PER REGOLA e si copiano
+// i file a cui portano, così un file nuovo non chiede di cambiare la build. La regola, per ogni pagina HTML:
+//   - si leggono src, href, poster e ogni data-* che comincia con ./ o ../ ; gli indirizzi con uno schema (https:, data:, mailto:),
+//     quelli che cominciano con / # o ? restano come sono;
+//   - l'indirizzo si risolve rispetto al file sorgente e prende il posto della tabella POSTI qui sotto (il prefisso più lungo vince);
+//     un link a casa/<nome>/index.html diventa l'indirizzo della pagina (BASE/<nome>), anche se quella pagina non c'è ancora;
+//   - un indirizzo che finisce con / è una cartella: si copia tutta (es. media/); la cartella media/ di ogni pagina si copia sempre;
+//   - nei CSS copiati, url(...) e @import relativi seguono la stessa regola;
+//   - gli indirizzi scritti dentro gli script NON si toccano: mettili in un attributo (data-media="../x/") e leggili da lì;
+//   - <!-- solo anteprima --> ... <!-- /solo anteprima --> sparisce; con BASE "/" sparisce anche il noindex.
+// Si ferma con un errore se resta un indirizzo relativo, se un file non c'è, o se c'è un numero di esempio.
 {
-  const bento = path.join(root, "docs/anteprime/bento");
-  const dst = path.join(root, "public/anteprima");
-  const B = "/anteprima/";
-  let h = fs.readFileSync(path.join(bento, "index.html"), "utf8");
-  // lo script che decide, prima del primo disegno, se l'intro parte: è quello dell'anteprima dell'intro
-  const introPage = fs.readFileSync(path.join(intro, "index.html"), "utf8");
-  const pre = introPage.slice(introPage.indexOf("<script>"), introPage.indexOf("</script>") + "</script>".length);
-  const s0 = h.indexOf("<script>"), s1 = h.indexOf("</script>") + "</script>".length;
-  h = h.slice(0, s0) + pre + h.slice(s1);
-  h = swap(h, "<title>imad.chat — anteprima della bento</title>", "<title>imad.chat — anteprima</title>", "bento");
-  for (const f of ["style.css", "vivo.css"]) h = swap(h, `<link rel="stylesheet" href="${f}">`, `<link rel="stylesheet" href="${B}${f}">`, "bento");
-  h = swap(h, `<link rel="stylesheet" href="${B}vivo.css">`, `<link rel="stylesheet" href="${B}vivo.css">\n<link rel="stylesheet" href="${B}intro.css">`, "bento");
-  for (const f of ["data.js", "astro-lite.js", "app.js", "terra.js", "vivo.js"]) h = swap(h, `<script src="${f}"></script>`, `<script src="${B}${f}"></script>`, "bento");
-  h = swap(h, `<script src="${B}vivo.js"></script>`, `<script src="${B}vivo.js"></script>\n<script>window.__niMedia = "${B}media/";</script>\n<script src="${B}intro.js"></script>`, "bento");
-  h = swap(h, 'src="media/torino.jpg"', `src="${B}media/torino.jpg"`, "bento");
-  h = swap(h, "<!-- barra dell'anteprima: non fa parte del design -->", '<!-- la nuova apertura: una tela sopra la pagina -->\n<canvas class="ni" id="ni" aria-hidden="true"></canvas>\n\n<!-- barra della vecchia anteprima: resta nel codice, è nascosta -->', "bento");
-  h = swap(h, '<span><b class="js-count num">128</b> saluti nel cielo</span>', '<span><b class="js-count num"></b></span>', "bento");
-  if (/128/.test(h)) throw new Error("bento: c'è ancora un numero di saluti di esempio");
-  let a2 = fs.readFileSync(path.join(bento, "app.js"), "utf8");
-  a2 = swap(a2, "function wordStars() {", 'function wordStars() { return ""; }\n  function wordStarsEsempio() {', "bento app.js");
-  a2 = swap(a2, "Il tuo saluto resta su questo telefono, in questa anteprima.", "Il tuo saluto resta su questo telefono, per ora.", "bento app.js");
-  a2 = swap(a2, "Scegli un saluto: la tua stella si accende tra le altre.", "Scegli un saluto: la tua stella si accende nel cielo.", "bento app.js");
-  let d2 = swap(fs.readFileSync(path.join(bento, "data.js"), "utf8"), '"sampleStars": 128', '"sampleStars": 0', "bento data.js");
-  fs.rmSync(dst, { recursive: true, force: true });
-  fs.mkdirSync(path.join(dst, "media"), { recursive: true });
-  fs.writeFileSync(path.join(dst, "index.html"), h);
-  fs.writeFileSync(path.join(dst, "app.js"), a2);
-  fs.writeFileSync(path.join(dst, "data.js"), d2);
-  for (const f of ["style.css", "vivo.css", "vivo.js", "terra.js", "astro-lite.js"]) fs.copyFileSync(path.join(bento, f), path.join(dst, f));
-  for (const f of ["intro.css", "intro.js"]) fs.copyFileSync(path.join(intro, f), path.join(dst, f));
-  for (const dir of [path.join(intro, "media"), path.join(bento, "media")]) for (const f of fs.readdirSync(dir)) fs.copyFileSync(path.join(dir, f), path.join(dst, "media", f));
-  console.log("public/anteprima pronta:", fs.readdirSync(dst).join(", "));
+  const BASE = "/anteprima";     // l'indirizzo della casa e il prefisso delle pagine; "/" il giorno che sostituisce la home
+  const DIR = "anteprima";       // la cartella in public/: i file si servono da /anteprima/... anche quando BASE sarà "/"
+  const A = path.join(root, "docs/anteprime");
+  const PUB = path.join(root, "public", DIR);
+  const POSTI = [                // sorgente (dentro docs/anteprime) → posto (dentro /DIR/)
+    ["casa/home/", ""],
+    ["casa/comune/", "comune/"],
+    ["casa/tools/qr/", "qr/"],    // il motore QR (e le sue librerie in vendor/)
+    ["intro/", "intro/"],
+    ["gatto/", "dot/"],           // Dot: rig, aspetto, scena, suoni, fx, cervello, media/
+    ["shared/", "dati/"],         // data.js, astro-lite.js
+  ].sort((x, y) => y[0].length - x[0].length);
+  const posix = (p) => p.split(path.sep).join("/");
+  const pageUrl = (rel) => { const sub = rel.replace(/^casa\//, "").replace(/(^|\/)index\.html$/, "").replace(/\/$/, ""); return sub === "home" ? BASE : (BASE === "/" ? "" : BASE) + "/" + sub; };
+  // le pagine: casa/home e ogni casa/<nome>/.../index.html (mai gli strumenti, le librerie, le cartelle media)
+  const pages = [];
+  (function walk(dir, depth) {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.isDirectory()) { if (depth < 3 && !["strumenti", "vendor", "media", "comune"].includes(e.name)) walk(path.join(dir, e.name), depth + 1); continue; }
+      if (e.name === "index.html") pages.push(path.join(dir, e.name));
+    }
+  })(path.join(A, "casa"), 0);
+  if (!pages.some((f) => posix(path.relative(A, f)) === "casa/home/index.html")) throw new Error("casa: manca docs/anteprime/casa/home/index.html");
+  const copies = new Map();      // destinazione → sorgente
+  const warns = [];
+  function place(abs, isDir) {
+    let rel = posix(path.relative(A, abs)); if (isDir && !rel.endsWith("/")) rel += "/";
+    if (rel.startsWith("../") || path.isAbsolute(rel)) throw new Error(`casa: un indirizzo porta fuori da docs/anteprime: ${abs}`);
+    if (/^casa\/strumenti\//.test(rel)) throw new Error(`casa: gli strumenti non vanno online: ${rel}`);
+    const hit = POSTI.find(([pre]) => rel.startsWith(pre));
+    let sub;
+    if (hit) sub = hit[1] + rel.slice(hit[0].length);
+    else if (/^casa\/[^/]+\//.test(rel)) sub = rel.slice("casa/".length);
+    else throw new Error(`casa: «${rel}» non ha un posto online (aggiungilo a POSTI in scripts/home/build.mjs)`);
+    return { url: "/" + DIR + "/" + sub, out: path.join(PUB, sub) };
+  }
+  function want(src, out) {
+    if (!fs.existsSync(src)) throw new Error(`casa: il file non c'è: ${posix(path.relative(root, src))}`);
+    const was = copies.get(out); if (was && was !== src) throw new Error(`casa: due file nello stesso posto: ${posix(path.relative(root, out))}`);
+    copies.set(out, src);
+  }
+  function wantDir(src, out) {
+    if (!fs.existsSync(src) || !fs.statSync(src).isDirectory()) throw new Error(`casa: la cartella non c'è: ${posix(path.relative(root, src))}`);
+    for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+      if (e.name.startsWith(".")) continue;
+      if (e.isDirectory()) wantDir(path.join(src, e.name), path.join(out, e.name)); else want(path.join(src, e.name), path.join(out, e.name));
+    }
+  }
+  const isRel = (v) => v !== "" && !/^(?:[a-z][a-z0-9+.-]*:|\/|#|\?)/i.test(v);
+  function rewrite(v, fromFile, asLink) {
+    const m = v.match(/^([^?#]*)([?#].*)?$/), p = m[1], tail = m[2] || "";
+    const abs = path.resolve(path.dirname(fromFile), p), rel = posix(path.relative(A, abs));
+    if (asLink && /^casa\/(?:[^/]+\/)*index\.html$/.test(rel) || asLink && /^casa\/[^.]+\/?$/.test(rel) && !fs.existsSync(abs)) {
+      if (!fs.existsSync(abs)) warns.push(`${posix(path.relative(A, fromFile))}: porta a ${rel}, che non c'è ancora (online: ${pageUrl(rel)})`);
+      return pageUrl(rel) + tail;
+    }
+    const dir = p.endsWith("/"), pl = place(abs, dir);
+    if (dir) wantDir(abs, pl.out); else want(abs, pl.out);
+    return pl.url + (dir && !pl.url.endsWith("/") ? "/" : "") + tail;
+  }
+  // le pagine
+  const built = [];
+  for (const file of pages) {
+    const rel = posix(path.relative(A, file));
+    let h = fs.readFileSync(file, "utf8");
+    h = h.replace(/<!-- solo anteprima -->[\s\S]*?<!-- \/solo anteprima -->\n?/g, "");
+    if (BASE === "/") h = h.replace(/<meta name="robots" content="noindex[^"]*">\n?/, "");
+    else if (!/<meta name="robots" content="noindex/.test(h)) throw new Error(`casa: ${rel}: manca <meta name="robots" content="noindex"> (le anteprime non si indicizzano)`);
+    h = h.replace(/(\s)(src|href|poster|data-[a-z0-9-]+)="([^"]*)"/g, (all, sp, attr, v) => {
+      if (attr.startsWith("data-") && !/^\.\.?\//.test(v)) return all;
+      if (!isRel(v)) return all;
+      return `${sp}${attr}="${rewrite(v, file, attr === "href")}"`;
+    });
+    const left = h.match(/\s(?:src|href|poster|srcset)="(?![a-z][a-z0-9+.-]*:|\/|#|\?)[^"]+"/gi);
+    if (left) throw new Error(`casa: ${rel}: indirizzi ancora relativi: ${left.join(" ")}`);
+    const sample = h.replace(/<!--[\s\S]*?-->/g, "").match(/\b\d+\s+(?:saluti|contributi|commit|progetti|stelle|visite)\b/i);
+    if (sample) throw new Error(`casa: ${rel}: un numero di esempio nella pagina: «${sample[0]}»`);
+    const sub = rel.replace(/^casa\//, "").replace(/^home\//, "");
+    const media = path.join(path.dirname(file), "media");
+    if (fs.existsSync(media)) wantDir(media, path.join(PUB, path.dirname(sub), "media"));
+    built.push({ out: path.join(PUB, sub), html: h, rel });
+  }
+  // i CSS: url(...) e @import relativi, per la stessa regola
+  const cssOut = new Map();
+  for (const [out, src] of copies) {
+    if (!out.endsWith(".css")) continue;
+    let c = fs.readFileSync(src, "utf8");
+    c = c.replace(/url\(\s*(["']?)([^"')]+)\1\s*\)/g, (all, q, v) => (isRel(v) && !v.startsWith("data:") ? `url(${q}${rewrite(v, src, false)}${q})` : all));
+    c = c.replace(/@import\s+(["'])([^"']+)\1/g, (all, q, v) => (isRel(v) ? `@import ${q}${rewrite(v, src, false)}${q}` : all));
+    cssOut.set(out, c);
+  }
+  // si scrive: tutto da capo
+  fs.rmSync(PUB, { recursive: true, force: true });
+  for (const [out, src] of copies) {
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    if (cssOut.has(out)) { fs.writeFileSync(out, cssOut.get(out)); continue; }
+    if (posix(path.relative(A, src)) === "shared/data.js") {
+      // i dati delle anteprime hanno un numero di stelle di esempio: online non c'è
+      const d = fs.readFileSync(src, "utf8").replace(/"sampleStars":\s*\d+/, '"sampleStars": 0');
+      fs.writeFileSync(out, d); continue;
+    }
+    fs.copyFileSync(src, out);
+  }
+  for (const b2 of built) { fs.mkdirSync(path.dirname(b2.out), { recursive: true }); fs.writeFileSync(b2.out, b2.html); }
+  for (const [out] of copies) if (out.endsWith(".js") && /"sampleStars":\s*[1-9]/.test(fs.readFileSync(out, "utf8"))) throw new Error(`casa: ${posix(path.relative(root, out))}: c'è ancora un numero di stelle di esempio`);
+  for (const w of warns) console.log("  avviso:", w);
+  console.log(`public/${DIR} pronta (${BASE}):`, built.map((b2) => pageUrl(b2.rel)).join(", "), `| ${copies.size} file`);
 }
 
 // ------------------------------------------------------------------ l'anteprima di Dot, il gatto: /gatto (non indicizzata)

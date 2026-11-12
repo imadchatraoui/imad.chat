@@ -43,7 +43,7 @@ Touch:
 - **Tap**: never the same reaction twice in a row. It meows (mouth opens, a tiny "miao", a sound); or the **fez falls off**: it pops up, lands beside the cat, rolls a little, Dot looks at it, walks over and puts it back on; or a happy hop; or a purr with closed eyes (P1).
 - **Tap while asleep**: it wakes **annoyed** (ears flat, half-lidded glare, tail thumping), gets up, turns its back, walks away to another tile and sits facing away for a while; later it looks back and forgives (P1).
 - **Many taps in a row**: fed up, it walks off and hides in its box; two green eyes in the dark (P2).
-- **Finger held still on it**: petting; it leans in, purrs, slow-blinks; after a few seconds it rolls belly up (P2).
+- **Finger held still on it**: petting; it leans in, purrs, slow-blinks; after about 3.4 s it **melts flat** under the finger (body spread, chin on the ground, eyes two happy arcs, slow breath, the tail tip flicking slowly, the fez stays on); when the finger leaves it gets up with a stretch. (The old "rolls belly up" read as a dark blob in all three looks and was dropped on 2026-11-12.)
 - **Drag**: picked up by the scruff it becomes a **long cat** (the body stretches), legs limp, tail swinging, an unimpressed look. **Drop** on an edge: it lands and shakes; on a tile's face: it slides with claws; thrown: it flies, lands, tumbles (P1).
 - **A finger moving fast nearby**: crouch, rear wiggle, pounce (P2).
 - **Dragged into the box and the lid closed**: Dot stays inside until the box is tapped. This is the visitor's off switch (P2).
@@ -85,18 +85,81 @@ Plain scripts, no library, no build step. **ES2017 at most** (no optional chaini
 
 Files in `docs/anteprime/gatto/` (each has one owner while agents work in parallel):
 
-- `dot-rig.js` — the skeleton. `DOT.makeRig(preset)` gives a rig: poses (`DOT.POSES`), proportions (`DOT.PROPS`), a pseudo-3D pose (body yaw, pitch, roll; head yaw, pitch, roll) projected to 2D. `rig.step(dt)` smooths toward the target pose; `rig.frame()` returns the **frame**: plain 2D geometry in model units, origin at the ground point under the cat, x right, **y up**. The frame is the contract between movement and drawing: fields may be added, never renamed or removed.
+- `dot-rig.js` — the skeleton. `DOT.makeRig(preset)` gives a rig: poses (`DOT.POSES`), proportions (`DOT.PROPS`), a pseudo-3D pose (body yaw, pitch, roll; head yaw, pitch, roll) projected to 2D. `rig.step(dt)` smooths toward the target pose; `rig.frame()` returns the **frame**: plain 2D geometry in model units, origin at the ground point under the cat, x right, **y up**. The frame is the contract between movement and drawing: fields may be added, never renamed or removed. Two controls added on 2026-11-12: `rig.headMax` (how far, in radians, the head may turn away from the viewer; soft limit, `null` = none) and `rig.breathRate` (radians per second, default 1.9; changing it never jumps).
 - `look-*.js` — a look registers `DOT.looks[name] = { label, preset, draw(ctx, frame, env), drawFez(ctx, fez, env), drawProp(ctx, name, p, env) }` (`drawProp` draws Dot's objects: `tea`, `cube`, `yarn`, `star`, `laptop`; origin at the object's base, y up). `ctx` arrives already transformed to model units with y up. A look never moves anything: it only draws the frame. Its `preset` may override proportions and pose numbers.
 - `dot-brain.js` — behaviour: states, timing, physics, touch, bubbles, scratches, the loose fez, sounds. It talks to the rig by pose name, overrides and a few controls. It may register extra poses of its own; it does not edit the rig.
 - `dot-stage.js` — the nine keys and the box, Canvas 2D.
 - `dot-sound.js`, `media/` — sounds.
 - `index.html`, `gatto.css` — the preview page: mock tiles, look toggle, dark and light, "Rivedi".
 - `dot-fx.js` — the small things around Dot: the bubble, the scratches, the canvases of loose objects (fez, cube, yarn, star).
-- `tavola.html`, `prova.html`, `scena.html`, `strumenti/` — tools for checking, never online (see section 6).
+- `tavola.html`, `prova.html`, `scena.html`, `riordina.html`, `strumenti/` — tools for checking, never online (see section 6).
 
 Drawing surfaces: canvases **positioned absolutely in page coordinates** inside one layer above the tiles, so they scroll with the page natively (a fixed full-screen canvas lags behind iOS scrolling). One small canvas follows the cat; the box and keys have their own; the loose fez and the scratches get theirs when needed. All of them `pointer-events: none`; one small transparent button over the cat takes the touches (`touch-action: none` on it only). "Behind a tile" is done by clipping the cat at the tile's edge.
 
-Tiles tell Dot what they are with `data-dot`: `no` (never on it or over it: the Corano), `quiet` (stay away and still).
+Tiles tell Dot what they are with `data-dot`: `no` (never on it or over it: the Corano), `quiet` (stay away and still). Details in "How to mount Dot on a page" below.
+
+### How to mount Dot on a page
+
+**Markup.** The page needs the tiles (any elements matching one selector), a home tile for the box, and one empty clipping layer for Dot:
+
+```html
+<body style="position: relative">                      <!-- the clip layer below covers the whole page, not only the first screen -->
+  <div class="dot-clip" id="dotclip"></div>              <!-- position:absolute; top:0; right:0; bottom:0; left:0; overflow:hidden; pointer-events:none; z-index under every sheet -->
+  ... <div class="t" data-home>hero</div>
+      <div class="t" data-dot="no">Corano</div>
+      <div class="t" data-dot="quiet">Nel mondo</div>
+      <div class="t">...</div> ...
+</body>
+```
+
+Without the clipping parent the cat's canvas sticks out on the right near the screen edge and the phone widens the page (seen in the tests: `innerHeight` grew from 844 to 896). Write `top/right/bottom/left` next to any `inset` for older Safari.
+
+**`data-dot` on a tile:**
+- none: an ordinary tile. Dot sits, walks, sleeps, plays on its top edge, slides down its face, hangs from its bottom edge. Tiles smaller than 40 x 24 px and hidden tiles (`display: none`) are ignored; the corner radius is read once per full refresh so Dot keeps off the rounded corners.
+- `no` (the Corano): Dot never stands on it, covers it or plays over it. Its own top edge is never used, and the part of any edge less than 84 px under it (Dot's height with the fez) is cut away. Jumps, throws, the loose fez and the objects never cross it (checked on the true arc, whole body). Dropped in front of it, or with any part of it in front of it at the moment of release, Dot leaps away at once. Only while the visitor drags it can it pass over it.
+- `quiet` (the page about the world's conflicts): strict. Dot never chooses its edge nor an edge right under it (these are kept, but flagged); if it lands there (dropped, thrown, falling) it leaves at once with a quick jump: no shake, no bubble, no game, no sound; a tap there only hurries it away; dropped on its face it leaps away (no scratches, no hanging); no object, game, pounce, petting or bubble starts while any part of Dot is over it or within about 150 px; objects never rest on it. Jumping past in front of it is allowed. If no other edge is visible, Dot hides behind the edge and waits out of sight.
+- `data-home` (or `home:` in the options): the tile whose top edge holds the box (at 72% of its width if wider than 220 px, else in the middle). It must have headroom: no `no` tile right above it (if there is one, the opening is skipped).
+
+**Scripts, in this order** (plain scripts, no modules):
+
+```html
+<script>window.DOT = window.DOT || {}; window.DOT.mediaBase = "/gatto/media/";</script>   <!-- where the sounds are -->
+<script src="dot-rig.js"></script>
+<script src="look-base.js"></script>          <!-- the fallback look, always -->
+<script src="look-adesivo.js"></script>       <!-- and/or look-manifesto.js, look-pelo.js: only the looks the page offers -->
+<script src="dot-stage.js"></script>          <!-- the keys and the box (without it: no opening, no box) -->
+<script src="dot-sound.js"></script>          <!-- optional -->
+<script src="dot-fx.js"></script>
+<script src="dot-brain.js"></script>
+```
+
+The keys of the opening use Manrope 800 (the stage redraws its letters when the font arrives).
+
+**`DOT.start(options)`** (returns `DOT`; calling it again stops the previous Dot first):
+
+| option | what it is | default |
+| --- | --- | --- |
+| `tiles` | CSS selector of the tiles | `".t, [data-tile]"` |
+| `home` | the home tile (an element), or a page point `{ x, y }` on a top edge | the first ordinary tile wider than 150 px |
+| `look` | `"adesivo"`, `"manifesto"`, `"pelo"` (must be loaded) | `"base"` if missing |
+| `firstVisit` | `true`: the opening (keys, box, "salam, sono Dot."). `false`: no opening; from the very first painted frame the box stands closed in its place and Dot is already around: asleep on a visible edge (fez over one eye), loafing, or peeking from behind an edge, chosen at random | `true` |
+| `reducedMotion` | force reduced motion (it is also read from `prefers-reduced-motion`): never the opening, Dot sits still and only blinks | `false` |
+| `dark` | dark theme (whiskers, scratches, steam); change later with `DOT.setDark(bool)` | from `prefers-color-scheme` |
+| `parent` | the clipping layer above | `document.body` (avoid) |
+| `bottomInset` | pixels covered at the bottom of the screen (a dock, Safari's bar): a number, or a function read again at every world read. Edges there count as out of sight | `0` |
+| `topInset` | the same for a strip covered at the top (a floating bar) | `0` |
+| `k` | pixels per model unit (Dot's size) | 1.5 on phones, up to 1.9 on wide screens |
+
+The page decides what a first visit is (for example a `sessionStorage` flag set after the opening) and passes `firstVisit`. The French bubble shows once per browser session by itself.
+
+**Calls:**
+- `DOT.refresh()`: re-read the tiles after a layout change (tiles reordered by a filter, resized, shown or hidden). Dot stays with its tile, at the same place on it; a jump in flight lands where its target is now (a target that moved more than 140 px is not chased: Dot drops from where it is, or jumps clear); the box follows the home tile; scratches, the loose fez and the objects move with their tiles. If Dot's edge is gone, or its spot is now under the Corano or on or under the quiet tile, it moves to a good visible edge (falls to the edge below, walks a few steps, or jumps). `DOT.refresh(seconds)`: also follow the tiles at every frame for that long, so Dot rides its tile during an animation. For a FLIP animation call `DOT.refresh(duration + 0.05)` right after setting the inverted transforms (tested: the cat stays exactly on its tile in every frame of a 450 ms animation). Window resizes and rotations are handled by Dot itself.
+- `DOT.pause()` / `DOT.resume()`: freeze everything while a sheet covers the page: no frames (the animation loop stops), no sounds (the purr stops), the bubble and the touch target are hidden, touches are ignored, Dot's clock stops (so no timer runs on: the French bubble, sleep, moods). `resume()` re-reads the tiles first. `DOT.paused()` tells which.
+- `DOT.setLook(name)`, `DOT.setDark(bool)`, `DOT.say(text, seconds)`, `DOT.replay()` (the opening again), `DOT.stop()` (removes everything).
+- Sound: `DOT.sound.setMuted(bool)` (the site's sound button).
+- `DOT.debug` is for the tools only (manual clock with `window.__manual = true` and `DOT.debug.tick(dt)`, `press()`/`lift()` for a finger held still, `refresh`, `quiet()`, `fezInfo()`, `bbox()`, ...).
+
+**Layers.** Dot's layer has z-index 40 inside its parent; sheets and panels must be above the parent, and call `DOT.pause()` when they cover the page. Dot's canvases are drawn at the screen's real pixel ratio up to 3.
 
 ## 6. State (update this)
 
@@ -107,12 +170,25 @@ Tiles tell Dot what they are with `data-dot`: `no` (never on it or over it: the 
 - **Fixed while assembling**: a drop after holding the finger still threw the cat (the speed ignored the pause); the purr sound never started (it was called without `true`); `DOT.setDark()` added for the theme toggle; `DOT.start({ parent })` and `DOT.photoDpr` added.
 - **Fixed after the review** (2026-11-12): dropped in front of the Corano (or on its top edge), Dot no longer vanishes and peeks elsewhere: it leaps out at once, from where it is, to the best edge (visible, near, upwards), and an escape never re-enters the tile; sliding down a tile with the Corano right under it, the tail curls aside and Dot stops when its lowest point reaches the bottom, then jumps away; coming back from off screen, the jump-in is checked against the Corano (otherwise it peeks). A fez left on the ground by an interrupted routine is always fetched (walk, or a jump to its tile, or, if out of reach, a head flick and it flies back); a drag during the toss lets the fez fall. A second finger on the cat is ignored, and a held cat with no finger on it is dropped. `DOT.start({ bottomInset })` (pixels, or a function) marks the bottom strip covered by a bar: edges under it count as out of view, and Dot comes back from there (the preview passes the height of its bar plus 12 px; the site should pass the Safari safe area plus a margin). Reduced motion: coming back it is simply placed, sitting, on a visible edge, and it never starts its life again (no head sway, no tail flicks, no ear twitches either). `set()` clears the tremble, the yarn tangle, the head tilt and the sleeping fez tilt, so an interrupted state leaves nothing behind; "Rivedi" also clears the mood, the taps and the bubble. Jumping or looking up, the head pitches up at most about 0.28 rad in all (pose, body and gaze together) and the pupils do the rest, so the fez stays on the crown instead of sliding onto the face (the "la stella" cell of the sheet follows the same limit). The frame has a new field `fezSeat` (where the fez sits on the head, also when it is on the ground).
 - **Online** since 2026-11-12: `https://imadchat.vercel.app/gatto` (main at `ecffcf5`). After the workflow, by hand: the draped pose was raised (`dy` 4.2 to 4.4, `hp` 0.04: the head rests on the edge and the eyes are whole) in the rig and in the three looks; `tavola.html?pose=drape&prova=[{},{"dy":3}]` draws one pose with different numbers, a cell each.
-- **Next round** (seen in the sheets and strips): belly up after a long petting is an unreadable blob (redo, or end the petting with the cat melting flat with closed eyes); the head turned far aside shows one eye and no muzzle (limit the turn to about 0.6 rad or draw a muzzle); taps on a quiet edge still play; a loose fez can fall across the Corano; raise the sprite resolution cap from 2 to 3; darker whiskers on the light theme; the long poses cover their labels in the sheet; the Adesivo back view needs a full curled tail.
+- **Round 2, behaviour and the API for the real home** (2026-11-12, after the preview went online; all three looks share it, nothing was redrawn inside the `look-*.js` files):
+  - **API**: `DOT.refresh([seconds])`, `DOT.pause()` / `DOT.resume()` / `DOT.paused()`, `DOT.start({ topInset })`, and `DOT.start({ firstVisit: false })` now right from the first painted frame (the box stands closed in its place, Dot is already asleep, loafing or peeking; `DOT.start` draws one frame synchronously before the page shows). The box lid now opens and closes with a short animation (when Dot hides in it, when the visitor drops it in, when it comes out) instead of snapping. Documented in section 5, "How to mount Dot on a page".
+  - **Quiet tiles are strict** (see section 5): edges on and right under them are flagged; landing there means leaving at once; taps only hurry Dot away; no games, objects, petting, pounces or bubbles near them (a bubble left from before vanishes at once); no scratches or hanging on their face; objects never rest on them.
+  - **The loose fez** stays on the tile it fell from (it stops at the ends of the edge, it only lands on that tile, and it is pushed out of any `no` tile); it flies back only along an arc that does not pass in front of the Corano. When it is out of reach (the Corano in between) and out of sight, or out of reach for 20 s, Dot ducks behind its edge and peeks up again wearing it (a fez still in sight fades out meanwhile). Checked on 228 fez drops from every point of every edge, with and without a drag during the toss, on a phone and a tablet: never over the Corano, always back on the head within 12 s.
+  - **Belly up replaced by the melt** (state `melt`, then `getup`; the old `belly` and `unroll` names forward to them): under a finger held still Dot melts flat (the look's `puddle` pose with the chin on the ground, the brain's pose `b-melt`, turned a little more to the side, face `low`), eyes in happy arcs, slow breath (`rig.breathRate`), the tail tip moving slowly, the fez on; when the finger leaves it gets up with a stretch, rear up. Strip `striscia.mjs ... pet` in the three looks: readable, no roll, no blob, no jumps.
+  - **Both eyes stay visible**: `rig.headMax` = 0.7 rad (found with the sheet: at 0.8 the far eye is a sliver, at 0.9 it is gone, in all three looks), a soft limit that only ever turns the head towards the viewer; off for the back view (sulking, turning to go) and the trot. Measured over 5 simulated minutes per look: 0.2% of everyday frames show one eye, all in the 0.37 s turn from the back view into walking away.
+  - **Sharpness**: the cat, the loose fez, the objects and the scratches use the screen's real pixel ratio up to 3 (was capped at 2); the scratch canvas is now a column as wide as the cat instead of the whole tile. At 3x the cat's canvas is 558 x 603 px; the frame costs about 0.3 ms (median) and 0.6 ms (95th percentile) on a desktop CPU, the same as at 2x.
+  - **Smaller**: a jump in flight during a resize lands where its target is now (the offset blends into the rest of the flight; a target that moved more than 140 px is dropped and Dot falls or jumps clear); the jump about to start is re-checked; the fast-scroll test in `onScroll` now compares with the previous time; the sheet gives the long poses ("preso", "preso: gatto lungo", "a cavallo del bordo", "scivola con i graffi") taller rows (checked numerically in every cell, three looks, k 2.6 and 1.5), and the old belly cell is now "sciolto sotto il dito".
+  - **Found by the soak and fixed**: jumps were checked with a parabola that was not the one flown, and only at the feet: now every jump is checked on its true arc with the whole body (`arcBlocked`), which removed the small grazes of the Corano; a throw that would cross a `no` tile loses strength until it does not (or becomes a plain drop), and a thrown cat entering one while still rising leaps away; dropped with its head or tail in front of the Corano, Dot leaps away at once; it hangs from a bottom edge only with free room below; the "Corano below" rule of the slide now looks 90 px down (the legs and tail hang that far).
+  - **Not online yet**: `public/gatto` still holds round 1 (this round did not run `scripts/home/build.mjs`); whoever publishes rebuilds it.
+  - **Checked** (headless Chromium, phone 390 x 844 with touch, served from the source folder, manual clock): a soak of 3 runs x 10 simulated minutes (`strumenti/soak.mjs` on `riordina.html`) on a test page whose tiles are reordered and hidden at random followed by `DOT.refresh()` (sometimes with seconds), with random taps, bursts of taps, drags, drops, throws, scrolls, look switches, petting, pauses and replays: no exception, no NaN, nothing stuck, never over the Corano outside the drag and the leap after a drop, never resting on or under the quiet tile (once a single frame when a reorder moved the quiet tile onto a loafing cat; it left on the next frame), no bubble over it; plus 10 minutes on `index.html` and 2 x 10 minutes on `prova.html`, clean. `DOT.refresh` probes: reordered (stays on its tile at the same relative place), hidden (drops onto the tile that took its place), moved under the Corano (jumps away), moved under the quiet tile (leaves), a 40 px move during a jump (lands on the new top), a 450 ms FLIP animation with `DOT.refresh(0.55)` (on its tile in every frame). Pause: no frames, clock frozen, purr stopped, bubble and touch target hidden, all back on resume. Top inset: never comes back on an edge under a 64 px top bar. Reduced motion: sits, never on the quiet tile. All scripts parse as ES2017 (esprima 4). The strips and the gallery tools still run without errors.
+- **Left for the chosen look** (only once Imad has picked one): a cat's profile with a muzzle (the far turned head is a round head with one eye: today it is avoided, not drawn); darker whiskers on the light theme; the back view's tail in `adesivo` (a stump); the hind legs when hanging; the bubble's little tail (the rotated square shows a seam at 3x).
 - **Not tested**: Safari, a real iPhone (Imad's is on iOS 18.0), the sounds by ear, touch on a real screen. Ask Imad what he sees.
-- **Known limits**: while the visitor drags it, Dot can pass over the Corano tile (it never lands there); dropped in the middle of the Corano it is in front of it for the fraction of a second its leap takes; on a tile right under another one there is no room to sit, so Dot only uses tiles with headroom; tiles under the Corano are never sat on.
+- **Known limits**: while the visitor drags it, Dot can pass over the Corano tile (it never lands there); dropped in front of the Corano it is in front of it for the fraction of a second its leap takes; tiles right under another ordinary tile are used (in a bento with 12 px gaps that is almost every tile: Dot sits in the gap, in front of the bottom of the tile above), but never under the Corano or the quiet tile; when no edge that is not quiet or cut is in sight, Dot waits out of sight; the opening is skipped if the home tile ever ends up right under the Corano (the real home never moves the Corano).
 - **Tools** (run from the repo root; pictures go wherever you say):
   - `node docs/anteprime/gatto/strumenti/tavola.mjs out.png "look=adesivo&bg=light"` — the pose sheet (`tavola.html`; a cell is 58 x k px wide).
   - `node docs/anteprime/gatto/strumenti/striscia.mjs out.png walk 14 adesivo` — a frame strip of one action on `prova.html` (scenes listed in the script).
   - `node docs/anteprime/gatto/strumenti/galleria.mjs out.png adesivo scuro` — twelve scenes at true size, 4x (add `candidati` to choose the instants).
   - `node docs/anteprime/gatto/strumenti/film.mjs outdir adesivo scuro` — `apertura.mp4` (opening + 20 s of life, 60 fps, H.264) and six key frames.
   - `scena.html?check=1` checks the stage contract; `prova.html` is the behaviour bench.
+  - `node docs/anteprime/gatto/strumenti/soak.mjs 10 riordina.html 1,2,3` — the long test with the manual clock (minutes, page, seeds): random taps, drags, throws, scrolls, look switches, petting, pauses, replays and, on `riordina.html` (a test page like the new home, with a top bar and a dock, whose `order()`, `flip()` and `hide()` move the tiles), tiles reordered and hidden followed by `DOT.refresh()`. It reports exceptions, NaN, stuck states, frames over a `no` tile or resting on or under a `quiet` one, bubbles there, the fez over the Corano. About 2.5 minutes of real time per 10 simulated minutes.
+  - The tools take the port from `PORT` (the agents use 4111). The smaller probes of round 2 (`quiet`, `fez`, `api`, `eyes`, `sheet`, `first`, `pause`) stayed in the session's scratch folder; `tavola.html` exposes `window.__cells` (where each cat and each label are) for numeric checks.

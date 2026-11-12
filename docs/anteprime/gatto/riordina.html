@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Dot — prova: riquadri che si spostano</title>
+<style>
+  * { box-sizing: border-box; } body { position: relative; margin: 0; background: #0d1236; color: #fff; font: 500 13px/1.3 system-ui, sans-serif; }
+  .top { position: fixed; z-index: 50; left: 0; right: 0; top: 0; height: 64px; background: rgba(20,22,40,.92); }
+  .dock { position: fixed; z-index: 50; left: 50%; bottom: 14px; width: 260px; height: 48px; margin-left: -130px; border-radius: 24px; background: rgba(20,22,40,.92); }
+  .pg { padding: 110px 16px 140px; } .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .t { height: 150px; border-radius: 28px; background: rgba(255,255,255,.09); padding: 14px; }
+  .w4 { grid-column: span 4; } .w2 { grid-column: span 2; } .h2 { height: 312px; }
+  .t[data-dot="no"] { background: rgba(246,238,220,.16); } .t[data-dot="quiet"] { background: rgba(120,140,200,.14); }
+  .hide { display: none; }
+  .dot-clip { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 40; overflow: hidden; pointer-events: none; }
+</style></head><body>
+<div class="top"></div>
+<div class="dot-clip" id="dotclip"></div>
+<main class="pg"><section class="grid" id="g">
+  <div class="t w4" data-home id="hero">hero</div>
+  <div class="t w4" data-dot="no" id="corano">Corano</div>
+  <div class="t w4 h2" id="citta">citta</div>
+  <div class="t w4" data-dot="quiet" id="mondo">mondo</div>
+  <div class="t w2 h2" id="sudime">sudime</div>
+  <div class="t w2" id="progetti">progetti</div>
+  <div class="t w2" id="imparando">imparando</div>
+  <div class="t w4" id="tools">tools</div>
+  <div class="t w4" id="heatmap">heatmap</div>
+  <div class="t w4" id="saluti">saluti</div>
+</section></main>
+<div class="dock"></div>
+<script src="dot-rig.js"></script><script src="look-base.js"></script><script src="look-adesivo.js"></script><script src="look-manifesto.js"></script><script src="look-pelo.js"></script>
+<script src="dot-stage.js"></script><script src="dot-sound.js"></script><script src="dot-fx.js"></script><script src="dot-brain.js"></script>
+<script>
+/* Pagina di prova (mai online): riquadri come sulla casa nuova, una barra in alto (topInset 64) e un dock in basso (bottomInset 76).
+   order([id, ...]) riordina, flip([id, ...], ms) riordina con un'animazione FLIP, hide(id, true|false) nasconde: poi DOT.refresh().
+   ?manual=1 (orologio fermo)  ?seme=7  ?primo=1 (con l'apertura)  ?look=adesivo|manifesto|pelo. La usa strumenti/soak.mjs. */
+(function () {
+  var q = new URLSearchParams(location.search), g = document.getElementById("g");
+  if (q.get("manual") === "1") window.__manual = true; if (q.get("seme")) DOT.debug.seed(+q.get("seme"));
+  try { DOT.sound.setMuted(true); } catch (e) {}
+  /* ordina i riquadri secondo una lista di id (il Corano resta dov'è se non è nella lista) */
+  window.order = function (ids) { ids.forEach(function (id) { g.appendChild(document.getElementById(id)); }); };
+  /* come un filtro del sito: misura, riordina, anima la differenza (FLIP) per ms millisecondi */
+  window.flip = function (ids, ms) {
+    var els = [].slice.call(g.children), r0 = els.map(function (e) { return e.getBoundingClientRect(); });
+    order(ids); els.forEach(function (e, i) { var r1 = e.getBoundingClientRect(); e.style.transition = "none"; e.style.transform = "translate(" + (r0[i].left - r1.left) + "px," + (r0[i].top - r1.top) + "px)"; });
+    g.offsetWidth; els.forEach(function (e) { e.style.transition = "transform " + ms + "ms cubic-bezier(.2,.8,.2,1)"; e.style.transform = ""; });
+  };
+  window.hide = function (id, on) { document.getElementById(id).classList.toggle("hide", on !== false); };
+  DOT.start({ tiles: ".t", home: document.getElementById("hero"), parent: document.getElementById("dotclip"), look: q.get("look") || "adesivo", firstVisit: q.get("primo") === "1", dark: true,
+    topInset: function () { return 64; }, bottomInset: function () { return 76; } });
+  window.__ready = true;
+})();
+</script></body></html>

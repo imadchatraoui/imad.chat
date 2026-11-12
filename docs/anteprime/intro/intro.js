@@ -36,7 +36,7 @@
   const TEXT = "imad chatraoui", NAME = "imad.chat", TRACK = -0.045;
   /* che cosa c'è in ogni quadrato della griglia (i m a / d . c / h a t) e in quale riquadro vero va a finire */
   const CELLS = ["kaaba", "marocco", "torino", "viaggio", "night", "cube", "flag", "sky", "term"];
-  const TILES = ["corano", "curiosita", "sudime", "citta", "saluti", "cubo", "palestina", "cielo", "codice"];
+  const TILES = Array.isArray(window.__niTiles) && window.__niTiles.length === 9 ? window.__niTiles.slice() : ["corano", "curiosita", "sudime", "citta", "saluti", "cubo", "palestina", "cielo", "codice"];
   const MOSAIC = ["kaaba", "flag", "cube", "marocco", "term", "torino", "sky", "viaggio", "marocco2", "kaaba2"];
 
   /* ------------------------------------------------------------------ strumenti */

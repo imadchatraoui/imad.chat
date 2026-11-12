@@ -29,7 +29,7 @@
 
   /* ------------------------------------------------------------------ una tela che segue qualcosa: origine (ox, oy) dentro la tela */
   fx.Sprite = function (layer, w, h, ox, oy, z) {
-    var cv = doc.createElement("canvas"), dpr = DOT.photoDpr || Math.min(window.devicePixelRatio || 1, 2), o = { cv: cv, ctx: cv.getContext("2d"), w: w, h: h, ox: ox, oy: oy, dpr: dpr, on: true };   /* DOT.photoDpr: solo per le foto di prova */
+    var cv = doc.createElement("canvas"), dpr = DOT.photoDpr || Math.min(Math.max(window.devicePixelRatio || 1, 1), 3), o = { cv: cv, ctx: cv.getContext("2d"), w: w, h: h, ox: ox, oy: oy, dpr: dpr, on: true };   /* la nitidezza vera fino a 3 (i telefoni recenti); DOT.photoDpr: solo per le foto di prova */
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.width = w + "px"; cv.style.height = h + "px"; cv.style.zIndex = z || 2; cv.setAttribute("aria-hidden", "true");
     layer.appendChild(cv);
     o.place = function (x, y) { cv.style.transform = "translate3d(" + (x - ox).toFixed(2) + "px," + (y - oy).toFixed(2) + "px,0)"; };
@@ -51,7 +51,7 @@
       inn.style.transform = "none"; b.w = inn.offsetWidth || 120; b.h = inn.offsetHeight || 34; inn.style.transform = "scale(" + Math.max(0.001, b.sc).toFixed(3) + ")";
       b.on = true; b.until = sec; b.sc = Math.min(b.sc, 0.35); b.v = 0;
     };
-    b.hide = function () { b.on = false; };
+    b.hide = function (at) { b.on = false; if (at) { b.sc = 0; b.v = 0; b.a = 0; } };   /* at: sparisce subito, senza la molla */
     b.vis = true;
     /* la molla: va chiamata con passi piccoli (il cervello lo fa a ogni passo) */
     b.phys = function (dt) {
@@ -93,6 +93,7 @@
       }
     };
     s.done = function (wait) { s.life = wait == null ? 2.6 : wait; };
+    s.move = function (dx, dy) { r.x += dx; r.y += dy; sp.place(r.x, r.y); };   /* il riquadro si è spostato: i graffi vanno con lui */
     s.step = function (dt) { if (s.life < 0 || s.dead) return; s.life -= dt; if (s.life < 0) { s.alpha -= dt / 2.4; sp.cv.style.opacity = Math.max(0, s.alpha).toFixed(3); s.life = 0; if (s.alpha <= 0) { s.dead = true; sp.remove(); } } };
     s.remove = function () { s.dead = true; sp.remove(); };
     return s;

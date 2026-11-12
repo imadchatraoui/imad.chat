@@ -1,97 +1,122 @@
 /*
  * qr-core.js — the QR engine of imad.chat (QR Studio and the mini QR in the home's Tools tile).
- * Plain script, ES2017, no framework. It defines window.QRCore.
+ * Plain script, ES2017, no framework, no build step. It defines window.QRCore.
  *
  * Load order (plain <script> tags, no modules):
  *   <script src="vendor/qrcode-generator.js"></script>   global `qrcode` (Kazuhiko Arase, MIT): builds the matrix
  *   <script src="vendor/jsQR.js"></script>               global `jsQR`  (cozmo/jsQR, Apache-2.0): reads it back
  *   <script src="qr-core.js"></script>                   global `QRCore`
- * jsQR (250 KB) is needed only by QRCore.verify; a page that never verifies may leave it out.
+ * jsQR (250 KB) is needed only by QRCore.verify; a page that never verifies may leave it out (it may also be
+ * loaded later, before the first verify). Licences: vendor/*.LICENSE; sources: docs/fonti.md, "Strumenti: QR".
  *
- * Usage:
- *   var text = QRCore.payload.url("imad.chat");                       // "https://imad.chat"
- *   var qr   = QRCore.encode(text, { ecc: QRCore.suggestEcc(false) }); // matrix
- *   var opts = { size: 132, shape: "uniti", eye: "tondo", fg: "#1d1b16", bg: "#fff" };
- *   var chk  = QRCore.scannable(opts, qr);                            // { ok, level, why, problems }
+ * Usage (the mini QR of the home tile):
+ *   var text = QRCore.payload.url(input.value) || "https://imad.chat";
+ *   var qr;
+ *   try { qr = QRCore.encode(text, { ecc: QRCore.suggestEcc(false) }); }
+ *   catch (e) { note.textContent = e.message; return; }            // short Italian sentence, show as is
+ *   var opts = { size: 132, shape: "uniti", eye: "tondo", fg: "#1d1b16", bg: "#ffffff" };
+ *   var check = QRCore.scannable(opts, qr);                         // { ok, level, why, problems, details }
+ *   var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
  *   var t0 = performance.now();
- *   (function frame(now) {                                            // the code draws itself in 700 ms
- *     var p = Math.min(1, (now - t0) / 700);
+ *   (function frame(now) {                                          // the code draws itself in 600 ms
+ *     var p = reduce ? 1 : Math.min(1, (now - t0) / 600);
  *     QRCore.render(canvas, qr, Object.assign({}, opts, { progress: p, order: "onda" }));
- *     if (p < 1) requestAnimationFrame(frame);
- *     else if (!QRCore.verify(canvas, text).ok) { ... say it does not scan, do not offer "Salva" ... }
+ *     if (p < 1) { raf = requestAnimationFrame(frame); return; }
+ *     var v = QRCore.verify(canvas, text);                          // read the pixels back
+ *     saveButton.disabled = !v.ok || check.level === "errore";      // never offer a code that does not scan
  *   })(t0);
  *
- * ---------------------------------------------------------------------------------------------
+ * ---------------------------------------------------------------------------------------------------------
  * QRCore.payload — the strings phones really read. Every function returns a string.
  *   url(s)        trims; adds "https://" when there is no scheme and it looks like a host
- *                 ("imad.chat/x", "www.a.it", "localhost:3000", "192.168.1.1"); "" for empty input;
- *                 anything else (a scheme like "mailto:", or plain words) is returned trimmed, as is.
- *   text(s)       the text unchanged ("" for null/undefined); line breaks normalised to "\n".
+ *                 ("imad.chat/x", "www.a.it", "localhost:3000", "192.168.1.1"; "//a.it/x" gets "https:");
+ *                 "" for empty input; anything else (a scheme like "mailto:", plain words) is returned trimmed.
+ *   text(s)       the text, line breaks normalised to "\n" ("" for null/undefined).
  *   wifi({ ssid, password, security: "WPA"|"WEP"|"nopass", hidden })
- *                 "WIFI:T:WPA;S:<ssid>;P:<password>;H:true;;"  with \ ; , : " escaped by a backslash.
- *                 security defaults to "WPA" with a password and "nopass" without; WPA covers WPA2/WPA3.
+ *                 "WIFI:T:WPA;S:<ssid>;P:<password>;H:true;;" with \ ; , : " escaped by a backslash.
+ *                 security defaults to "WPA" with a password and "nopass" without (WPA covers WPA2/WPA3);
  *                 P is left out for "nopass", H only when hidden is true.
  *   vcard({ name, org, title, phone, email, url, address, note })
- *                 vCard 3.0, CRLF line ends, \ , ; and line breaks escaped. N is "last;first" taken from
- *                 name (last word = family name). Empty fields are left out. url goes through url().
+ *                 vCard 3.0, CRLF line ends, \ , ; and line breaks escaped. N is "last;first" from name
+ *                 (last word = family name). Empty fields are left out. url goes through url().
  *   email({ to, subject, body })   "mailto:<to>?subject=...&body=..." (encodeURIComponent, CRLF in body).
  *   tel(n)        "tel:+39011..." keeping only digits, a leading +, * and #.
- *   sms({ to, body })              "SMSTO:<to>:<body>".
+ *   sms({ to, body })              "SMSTO:<to>:<body>" (the number cleaned like tel).
  *
  * QRCore.encode(text, { ecc, minVersion }) -> qr
  *   ecc "L"|"M"|"Q"|"H" (default "M"), minVersion 1..40 (default 1). Picks the smallest version that fits.
  *   Mode: digits only -> Numeric; QR alphanumeric charset (0-9 A-Z space $%*+-./:) -> Alphanumeric;
- *   anything else -> Byte, as UTF-8 bytes (plain ASCII stays one byte per character).
+ *   anything else -> Byte, as UTF-8 bytes whenever the text is not plain ASCII.
  *   qr = { n, version, ecc, text, mode, get(r, c) -> boolean (dark), kind(r, c) -> string,
- *          modules: Uint8Array(n*n) 1 = dark, kinds: Uint8Array(n*n) codes of KIND }
- *   kind(r, c): "finder" (the three eyes with their light separators, 8x8 each), "align" (5x5 alignment
- *   patterns), "timing" (row 6 / column 6), "format" (format bits, the dark module, and the version bits
- *   of versions 7+), "data" (everything else: data and error correction).
- *   Throws Error (err.code "VUOTO") for empty text; Error (err.code "TROPPO_LUNGO") when it cannot fit:
- *   err.message is a short Italian sentence to show as is.
+ *          modules: Uint8Array(n*n) 1 = dark, kinds: Uint8Array(n*n) codes of QRCore.KIND }
+ *   kind(r, c): "finder" (the three eyes with their light separators, 8x8 each), "align" (the 5x5
+ *   alignment patterns), "timing" (row 6 / column 6), "format" (format bits, the dark module, and the
+ *   version bits of versions 7+), "data" (data and error correction). Treat a qr as read-only.
+ *   Throws an Error with err.code "VUOTO" (empty text) or "TROPPO_LUNGO" (does not fit in version 40 at
+ *   that ecc); err.message is a short Italian sentence to show as is.
  *
  * QRCore.render(canvas, qr, opts) -> info
  *   Draws on a 2D canvas at the device pixel ratio. Sets canvas.width/height to size*dpr and, unless
- *   opts.style === false, canvas.style.width/height to size px. opts:
+ *   opts.style === false, canvas.style.width/height to size px (CSS max-width still applies). opts:
  *     size      CSS px of the canvas side (default 256)
- *     dpr       pixel ratio (default window.devicePixelRatio, capped to 4)
+ *     dpr       pixel ratio (default window.devicePixelRatio, between 1 and 4)
  *     quiet     quiet zone in modules (default 4, never under 2)
  *     shape     "quadrati" | "punti" | "tondi" | "uniti" (neighbouring modules join into soft shapes)
- *     eye       "quadrato" | "tondo" | "goccia" (the three finders; alignment patterns follow the eye)
- *     fg        a CSS colour, or { from, to, angle } (angle in degrees: 0 = left to right,
- *               90 = top to bottom; default 45)                                     default "#111111"
- *     bg        a CSS colour or "transparent"                                       default "#ffffff"
- *     logo      { image, scale, pad, round } or null. image: a loaded <img>, <canvas> or ImageBitmap
- *               (not loaded yet = only the margin is cleared). scale 0.12..0.3 of the code's side
- *               (default 0.22); pad: modules of clean margin around it (default 1); round: false,
- *               true or 0..1 (corner rounding of the picture; true = 0.35). Use ecc "H" with a logo.
- *     progress  0..1 (default 1) and order "onda" (a ripple from the centre) | "righe" | "caso":
- *               which modules are already drawn; each eases in (scale and alpha) over 30% of the run.
- *               At 1 the picture is exactly the final one. Respect reduced motion in the caller
- *               (draw progress 1 at once).
- *   Modules land on whole device pixels: the module side m is an integer number of device pixels and
- *   whatever does not divide goes to the margin, so the real quiet zone can be a little larger.
- *   info = { dpr, width, height, m, ox, oy, side, quiet, cleared }  (device px; cleared = data modules
- *   removed under the logo).
+ *     eye       "quadrato" | "tondo" | "goccia" (the three finders; alignment patterns follow: square
+ *               for "quadrato", rounded otherwise). "goccia" keeps one sharp corner towards the centre.
+ *     fg        a CSS colour, or { from, to, angle } (degrees: 0 = left to right, 90 = top to bottom;
+ *               default 45). Default "#111111".
+ *     bg        a CSS colour or "transparent". Default "#ffffff".
+ *     logo      { image, scale, pad, round } or null. image: a loaded <img>, <canvas> or ImageBitmap (an image
+ *               not loaded yet only clears its margin). scale: 0.12..0.3 of the code's side (default 0.22);
+ *               pad: modules of clean margin around it (default 1); round: false, true (0.35) or 0..1, the
+ *               corner rounding of the picture. Data modules under the margin are not drawn; use ecc "H".
+ *     progress  0..1 (default 1) with order "onda" (a ripple from the centre) | "righe" | "caso": which
+ *               modules are already drawn; each eases in (scale with a small overshoot, and alpha) over 30%
+ *               of the run, the eyes as whole pieces, the logo over the last 30%. At 1 the picture is exactly
+ *               the final one. The caller animates progress (and draws 1 at once with reduced motion).
+ *   Modules land on whole device pixels: the module side is an integer number of device px and whatever does
+ *   not divide goes to the margin, so the real quiet zone can be a little larger than asked.
+ *   Needs `document` (it keeps an offscreen mask and small sprites). Cost measured in headless Chromium,
+ *   software raster, 132 px at x3: 1 to 4 ms a frame; 320 px at x3, version 11: 5 to 11 ms.
+ *   info = { dpr, width, height, m, ox, oy, side, quiet, cleared } (device px; quiet in modules;
+ *   cleared = dark data modules removed under the logo).
  *
  * QRCore.svg(qr, opts) -> string
- *   The same picture as an SVG document (opts as render, without progress/dpr). viewBox in modules;
- *   width/height = size. A logo needs a data: URL: opts.logo.href, or a data: <img>, or a drawable
- *   image that is turned into one (if that fails the logo is left out and its margin stays clear).
+ *   The same picture as an SVG document (opts as render; progress and dpr are ignored). viewBox in modules,
+ *   width/height = size. A logo needs a data: URL: opts.logo.href, or a data: <img>, or a drawable image that
+ *   is turned into a PNG (if that fails the logo is left out and its margin stays clear). An SVG is not snapped
+ *   to pixels: check it with scannable(Object.assign({}, opts, { svg: true }), qr) for the size it is shown at.
  *
- * QRCore.verify(canvasOrImageData, expected?) -> { ok, text, inverted }
- *   Reads the drawn pixels back with jsQR (flattened on white, then also inverted). ok is true when a
- *   code is found and, if expected is given, its text equals expected. text is null when nothing is read.
+ * QRCore.verify(canvasOrImageData, expected?) -> { ok, text, inverted, scale }
+ *   Reads the drawn pixels back with jsQR, flattened on white, dark-on-light first, then inverted; at the
+ *   native size and then at 0.5, 0.75 and 0.33 (jsQR binarises in 8 px blocks and misses some perfectly good
+ *   codes at one scale only). ok: a code was read and, if expected is given, its text equals expected.
+ *   text: what was read (null if nothing). scale: the scale that read it. 20 to 130 ms on a 400 to 1200 px
+ *   canvas: run it once, when the drawing has finished, not on every frame.
  *
  * QRCore.suggestEcc(hasLogo) -> "H" with a logo, "M" without.
  * QRCore.contrast(fg, bg) -> WCAG contrast ratio (1..21). fg may be a gradient (the worse end counts);
- *   bg "transparent" is taken as white. Colours with alpha are composited on bg.
- * QRCore.scannable(opts, qr) -> { ok, level: "ok"|"avviso"|"errore", why, problems: [{ code, why, level }] }
- *   why is the first (worst) problem's Italian sentence, "" when ok. "errore" = do not offer saving;
- *   "avviso" = it scanned here but some readers may fail. Codes: CONTRASTO, INVERTITO, MARGINE,
- *   MODULI_PICCOLI, LOGO_GRANDE, LOGO_ECC, TRASPARENTE. Always also run verify on the final canvas.
- * QRCore.KIND = { data: 0, finder: 1, align: 2, timing: 3, format: 4 }, QRCore.version.
- * ---------------------------------------------------------------------------------------------
+ *   "transparent" is taken as white; colours with alpha are composited on the background.
+ * QRCore.scannable(opts, qr) -> { ok, level: "ok"|"avviso"|"errore", why, problems: [{ code, level, why }], details }
+ *   The rules every failure of strumenti/qr-prova.mjs turned into. why = the worst problem's Italian sentence
+ *   ("" when ok). "errore": do not offer saving; "avviso": it scans, but some readers may fail. Codes:
+ *     CONTRASTO      ratio under 3 = errore, under 4.5 = avviso (or a colour it cannot read)
+ *     INVERTITO      a light code on a dark ground: avviso (it reads only in readers that try inverted)
+ *     TRASPARENTE    avviso: it depends on what it is put on
+ *     MARGINE        quiet zone under 4 modules: avviso
+ *     MODULI_PICCOLI module under 1.75 CSS px (squares, joined) or 2 CSS px (dots, tiles), or under 2 device px
+ *                    for dots and tiles, or (with opts.svg) under 4 device px off the grid: errore
+ *     DENSO          version 31 or more: avviso; 36 or more: errore (too dense for a phone camera)
+ *     LOGO_GRANDE    the logo's margin damages too many codewords: errore. Counted exactly: every codeword
+ *                    with a module under the margin is taken as wrong, and in the worst Reed-Solomon block
+ *                    those must stay under 80% of what the block can correct.
+ *     LOGO_ECC       a logo with ecc under H: avviso
+ *   details = { contrast, moduleCss, moduleDev, logoShare, logoLoad } (logoLoad 1 = exactly at the limit of
+ *   the correction; over 0.8 is LOGO_GRANDE). If a logo is too big, a higher ecc or a smaller scale helps;
+ *   a higher minVersion alone rarely does. Always also run verify on the final canvas.
+ * QRCore.KIND = { data: 0, finder: 1, align: 2, timing: 3, format: 4 }; QRCore.version.
+ * ---------------------------------------------------------------------------------------------------------
  */
 (function (root) {
   'use strict';
@@ -101,7 +126,6 @@
   var SHAPES = ['quadrati', 'punti', 'tondi', 'uniti'];
   var EYES = ['quadrato', 'tondo', 'goccia'];
   var ORDERS = ['onda', 'righe', 'caso'];
-  var K = 0.5522847498; // cubic bezier constant for a quarter circle
   var WINDOW = 0.3;     // each module eases in over this part of the progress
 
   // Alignment pattern centres, versions 1..40 (ISO/IEC 18004, annex E).
@@ -356,48 +380,61 @@
   function CanvasPen(ctx, ox, oy, m) { this.x = ctx; this.ox = ox; this.oy = oy; this.m = m; }
   CanvasPen.prototype.M = function (a, b) { this.x.moveTo(this.ox + a * this.m, this.oy + b * this.m); };
   CanvasPen.prototype.L = function (a, b) { this.x.lineTo(this.ox + a * this.m, this.oy + b * this.m); };
-  CanvasPen.prototype.C = function (a, b, c, d, e, f) {
-    var m = this.m, ox = this.ox, oy = this.oy;
-    this.x.bezierCurveTo(ox + a * m, oy + b * m, ox + c * m, oy + d * m, ox + e * m, oy + f * m);
+  CanvasPen.prototype.A = function (cx, cy, r, a0, a1, ccw) {
+    this.x.arc(this.ox + cx * this.m, this.oy + cy * this.m, r * this.m, a0, a1, ccw);
   };
   CanvasPen.prototype.Z = function () { this.x.closePath(); };
+  // whole circles and rectangles through the native calls: far cheaper to rasterise than beziers
+  CanvasPen.prototype.O = function (cx, cy, r) {
+    var X = this.ox + cx * this.m, Y = this.oy + cy * this.m, R = r * this.m;
+    this.x.moveTo(X + R, Y); this.x.arc(X, Y, R, 0, Math.PI * 2);
+  };
+  CanvasPen.prototype.R = function (a, b, w, h) { this.x.rect(this.ox + a * this.m, this.oy + b * this.m, w * this.m, h * this.m); };
 
   function fx(v) { var s = (Math.round(v * 1000) / 1000).toString(); return s === '-0' ? '0' : s; }
   function SvgPen(ox, oy) { this.d = []; this.ox = ox; this.oy = oy; }
   SvgPen.prototype.M = function (a, b) { this.d.push('M' + fx(this.ox + a) + ' ' + fx(this.oy + b)); };
   SvgPen.prototype.L = function (a, b) { this.d.push('L' + fx(this.ox + a) + ' ' + fx(this.oy + b)); };
-  SvgPen.prototype.C = function (a, b, c, d, e, f) {
-    var ox = this.ox, oy = this.oy;
-    this.d.push('C' + fx(ox + a) + ' ' + fx(oy + b) + ' ' + fx(ox + c) + ' ' + fx(oy + d) + ' ' + fx(ox + e) + ' ' + fx(oy + f));
+  // a quarter (or smaller) arc from the current point, which must be the arc's start
+  SvgPen.prototype.A = function (cx, cy, r, a0, a1, ccw) {
+    var x = this.ox + cx + r * Math.cos(a1), y = this.oy + cy + r * Math.sin(a1);
+    this.d.push('A' + fx(r) + ' ' + fx(r) + ' 0 0 ' + (ccw ? 0 : 1) + ' ' + fx(x) + ' ' + fx(y));
   };
   SvgPen.prototype.Z = function () { this.d.push('Z'); };
+  SvgPen.prototype.O = function (cx, cy, r) {
+    var x = this.ox + cx, y = this.oy + cy;
+    this.d.push('M' + fx(x + r) + ' ' + fx(y) + 'A' + fx(r) + ' ' + fx(r) + ' 0 1 1 ' + fx(x - r) + ' ' + fx(y) + 'A' + fx(r) + ' ' + fx(r) + ' 0 1 1 ' + fx(x + r) + ' ' + fx(y) + 'Z');
+  };
+  SvgPen.prototype.R = function (a, b, w, h) { rectPath(this, a, b, w, h); };
 
   // rounded rectangle, radii [tl, tr, br, bl]; ccw draws it the other way round (a hole).
+  var PI = Math.PI, HP = Math.PI / 2;
   function rrect(p, x, y, w, h, rad, ccw) {
     var tl = rad ? rad[0] : 0, tr = rad ? rad[1] : 0, br = rad ? rad[2] : 0, bl = rad ? rad[3] : 0;
     if (!ccw) {
       p.M(x + tl, y);
-      p.L(x + w - tr, y); if (tr) p.C(x + w - tr + K * tr, y, x + w, y + tr - K * tr, x + w, y + tr);
-      p.L(x + w, y + h - br); if (br) p.C(x + w, y + h - br + K * br, x + w - br + K * br, y + h, x + w - br, y + h);
-      p.L(x + bl, y + h); if (bl) p.C(x + bl - K * bl, y + h, x, y + h - bl + K * bl, x, y + h - bl);
-      p.L(x, y + tl); if (tl) p.C(x, y + tl - K * tl, x + tl - K * tl, y, x + tl, y);
+      p.L(x + w - tr, y); if (tr) p.A(x + w - tr, y + tr, tr, -HP, 0, false);
+      p.L(x + w, y + h - br); if (br) p.A(x + w - br, y + h - br, br, 0, HP, false);
+      p.L(x + bl, y + h); if (bl) p.A(x + bl, y + h - bl, bl, HP, PI, false);
+      p.L(x, y + tl); if (tl) p.A(x + tl, y + tl, tl, PI, PI + HP, false);
     } else {
       p.M(x + tl, y);
-      if (tl) p.C(x + tl - K * tl, y, x, y + tl - K * tl, x, y + tl);
-      p.L(x, y + h - bl); if (bl) p.C(x, y + h - bl + K * bl, x + bl - K * bl, y + h, x + bl, y + h);
-      p.L(x + w - br, y + h); if (br) p.C(x + w - br + K * br, y + h, x + w, y + h - br + K * br, x + w, y + h - br);
-      p.L(x + w, y + tr); if (tr) p.C(x + w, y + tr - K * tr, x + w - tr + K * tr, y, x + w - tr, y);
+      if (tl) p.A(x + tl, y + tl, tl, -HP, -PI, true);
+      p.L(x, y + h - bl); if (bl) p.A(x + bl, y + h - bl, bl, PI, HP, true);
+      p.L(x + w - br, y + h); if (br) p.A(x + w - br, y + h - br, br, HP, 0, true);
+      p.L(x + w, y + tr); if (tr) p.A(x + w - tr, y + tr, tr, 0, -HP, true);
     }
     p.Z();
   }
-  function rect(p, x, y, w, h) { p.M(x, y); p.L(x + w, y); p.L(x + w, y + h); p.L(x, y + h); p.Z(); }
+  function rectPath(p, x, y, w, h) { p.M(x, y); p.L(x + w, y); p.L(x + w, y + h); p.L(x, y + h); p.Z(); }
+  function rect(p, x, y, w, h) { p.R(x, y, w, h); }
   function all4(r) { return [r, r, r, r]; }
 
   // concave fillet in the corner (cx, cy) of a light cell; dx, dy point into the cell.
   function fillet(p, cx, cy, dx, dy, r) {
     p.M(cx, cy);
     p.L(cx + dx * r, cy);
-    p.C(cx + dx * (r - K * r), cy, cx, cy + dy * (r - K * r), cx, cy + dy * r);
+    p.A(cx + dx * r, cy + dy * r, r, dy > 0 ? -HP : HP, dx > 0 ? PI : 0, dx * dy > 0);
     p.Z();
   }
 
@@ -479,16 +516,19 @@
 
   // ------------------------------------------------------------------ shapes
 
-  var DOT = 0.86, TILE = 0.9, TILE_R = 0.3, JOIN_R = 0.5, FILLET_R = 0.3;
+  var DOT = 0.9, TILE = 0.9, TILE_R = 0.3, JOIN_R = 0.5, FILLET_R = 0.3;
 
-  function moduleShape(p, shape, st, n, r, c, s) {
+  // neighbour bits of a module drawn as a module: 1 up, 2 right, 4 down, 8 left
+  function bits(st, n, r, c) {
+    return (on(st, n, r - 1, c) ? 1 : 0) | (on(st, n, r, c + 1) ? 2 : 0) | (on(st, n, r + 1, c) ? 4 : 0) | (on(st, n, r, c - 1) ? 8 : 0);
+  }
+  function moduleShape(p, shape, nb, r, c, s) {
     var cx = c + 0.5, cy = r + 0.5, h;
-    if (shape === 'punti') { h = DOT * s / 2; rrect(p, cx - h, cy - h, 2 * h, 2 * h, all4(h)); return; }
+    if (shape === 'punti') { p.O(cx, cy, DOT * s / 2); return; }
     if (shape === 'tondi') { h = TILE * s / 2; rrect(p, cx - h, cy - h, 2 * h, 2 * h, all4(TILE_R * s)); return; }
     if (shape === 'uniti') {
       h = s / 2;
-      var R = JOIN_R * s;
-      var up = on(st, n, r - 1, c), dn = on(st, n, r + 1, c), lf = on(st, n, r, c - 1), rt = on(st, n, r, c + 1);
+      var R = JOIN_R * s, up = nb & 1, rt = nb & 2, dn = nb & 4, lf = nb & 8;
       rrect(p, cx - h, cy - h, 2 * h, 2 * h, [(!up && !lf) ? R : 0, (!up && !rt) ? R : 0, (!dn && !rt) ? R : 0, (!dn && !lf) ? R : 0]);
       return;
     }
@@ -544,7 +584,7 @@
     var r, c;
     for (r = 0; r < n; r++) for (c = 0; c < n; c++) {
       if (st[r * n + c] !== 1) continue;
-      out.push({ d: delay(r, c), r: r, c: c, k: 0 });
+      out.push({ d: delay(r, c), r: r, c: c, k: 0, nb: bits(st, n, r, c) });
     }
     // eyes
     var eyes = [[0, 0, 0], [0, n - 7, 1], [n - 7, 0, 2]];
@@ -568,7 +608,7 @@
         for (var q = 0; q < 4; q++) {
           var a = cs[q][0], b = cs[q][1];
           if (on(st, n, r + a, c) && on(st, n, r, c + b) && on(st, n, r + a, c + b)) {
-            out.push({ d: Math.max(delay(r + a, c), delay(r, c + b)), r: r, c: c, k: 3, a: a, b: b });
+            out.push({ d: Math.max(delay(r + a, c), delay(r, c + b)), r: r, c: c, k: 3, a: a, b: b, q: q });
           }
         }
       }
@@ -577,7 +617,7 @@
   }
 
   function drawPiece(p, pc, o, n, st, s) {
-    if (pc.k === 0) moduleShape(p, o.shape, st, n, pc.r, pc.c, s);
+    if (pc.k === 0) moduleShape(p, o.shape, pc.nb, pc.r, pc.c, s);
     else if (pc.k === 1) eyeShape(p, o.eye, pc.w, pc.c, pc.r, s);
     else if (pc.k === 2) alignShape(p, o.eye, pc.c, pc.r, s);
     else {
@@ -618,6 +658,73 @@
     return [img.naturalWidth || img.videoWidth || img.width || 1, img.naturalHeight || img.videoHeight || img.height || 1];
   }
 
+  // plan and pieces depend only on the code, the shape, the eyes, the order and the logo square:
+  // they are kept on the qr object (a qr never changes) for the frames of an animation.
+  function prepared(qr, o, area) {
+    var key = o.shape + '|' + o.eye + '|' + o.order + '|' + (area ? area.start + ',' + area.c : '-');
+    var memo = qr._memo || (qr._memo = { keys: [], val: {} });
+    if (memo.val[key]) return memo.val[key];
+    var pl = plan(qr, area);
+    var v = { pl: pl, list: pieces(qr, o, pl) };
+    memo.keys.push(key); memo.val[key] = v;
+    if (memo.keys.length > 6) delete memo.val[memo.keys.shift()];
+    return v;
+  }
+
+  // horizontal runs of fully drawn modules; for "uniti" a run gets the corners its end modules would have
+  function runs(p, shape, st, full, n) {
+    for (var r = 0; r < n; r++) {
+      var c = 0;
+      while (c < n) {
+        if (!full[r * n + c]) { c++; continue; }
+        var c0 = c;
+        while (c < n && full[r * n + c]) c++;
+        var c1 = c - 1;
+        if (shape === 'uniti') {
+          var R = JOIN_R;
+          var lf = on(st, n, r, c0 - 1), rt = on(st, n, r, c1 + 1);
+          rrect(p, c0, r, c - c0, 1, [
+            (!on(st, n, r - 1, c0) && !lf) ? R : 0, (!on(st, n, r - 1, c1) && !rt) ? R : 0,
+            (!on(st, n, r + 1, c1) && !rt) ? R : 0, (!on(st, n, r + 1, c0) && !lf) ? R : 0]);
+        } else rect(p, c0, r, c - c0, 1);
+      }
+    }
+  }
+
+  var masks = [];
+  function maskFor(W) {
+    for (var i = 0; i < masks.length; i++) if (masks[i].width === W) return masks[i];
+    var c = root.document.createElement('canvas');
+    c.width = c.height = W;
+    masks.unshift(c);
+    if (masks.length > 3) masks.pop();
+    return c;
+  }
+
+  var sprites = { m: 0, map: {}, count: 0 };
+  function sprite(m, shape, pc, s) {
+    s = s >= 1 ? 1 : Math.round(s * 32) / 32;
+    if (sprites.m !== m || sprites.count > 2000) sprites = { m: m, map: {}, count: 0 };
+    var key = shape + (pc.k === 3 ? 'f' + pc.q : 'm' + pc.nb) + '|' + s;
+    var hit = sprites.map[key];
+    if (hit) return hit;
+    var pad = Math.ceil(m * 0.15) + 1, S = m + 2 * pad;
+    var cv = root.document.createElement('canvas');
+    cv.width = cv.height = S;
+    var x = cv.getContext('2d');
+    x.fillStyle = '#000';
+    x.beginPath();
+    var pen = new CanvasPen(x, pad, pad, m);
+    if (pc.k === 3) {
+      var cs = [[-1, -1], [-1, 1], [1, 1], [1, -1]][pc.q];
+      fillet(pen, cs[1] < 0 ? 0 : 1, cs[0] < 0 ? 0 : 1, -cs[1], -cs[0], FILLET_R * s);
+    } else moduleShape(pen, shape, pc.nb, 0, 0, s);
+    x.fill();
+    hit = { cv: cv, pad: pad };
+    sprites.map[key] = hit; sprites.count++;
+    return hit;
+  }
+
   // ------------------------------------------------------------------ render
 
   function render(canvas, qr, opts) {
@@ -630,53 +737,75 @@
       canvas.style.height = L.size + 'px';
     }
     var ctx = canvas.getContext('2d');
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalAlpha = 1;
-    ctx.clearRect(0, 0, L.W, L.W);
-    if (o.bg !== 'transparent') { ctx.fillStyle = o.bg; ctx.fillRect(0, 0, L.W, L.W); }
-
+    var W = L.W;
     var area = logoArea(qr, o.logo);
-    var pl = plan(qr, area);
-    var list = pieces(qr, o, pl);
+    var prep = prepared(qr, o, area);
+    var pl = prep.pl, list = prep.list;
     var n = qr.n, p = o.progress;
-    var pen = new CanvasPen(ctx, L.ox, L.oy, L.m);
 
-    var fill;
+    // The modules are drawn in black on a mask, then the colour (or gradient) goes in through the mask
+    // and the mask onto the background. Rounded tiles, joined modules and fillets are stamped from
+    // small sprites drawn once per module size: the same pixels as drawing each in place (modules sit
+    // on whole device pixels) at a fraction of the cost.
+    var mk = maskFor(W);
+    var mx = mk.getContext('2d');
+    mx.setTransform(1, 0, 0, 1, 0, 0);
+    mx.globalCompositeOperation = 'source-over';
+    mx.globalAlpha = 1;
+    mx.clearRect(0, 0, W, W);
+    mx.fillStyle = '#000';
+    var pen = new CanvasPen(mx, L.ox, L.oy, L.m);
+    var stamp = o.shape === 'tondi' || o.shape === 'uniti';
+    var merge = o.shape === 'quadrati';
+    var full = merge ? new Uint8Array(n * n) : null;
+    var LEVELS = 12, buckets = [];
+    for (var b = 0; b <= LEVELS; b++) buckets.push([]);
+    for (var j = 0; j < list.length; j++) {
+      var pc = list[j];
+      var t = p >= 1 ? 1 : (p - pc.d * (1 - WINDOW)) / WINDOW;
+      if (t <= 0) continue;
+      if (t >= 1) {
+        if (merge && pc.k === 0) { full[pc.r * n + pc.c] = 1; continue; }
+        buckets[LEVELS].push(pc, 1);
+        continue;
+      }
+      var al = easeOutCubic(Math.min(1, t * 1.5));
+      buckets[Math.round(al * LEVELS)].push(pc, t);
+    }
+    for (var lv = 1; lv <= LEVELS; lv++) {
+      var bk = buckets[lv];
+      if (!bk.length && !(lv === LEVELS && merge)) continue;
+      mx.globalAlpha = lv / LEVELS;
+      mx.beginPath();
+      for (var q = 0; q < bk.length; q += 2) {
+        var it = bk[q], tt = bk[q + 1];
+        var sc = tt >= 1 ? 1 : 0.25 + 0.75 * easeOutBack(tt);
+        if (stamp && (it.k === 0 || it.k === 3)) {
+          var sp = sprite(L.m, o.shape, it, sc);
+          mx.drawImage(sp.cv, L.ox + it.c * L.m - sp.pad, L.oy + it.r * L.m - sp.pad);
+        } else drawPiece(pen, it, o, n, pl.st, sc);
+      }
+      if (lv === LEVELS && merge) runs(pen, o.shape, pl.st, full, n);
+      mx.fill();
+    }
+    mx.globalAlpha = 1;
+    mx.globalCompositeOperation = 'source-in';
     if (o.fg && typeof o.fg === 'object') {
       var g = gradientLine(L.ox, L.oy, L.side, o.fg.angle);
-      fill = ctx.createLinearGradient(g[0], g[1], g[2], g[3]);
-      fill.addColorStop(0, o.fg.from || '#111111');
-      fill.addColorStop(1, o.fg.to || o.fg.from || '#111111');
-    } else fill = o.fg;
-    ctx.fillStyle = fill;
+      var gr = mx.createLinearGradient(g[0], g[1], g[2], g[3]);
+      gr.addColorStop(0, o.fg.from || '#111111');
+      gr.addColorStop(1, o.fg.to || o.fg.from || '#111111');
+      mx.fillStyle = gr;
+    } else mx.fillStyle = o.fg;
+    mx.fillRect(0, 0, W, W);
+    mx.globalCompositeOperation = 'source-over';
 
-    if (p >= 1) {
-      ctx.beginPath();
-      for (var i = 0; i < list.length; i++) drawPiece(pen, list[i], o, n, pl.st, 1);
-      ctx.fill();
-    } else {
-      var LEVELS = 12, buckets = [];
-      for (var b = 0; b <= LEVELS; b++) buckets.push([]);
-      for (var j = 0; j < list.length; j++) {
-        var t = (p - list[j].d * (1 - WINDOW)) / WINDOW;
-        if (t <= 0) continue;
-        if (t > 1) t = 1;
-        var al = easeOutCubic(Math.min(1, t * 1.5));
-        buckets[Math.round(al * LEVELS)].push([list[j], t]);
-      }
-      for (var lv = 1; lv <= LEVELS; lv++) {
-        if (!buckets[lv].length) continue;
-        ctx.globalAlpha = lv / LEVELS;
-        ctx.beginPath();
-        for (var q = 0; q < buckets[lv].length; q++) {
-          var it = buckets[lv][q];
-          var s = it[1] >= 1 ? 1 : 0.25 + 0.75 * easeOutBack(it[1]);
-          drawPiece(pen, it[0], o, n, pl.st, s);
-        }
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.clearRect(0, 0, W, W);
+    if (o.bg !== 'transparent') { ctx.fillStyle = o.bg; ctx.fillRect(0, 0, W, W); }
+    ctx.drawImage(mk, 0, 0);
 
     if (area && o.logo.image && imageReady(o.logo.image)) {
       var la = p >= 1 ? 1 : clamp((p - 0.7) / 0.3, 0, 1);
@@ -730,21 +859,17 @@
     var T = n + 2 * quiet;
     var size = Math.max(16, num(o.size, 256));
     var area = logoArea(qr, o.logo);
-    var pl = plan(qr, area);
-    var list = pieces(qr, o, pl);
+    var prep = prepared(qr, o, area);
+    var pl = prep.pl, list = prep.list;
     var pen = new SvgPen(quiet, quiet);
-    if (o.shape === 'quadrati') {
-      // horizontal runs make a smaller file; the eyes and alignment stay pieces
-      for (var r = 0; r < n; r++) {
-        var c = 0;
-        while (c < n) {
-          if (pl.st[r * n + c] !== 1) { c++; continue; }
-          var c0 = c;
-          while (c < n && pl.st[r * n + c] === 1) c++;
-          rect(pen, c0, r, c - c0, 1);
-        }
+    if (o.shape === 'quadrati' || o.shape === 'uniti') {
+      // horizontal runs make a smaller file; the eyes, alignment and fillets stay pieces
+      var full = new Uint8Array(n * n);
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].k === 0) full[list[i].r * n + list[i].c] = 1;
+        else drawPiece(pen, list[i], o, n, pl.st, 1);
       }
-      for (var i = 0; i < list.length; i++) if (list[i].k !== 0) drawPiece(pen, list[i], o, n, pl.st, 1);
+      runs(pen, o.shape, pl.st, full, n);
     } else {
       for (var j = 0; j < list.length; j++) drawPiece(pen, list[j], o, n, pl.st, 1);
     }
@@ -822,7 +947,7 @@
       var res = null, inverted = false;
       try { res = dec(data, w, h, { inversionAttempts: 'dontInvert' }); } catch (e) { res = null; }
       if (!res) {
-        try { res = dec(data, w, h, { inversionAttempts: 'onlyInvert' }); } catch (e2) { res = null; }
+        try { res = dec(data, w, h, { inversionAttempts: 'attemptBoth' }); } catch (e2) { res = null; } // 'onlyInvert' is broken in jsQR 1.4
         inverted = !!res;
       }
       if (res) {
@@ -915,6 +1040,8 @@
   // 1 px modules on clean pixels: these limits are for real cameras, not for the bench.
   var MIN_CSS = { quadrati: 1.75, uniti: 1.75, tondi: 2, punti: 2 };
   var MIN_DEV = { quadrati: 1, uniti: 1, tondi: 2, punti: 2 };
+  // an SVG drawn off the pixel grid with 3.6 px per module failed zxing-cpp in every shape; 4.9 px passed
+  var MIN_DEV_SVG = 4;
   // Part of the error correction a logo may use, counted exactly: every codeword with a module under the
   // logo's margin is taken as wrong, and in the worst Reed-Solomon block those must stay under this share
   // of what the block can correct (the rest is left for blur, glare and print).
@@ -939,14 +1066,20 @@
     if (q < 4) add('MARGINE', 'avviso', 'Margine sotto i 4 moduli: alcuni lettori faticano a trovare il codice.');
     if (qr) {
       var L = layoutFor(qr.n, o);
-      var css = L.m / L.dpr;
+      var dev = L.m, css = L.m / L.dpr, minDev = MIN_DEV[o.shape];
+      if (opts && opts.svg === true) {
+        // an SVG is not snapped to the pixel grid: off the grid both decoders need more pixels
+        dev = L.W / (qr.n + 2 * L.quiet); css = dev / L.dpr; minDev = Math.max(minDev, MIN_DEV_SVG);
+      }
       details.moduleCss = Math.round(css * 100) / 100;
-      details.moduleDev = L.m;
-      if (L.m < MIN_DEV[o.shape] || css < MIN_CSS[o.shape] - 1e-9) {
+      details.moduleDev = Math.round(dev * 100) / 100;
+      if (dev < minDev - 1e-9 || css < MIN_CSS[o.shape] - 1e-9) {
         add('MODULI_PICCOLI', 'errore', o.shape === 'quadrati' || o.shape === 'uniti'
           ? 'Codice troppo fitto per questa misura: ingrandiscilo o accorcia il testo.'
           : 'Codice troppo fitto per questa forma: ingrandiscilo, accorcia il testo o usa i quadrati.');
       }
+      if (qr.version >= 36) add('DENSO', 'errore', 'Troppo fitto per un telefono: accorcia il testo.');
+      else if (qr.version >= 31) add('DENSO', 'avviso', 'Codice molto fitto: alcuni telefoni faticano a leggerlo.');
       if (o.logo) {
         var pl = plan(qr, logoArea(qr, o.logo));
         var dataMods = 0, areaMods = 0;

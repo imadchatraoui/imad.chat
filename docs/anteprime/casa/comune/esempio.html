@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Esempio — imad.chat</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
+<!-- Pagina d'esempio del guscio comune: NON va online (la build pubblica solo i file index.html delle cartelle casa/<nome>/).
+     Una pagina vera sta in docs/anteprime/casa/<nome>/index.html e scrive gli indirizzi relativi a sé: ../comune/pagina.css,
+     ../../shared/astro-lite.js, ../home/index.html per tornare alla casa. Qui, che sta in comune/, valgono gli stessi. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..600&family=Manrope:wght@400..800&display=swap">
+<link rel="stylesheet" href="pagina.css">
+</head>
+<body class="pg-corpo">
+<div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
+
+<header class="pg-testa">
+  <a class="pg-casa" href="../home/index.html" aria-label="imad.chat, torna alla casa"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <p class="pg-titolo">Esempio</p>
+</header>
+
+<main class="pg">
+  <h1 class="pg-h1">Una pagina interna</h1>
+  <p class="pg-lead">Il titolo grande, una riga sotto, poi le parti della pagina. Stessi colori, stessi materiali e stesso sfondo della casa.</p>
+
+  <h2 class="pg-h2">Schede</h2>
+  <p class="pg-p">Sul telefono stanno in colonna; da 700 px in su due affiancate, da 1100 px in su tre con <b>pg-griglia--tre</b>.</p>
+  <div class="pg-griglia pg-griglia--tre">
+    <a class="pg-card" href="#"><h3>Vetro</h3><p>La scheda di base, come i riquadri chiari della casa.</p></a>
+    <div class="pg-card pg-card--carta"><h3>Carta</h3><p>Per i testi da leggere con calma.</p></div>
+    <div class="pg-card pg-card--inchiostro"><h3>Inchiostro</h3><p>Per il codice e le cose da programmatori.</p></div>
+  </div>
+
+  <h2 class="pg-h2">Pulsanti</h2>
+  <p class="pg-p"><a class="pg-pill" href="#">Un pulsante</a> <a class="pg-pill pg-pill--argilla" href="#">Quello che conta di più</a></p>
+  <p class="pg-nota">Una nota piccola e grigia: fonti, licenze, «si aggiorna tra poco».</p>
+</main>
+
+<footer class="pg-piede"><a href="../home/index.html">Torna alla casa</a><span>Il cielo di questa pagina è quello di Torino, adesso.</span></footer>
+
+<script src="../../shared/astro-lite.js"></script>
+<script src="pagina.js"></script>
+</body>
+</html>

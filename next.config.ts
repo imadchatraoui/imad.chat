@@ -14,8 +14,13 @@ const config: NextConfig = {
     return {
       beforeFiles: [
         { source: "/", destination: "/home/index.html" },
-        // l'anteprima della bento nuova: stessa cosa, a un indirizzo a parte (non indicizzato)
+        // la casa nuova, a un indirizzo a parte (non indicizzato): scripts/home/build.mjs la scrive in public/anteprima.
+        // Le pagine interne (/anteprima/progetti, /anteprima/mondo/<luogo>, ...) aprono il loro index.html; i nomi con un punto
+        // (app.js, style.css) sono file e non passano di qui. Il giorno che la casa sostituisce la home (BASE "/" nella build),
+        // "/" e "/:a" puntano a /anteprima/index.html e /anteprima/:a/index.html.
         { source: "/anteprima", destination: "/anteprima/index.html" },
+        { source: "/anteprima/:a([a-z0-9-]+)", destination: "/anteprima/:a/index.html" },
+        { source: "/anteprima/:a([a-z0-9-]+)/:b([a-z0-9-]+)", destination: "/anteprima/:a/:b/index.html" },
         // l'anteprima di Dot, il gatto (non indicizzata)
         { source: "/gatto", destination: "/gatto/index.html" },
       ],

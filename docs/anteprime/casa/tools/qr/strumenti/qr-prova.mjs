@@ -102,7 +102,7 @@ window.runSvg = function (cs) {
       var cv = document.createElement('canvas'); cv.width = cv.height = px;
       var x = cv.getContext('2d'); x.drawImage(img, 0, 0, px, px);
       var v = QRCore.verify(cv, cs.text);
-      var sc = QRCore.scannable(Object.assign({}, opts, { dpr: cs.scale || 2 }), qr);
+      var sc = QRCore.scannable(Object.assign({}, opts, { dpr: cs.scale || 2, svg: true }), qr);
       resolve({ version: qr.version, n: qr.n, mode: qr.mode, m: px / (qr.n + 8), quiet: 4, cleared: 0, js: v.text, jsOk: v.ok, inv: v.inverted,
         level: sc.level, why: sc.why, codes: sc.problems.map(function (p) { return p.code + ':' + p.level; }).join(','), det: sc.details, scale: v.scale, png: cv.toDataURL('image/png'), bytes: s.length, ms: 0 });
     };
@@ -172,11 +172,20 @@ function matrix(P) {
   for (const [k, t] of [['corto', TEXTS.corto], ['url60', longUrl(60)], ['url120', TEXTS.url120], ['url300', TEXTS.url300]])
     for (const ecc of ['M', 'Q', 'H']) for (const scale of [0.12, 0.15, 0.18, 0.21, 0.24, 0.27, 0.3]) for (const pad of [0, 1, 2]) for (const shape of ['quadrati', 'uniti'])
       add('logo-limite', `${k} ecc ${ecc} logo ${scale} pad ${pad} ${shape}`, t, { ecc }, { size: 320, dpr: 2, shape, logo: { scale, pad, kind: 'scuro' } });
+  // E3. every size of code: lengths that reach versions 1 to 40, big enough to read (about 6 device px a module)
+  for (const len of [10, 40, 80, 150, 250, 400, 600, 850, 1100, 1400, 1700, 2000, 2300, 2600, 2900]) for (const shape of ['quadrati', 'uniti']) {
+    const t = longUrl(Math.max(len, 30)).slice(0, len).replace(/^https:\/\/www\.esempio\.it/, len < 30 ? 'imad.chat' : 'https://www.esempio.it');
+    add('versioni', `${len} caratteri ${shape}`, t, { ecc: 'L' }, { size: 400, dpr: 3, shape, eye: 'tondo' });
+  }
   // F. the home tile: URLs up to 120 characters, 120 to 132 CSS px, every shape and eye, x1 to x3
   for (const len of [24, 60, 90, 120]) for (const shape of SHAPES) for (const eye of EYES) for (const size of [120, 132]) for (const dpr of [1, 2, 3]) {
     const t = len === 24 ? 'https://imad.chat/tools' + '/'.repeat(1) : longUrl(len);
     add('casa', `url${len} ${shape}/${eye} ${size}px x${dpr}`, t.slice(0, len), { ecc: 'M' }, { size, dpr, shape, eye, quiet: 4, fg: '#1d1b16', bg: '#ffffff' });
   }
+  // F2. pixel ratios of real Android phones and SVGs rasterised off the module grid
+  for (const shape of SHAPES) for (const dpr of [1.5, 2.625, 3.5]) add('frazionari', `url120 ${shape} 132px x${dpr}`, TEXTS.url120, { ecc: 'M' }, { size: 132, dpr, shape, eye: 'goccia' });
+  for (const shape of SHAPES) for (const [k, t, ecc] of [['vcard', P.vcard, 'M'], ['url300', TEXTS.url300, 'Q']]) for (const scale of [1, 1.37])
+    add('frazionari', `svg ${k} ${shape} x${scale}`, t, { ecc }, { size: 320, shape, eye: 'tondo', fg: { from: '#8a5a12', to: '#1d1b16' } }, { svg: true, scale });
   // G. SVG
   for (const shape of SHAPES) {
     add('svg', `svg ${shape} url120`, TEXTS.url120, { ecc: 'M' }, { size: 132, shape, eye: 'goccia' }, { svg: true, scale: 2 });
@@ -193,7 +202,8 @@ out = {}
 try:
     import zxingcpp
     from PIL import Image
-    eng = 'zxing-cpp ' + getattr(zxingcpp, '__version__', '')
+    from importlib.metadata import version
+    eng = 'zxing-cpp ' + version('zxing-cpp')
     def flat(f):
         im = Image.open(f).convert('RGBA')
         bg = Image.new('RGBA', im.size, (255, 255, 255, 255))
@@ -301,6 +311,13 @@ async function selfChecks(page) {
     ok(Math.abs(QRCore.contrast('#000', '#fff') - 21) < 0.01, 'contrasto 21');
     ok(QRCore.contrast({ from: '#000', to: '#777' }, '#fff') < 5, 'contrasto gradiente');
     ok(QRCore.suggestEcc(true) === 'H' && QRCore.suggestEcc(false) === 'M', 'suggestEcc');
+    // verify takes ImageData too, and says no to a wrong expected text
+    const cv = document.createElement('canvas');
+    QRCore.render(cv, qr, { size: 200, dpr: 2, bg: 'transparent' });
+    const id = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height);
+    ok(QRCore.verify(id, 'https://imad.chat/tools/qr').ok, 'verify ImageData');
+    ok(!QRCore.verify(cv, 'https://imad.chat/altro').ok, 'verify testo diverso');
+    ok(QRCore.svg(qr, { size: 100 }).indexOf('<svg') === 0, 'svg');
     return fails;
   }, [(await buildCases(page)).wifi, (await buildCases(page)).vcard, WIFI_IN, VCARD_IN]);
 }

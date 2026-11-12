@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>imad.chat — anteprima</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
+<script>
+/* prima del primo disegno: il tema (?theme=light|dark, per le fotografie), le fotografie (?shot=1: niente intro, tutto fermo),
+   e l'intro, che per ora parte a ogni caricamento. Non parte con «meno movimento», se la pagina si apre già su un riquadro
+   (?open= o #citta, #saluti, #corano) o per le fotografie (shot=1 senza seek=1). */
+(function () {
+  var q = new URLSearchParams(location.search), r = document.documentElement;
+  var th = q.get("theme");
+  if (th === "light" || th === "dark") r.setAttribute("data-theme", th);
+  var shot = q.get("shot") === "1", seek = q.get("seek") === "1";
+  if (shot) r.classList.add("is-shot");
+  var calm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (seek || (!shot && !calm && !q.get("open") && !location.hash)) {
+    r.classList.add("ni-on", "is-locked");
+    /* se lo script dell'intro non parte, la pagina non resta coperta */
+    setTimeout(function () { if (!window.__niStarted) r.classList.remove("ni-on", "is-locked"); }, 5000);
+  }
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Geist+Mono:wght@400..600&family=Manrope:wght@400..800&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="casa.css">
+<link rel="stylesheet" href="vivi.css">
+<link rel="stylesheet" href="../../intro/intro.css">
+</head>
+<body>
+<!-- sfondo vivo: campi di colore presi dal cielo di Torino adesso, più la grana -->
+<div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
+
+<main class="home" id="home">
+  <!-- la riga in alto: il logo e i suoni. Lo spazio fino all'hero è la mensola di Dot: la sua scatola sta sul bordo dell'hero -->
+  <header class="bar" id="bar">
+    <a class="logo" href="#" id="logo" aria-label="imad.chat, torna in cima"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+    <button class="iconbtn" id="sound" type="button" aria-pressed="true" aria-label="Suoni accesi. Tocca per spegnerli">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.5 9.75h2.75L11.5 6.2v11.6l-4.25-3.55H4.5z"/>
+        <g class="snd-on"><path d="M15 9.4a3.7 3.7 0 0 1 0 5.2"/><path d="M17.6 6.9a7.2 7.2 0 0 1 0 10.2"/></g>
+        <g class="snd-off"><path d="M15.4 9.6l4.8 4.8"/><path d="M20.2 9.6l-4.8 4.8"/></g>
+      </svg>
+    </button>
+  </header>
+
+  <div class="testa">
+    <!-- HERO: il cielo di Torino adesso, la prima stella, imad.chat_ battuto dall'intro, la riga dei saluti -->
+    <section class="tile hero" id="hero" data-tile="hero" aria-label="imad.chat">
+      <div class="skybox" id="heroSky" aria-hidden="true"></div>
+      <i class="star1" id="star1" aria-hidden="true"><b></b><i></i></i>
+      <div class="hero__text" id="heroText">
+        <h1 class="hero__word" lang="en">imad.chat</h1>
+        <p class="riga" id="riga" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <!-- CIAO: sullo sfondo, non è un riquadro. La frase di Imad non c'è ancora: la riga grigia è un segnaposto nostro e lo dice -->
+    <div class="ciao" id="ciao">
+      <h2 class="ciao__t">Ciao, sono Imad.</h2>
+      <p class="ciao__p">La frase qui la scrive Imad.</p>
+      <p class="ciao__b">
+        <a class="pill" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr"> (si apre in una nuova scheda)</span></a>
+        <button class="pill pill--clay" type="button" data-open="saluti"><i class="stardot" aria-hidden="true"></i>Lascia un saluto</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- I NOVE RIQUADRI. L'intro vola su di loro in quest'ordine (window.__niTiles, più sotto); il dock li riordina (casa.css) -->
+  <div class="grid" id="grid" data-filtro="tutto">
+
+    <!-- CORANO: carta, fermo. Dot non ci sale e non ci passa sopra -->
+    <article class="tile corano" data-tile="corano" data-mat="paper" data-dot="no">
+      <button class="tile__hit" type="button" data-open="corano" aria-label="Corano, versetto di oggi. Apri il lettore"></button>
+      <div class="tile__in">
+        <header class="tile__head"><span class="label label--ink">Corano</span><span class="label">Versetto di oggi</span></header>
+        <div class="corano__verse">
+          <p class="ayah js-var" lang="ar" dir="rtl"></p>
+          <p class="corano__it js-vit"></p>
+        </div>
+        <footer class="tile__foot"><span><span class="js-vsurah"></span> <span class="num js-vref"></span></span><span>trad. Hamza Roberto Piccardo</span></footer>
+      </div>
+    </article>
+
+    <!-- LE CITTÀ: il globo a puntini, giorno e notte veri, le cinque città e le linee verso Makkah -->
+    <article class="tile win citta" data-tile="citta" data-mat="night">
+      <button class="tile__hit" type="button" data-open="citta" aria-label="Le città, adesso: Gaza, Torino, Medina, Makkah e Casablanca. Apri"></button>
+      <canvas class="win__cv" id="globo" aria-hidden="true"></canvas>
+      <div class="tile__in">
+        <header class="tile__head"><span class="label label--ink">Le città, adesso</span><i class="moondisc js-moon" aria-hidden="true"></i></header>
+        <p class="citta__now" aria-hidden="true"><b id="mCity"></b><span><time class="num" id="mTime"></time><i id="mPart"></i></span></p>
+      </div>
+    </article>
+
+    <!-- NEL MONDO: fermo e sobrio. Le parole sono di Imad: finché non scrive, solo il titolo e la riga che lo dice. Dot qui sta tranquillo -->
+    <article class="tile mondo" data-tile="mondo" data-mat="glass" data-dot="quiet">
+      <a class="tile__hit" href="../mondo/index.html" aria-label="Nel mondo. Apri la pagina"></a>
+      <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg>
+      <div class="tile__in">
+        <h2 class="mondo__t">Nel mondo</h2>
+        <!-- mondo:titoli -->
+        <p class="mondo__p">Presto, con le parole di Imad.</p>
+      </div>
+    </article>
+
+    <!-- SU DI ME: una finestra; la foto è provvisoria, la metterà Imad -->
+    <article class="tile win me" data-tile="sudime" data-mat="night">
+      <img class="win__img" src="media/torino.jpg" alt="" aria-hidden="true">
+      <i class="win__scrim" aria-hidden="true"></i>
+      <a class="tile__hit" href="../su-di-me/index.html" aria-label="Su di me. Apri la pagina"></a>
+      <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg>
+      <div class="tile__in">
+        <span class="label label--ink">Su di me</span>
+        <h2 class="me__name">Imad</h2>
+        <p class="me__line">La foto e le parole, presto: le sue.</p>
+      </div>
+    </article>
+
+    <!-- PROGETTI: il cubo nei colori Kukko che si mescola e si risolve da solo -->
+    <article class="tile progetti" data-tile="progetti" data-mat="glass">
+      <a class="tile__hit" href="../progetti/index.html" aria-label="Progetti. Apri la pagina"></a>
+      <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg>
+      <div class="tile__in">
+        <canvas class="cubo__cv" id="cuboCv" aria-hidden="true"></canvas>
+        <h2 class="title">Progetti</h2>
+      </div>
+    </article>
+
+    <!-- STO IMPARANDO: i commit di threejs-journey e un solido a fil di ferro (li mette vivi.js) -->
+    <article class="tile imparando" data-tile="imparando" data-mat="ink">
+      <a class="tile__hit" href="https://github.com/imadchatraoui/threejs-journey" target="_blank" rel="noopener" aria-label="Sto imparando: Three.js Journey. Apri il repository su GitHub, in una nuova scheda"></a>
+      <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg>
+      <div class="tile__in">
+        <header class="tile__head"><span class="label label--ink">Sto imparando</span></header>
+        <div class="vivo" id="impara"><p class="vivo__riposo">Three.js Journey</p></div>
+      </div>
+    </article>
+
+    <!-- TOOLS: il mini QR che funziona davvero (lo mette vivi.js con QRCore). Niente velo di tocco su tutto il riquadro: dentro ci sono comandi -->
+    <article class="tile tools" data-tile="tools" data-mat="glass">
+      <div class="tile__in">
+        <header class="tile__head"><span class="label label--ink">Tools</span></header>
+        <div class="vivo vivo--tocca" id="qrMini" data-jsqr="../tools/qr/vendor/jsQR.js"><p class="vivo__riposo">Un codice QR da un link, fatto qui sul telefono.</p></div>
+      </div>
+    </article>
+
+    <!-- HEATMAP: l'anno di Imad su GitHub (lo mette vivi.js dai dati di /api/github/contributi; senza dati non si inventa niente) -->
+    <article class="tile heatmap" data-tile="heatmap" data-mat="ink">
+      <div class="tile__in">
+        <header class="tile__head"><span class="label label--ink">Un anno su GitHub</span></header>
+        <div class="vivo vivo--tocca" id="heat"><p class="vivo__riposo">Si aggiorna tra poco.</p></div>
+      </div>
+    </article>
+
+    <!-- SALUTI: i saluti che scorrono e, se l'hai accesa, la tua stella -->
+    <article class="tile saluti" data-tile="saluti" data-mat="glass">
+      <button class="tile__hit" type="button" data-open="saluti" aria-label="Lascia un saluto: diventa una stella nel cielo di Imad. Apri"></button>
+      <div class="tile__in">
+        <h2 class="title">Lascia un saluto</h2>
+        <p class="sub">Diventa una stella nel cielo di Imad.</p>
+        <div class="marq" aria-hidden="true"><div class="marq__row" id="marq"></div></div>
+        <p class="saluti__mine" id="salMine" hidden><i class="stardot" aria-hidden="true"></i><span>La tua stella: <b id="salMineW"></b></span></p>
+      </div>
+    </article>
+
+  </div>
+
+  <footer class="foot">
+    <div class="l9 l9--big" role="img" aria-label="imad.chat"><i>i</i><i>m</i><i>a</i><i>d</i><i class="s"></i><i>c</i><i>h</i><i>a</i><i>t</i></div>
+    <p class="foot__sky"><i class="skydot js-tordot" aria-hidden="true"></i><span>Il cielo e la luce di questa pagina sono quelli di Torino, adesso: <time class="js-tortime"></time>, <span class="js-torpart"></span>.</span></p>
+    <p class="foot__cred">Il cubo ha i colori Kukko del gioco di Imad, un fork di «The Cube» di Boris Šehovac. Le terre del globo vengono da Natural Earth. Foto provvisoria di Torino: Konstantin Dacosta, CC BY 3.0. Il Corano: testo di quran.com, traduzione di Hamza Roberto Piccardo.</p>
+  </footer>
+</main>
+
+<!-- Dot: il suo strato sta sopra i riquadri e sotto le pagine aperte; taglia ciò che sporge di lato -->
+<div class="dot-clip" id="dotclip" data-media="../../gatto/media/"></div>
+
+<!-- il dock: i quattro filtri -->
+<div class="dock" id="dock" role="group" aria-label="Metti davanti i riquadri di">
+  <i class="dock__pill" aria-hidden="true"></i>
+  <button class="dock__b" type="button" data-filtro="tutto" aria-pressed="true">Tutto</button>
+  <button class="dock__b" type="button" data-filtro="sudime" aria-pressed="false">Su di me</button>
+  <button class="dock__b" type="button" data-filtro="progetti" aria-pressed="false">Progetti</button>
+  <button class="dock__b" type="button" data-filtro="tools" aria-pressed="false">Tools</button>
+</div>
+<p class="sr" id="filtroDetto" aria-live="polite"></p>
+
+<!-- pagina aperta sopra la casa: Le città, Lascia un saluto, il lettore del Corano -->
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet__scrim" id="sheetScrim"></div>
+  <div class="sheet__ghost" id="sheetGhost" hidden></div>
+  <div class="sheet__card" id="sheetCard" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1">
+    <div class="sheet__bg" id="sheetBg"></div>
+    <div class="sheet__body" id="sheetBody"></div>
+    <i class="sheet__grab" aria-hidden="true"></i>
+    <button class="iconbtn sheet__close" id="sheetClose" type="button" aria-label="Chiudi">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- l'intro: una tela sopra la pagina, finché non atterra sui nove riquadri -->
+<canvas class="ni" id="ni" aria-hidden="true" data-media="../../intro/media/"></canvas>
+
+<script src="../../shared/data.js"></script>
+<script src="../../shared/astro-lite.js"></script>
+<script src="app.js"></script>
+<script src="terra.js"></script>
+<script src="vivo.js"></script>
+<script src="../../gatto/dot-rig.js"></script>
+<script src="../../gatto/look-manifesto.js"></script>
+<script src="../../gatto/dot-stage.js"></script>
+<script src="../../gatto/dot-sound.js"></script>
+<script src="../../gatto/dot-fx.js"></script>
+<script src="../../gatto/dot-brain.js"></script>
+<script src="casa.js"></script>
+<script>
+/* l'intro atterra su questi nove riquadri, in quest'ordine della sua griglia 3x3 (riga per riga); le foto delle lettere stanno con l'intro */
+window.__niMedia = document.getElementById("ni").getAttribute("data-media");
+window.__niTiles = ["corano", "citta", "mondo", "sudime", "progetti", "imparando", "tools", "heatmap", "saluti"];
+</script>
+<script src="../../intro/intro.js"></script>
+<script src="../tools/qr/vendor/qrcode-generator.js"></script>
+<script src="../tools/qr/qr-core.js"></script>
+<script src="vivi.js"></script>
+</body>
+</html>

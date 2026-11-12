@@ -1,0 +1,174 @@
+/* imad.chat — il guscio comune delle pagine interne (progetti, mondo, su di me, tools...). La casa ha i suoi file; questo è per le altre.
+   COME SI USA (vedi esempio.html, che non va online):
+     <link rel="stylesheet" href="../comune/pagina.css">          (da casa/<nome>/; da casa/<nome>/<sotto>/ è ../../comune/)
+     <body class="pg-corpo">  poi lo sfondo vivo:  <div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
+     <header class="pg-testa"> con il logo a nove caratteri che torna alla casa (href="../home/index.html") e il titolo piccolo della pagina
+     <main class="pg"> il contenuto: .pg-h1 (il titolo grande), .pg-lead (la riga sotto), .pg-h2, .pg-p, .pg-card (vetro), .pg-pill (pulsante),
+                       .pg-griglia (schede in colonna sul telefono, due o tre affiancate sui più larghi), .pg-nota (testo piccolo e grigio)
+     <footer class="pg-piede"> il fondo: torna alla casa, il cielo di Torino
+     <script src="../../shared/astro-lite.js"></script> (facoltativo: senza, lo sfondo resta nei colori di base) e <script src="../comune/pagina.js"></script>
+   Gli stessi token della casa (colori, raggi, caratteri, movimento), chiaro e scuro seguono il telefono (?theme=light|dark per le foto).
+   Regole: italiano, niente corsivo, niente emoji come icone, input a 16 px, bersagli da 44 px, «meno movimento» rispettato.
+   Safari non recente: niente :has() in una lista, top/right/bottom/left al posto di inset, -webkit-backdrop-filter. */
+
+/* ------------------------------------------------------------------ reset */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { margin: 0; }
+em, i, cite, address, dfn, var { font-style: normal; }
+h1, h2, h3, p, ul, ol, figure, pre { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; text-align: inherit; }
+a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+svg { display: block; }
+b { font-weight: inherit; }
+[hidden] { display: none !important; }
+
+/* ------------------------------------------------------------------ token: gli stessi della casa (docs/anteprime/casa/home/style.css) */
+:root {
+  color-scheme: light;
+  --font-sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --gutter: 20px;
+  --r: 32px; --r-in: 22px; --gs: 96px;
+  --ease-out: cubic-bezier(.22, 1, .36, 1); --ease-in-out: cubic-bezier(.65, 0, .35, 1); --d-press: 140ms;
+  --bg: #f5f4f9; --page: #f7f6fb;
+  --wall-1: var(--wl-1, #dfe3fb); --wall-2: var(--wl-2, #eadff6); --wall-3: var(--wl-3, #f7dfe6); --wall-4: var(--wl-4, #fbe4d3); --wall-o: 1;
+  --ink: #16171d; --ink-2: rgba(22, 23, 29, .66); --ink-3: rgba(22, 23, 29, .46);
+  --hair: rgba(30, 28, 70, .09); --fill: rgba(30, 28, 70, .055); --fill-2: rgba(30, 28, 70, .1);
+  --glass-mat: linear-gradient(180deg, rgba(255, 255, 255, .88) 0%, rgba(255, 255, 255, .62) 100%);
+  --e1: rgba(255, 255, 255, 1); --e2: rgba(255, 255, 255, .75); --e3: rgba(255, 255, 255, .45);
+  --sh: 46 40 100; --ring: rgb(46 40 100 / .05); --s1: .15; --s2: .22;
+  --paper-mat: radial-gradient(120% 70% at 50% -12%, rgba(255, 255, 255, .9) 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, #fffaf0 0%, #f7efdc 100%);
+  --paper: #fbf6ea; --paper-ink: #221d14; --paper-ink-2: rgba(34, 29, 20, .64);
+  --ink-mat: radial-gradient(120% 80% at 50% -20%, rgba(150, 170, 255, .16) 0%, rgba(150, 170, 255, 0) 60%), linear-gradient(180deg, #181e3c 0%, #0c1022 100%);
+  --clay: #a4543b; --clay-a: #c9775a; --clay-b: #a4543b; --gold: #f3dfa8; --gold-ink: #b98a2e;
+  --btn-glass: rgba(255, 255, 255, .7); --bar-glass: rgba(245, 244, 249, .72); --focus: #16171d;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #070810; --page: #0c0d16;
+    --wall-1: var(--wd-1, #1b2670); --wall-2: var(--wd-2, #35266d); --wall-3: var(--wd-3, #5b2a4c); --wall-4: var(--wd-4, #6b3a2a); --wall-o: .9;
+    --ink: #f4f5fa; --ink-2: rgba(240, 242, 252, .66); --ink-3: rgba(240, 242, 252, .44);
+    --hair: rgba(255, 255, 255, .1); --fill: rgba(255, 255, 255, .08); --fill-2: rgba(255, 255, 255, .14);
+    --glass-mat: radial-gradient(120% 70% at 50% -16%, rgba(255, 255, 255, .075) 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, rgba(255, 255, 255, .09) 0%, rgba(255, 255, 255, .05) 100%);
+    --e1: rgba(255, 255, 255, .2); --e2: rgba(255, 255, 255, .07); --e3: rgba(255, 255, 255, .035);
+    --sh: 0 0 0; --ring: rgba(255, 255, 255, .02); --s1: 0; --s2: .5;
+    --paper-mat: radial-gradient(120% 74% at 50% -14%, rgba(255, 224, 168, .1) 0%, rgba(255, 224, 168, 0) 64%), linear-gradient(180deg, #2a241c 0%, #1b1712 100%);
+    --paper: #1d1914; --paper-ink: #f2ead8; --paper-ink-2: rgba(242, 234, 216, .62);
+    --clay: #e3a48c; --gold-ink: #f3dfa8; --btn-glass: rgba(255, 255, 255, .1); --bar-glass: rgba(16, 17, 28, .62); --focus: #ffffff;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #070810; --page: #0c0d16;
+  --wall-1: var(--wd-1, #1b2670); --wall-2: var(--wd-2, #35266d); --wall-3: var(--wd-3, #5b2a4c); --wall-4: var(--wd-4, #6b3a2a); --wall-o: .9;
+  --ink: #f4f5fa; --ink-2: rgba(240, 242, 252, .66); --ink-3: rgba(240, 242, 252, .44);
+  --hair: rgba(255, 255, 255, .1); --fill: rgba(255, 255, 255, .08); --fill-2: rgba(255, 255, 255, .14);
+  --glass-mat: radial-gradient(120% 70% at 50% -16%, rgba(255, 255, 255, .075) 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, rgba(255, 255, 255, .09) 0%, rgba(255, 255, 255, .05) 100%);
+  --e1: rgba(255, 255, 255, .2); --e2: rgba(255, 255, 255, .07); --e3: rgba(255, 255, 255, .035);
+  --sh: 0 0 0; --ring: rgba(255, 255, 255, .02); --s1: 0; --s2: .5;
+  --paper-mat: radial-gradient(120% 74% at 50% -14%, rgba(255, 224, 168, .1) 0%, rgba(255, 224, 168, 0) 64%), linear-gradient(180deg, #2a241c 0%, #1b1712 100%);
+  --paper: #1d1914; --paper-ink: #f2ead8; --paper-ink-2: rgba(242, 234, 216, .62);
+  --clay: #e3a48c; --gold-ink: #f3dfa8; --btn-glass: rgba(255, 255, 255, .1); --bar-glass: rgba(16, 17, 28, .62); --focus: #ffffff;
+}
+
+/* ------------------------------------------------------------------ base */
+html { background: var(--bg); }
+.pg-corpo {
+  position: relative; min-height: 100vh; min-height: 100dvh; overflow-x: hidden;
+  background: var(--bg); color: var(--ink);
+  font: 500 16px/1.5 var(--font-sans); letter-spacing: -.008em;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; font-synthesis: none;
+}
+:focus-visible { outline: 2.5px solid var(--focus); outline-offset: 3px; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+[lang="ar"] { letter-spacing: normal; word-spacing: normal; text-shadow: none; }
+
+/* lo sfondo vivo, come nella casa (pagina.js gli dà i colori del cielo di Torino adesso) */
+.wall { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; overflow: hidden; pointer-events: none; background: var(--bg); }
+.wall i { position: absolute; display: block; }
+.wall__a, .wall__b { top: -16%; right: -16%; bottom: -16%; left: -16%; opacity: var(--wall-o); will-change: transform; }
+.wall__a { background: radial-gradient(58% 40% at 14% 10%, var(--wall-1) 0%, transparent 72%), radial-gradient(52% 38% at 96% 34%, var(--wall-2) 0%, transparent 72%), radial-gradient(64% 36% at 26% 98%, var(--wall-3) 0%, transparent 74%); animation: pg-drift-a 46s ease-in-out infinite alternate; }
+.wall__b { background: radial-gradient(40% 26% at 82% 84%, var(--wall-4) 0%, transparent 72%), radial-gradient(42% 30% at 2% 54%, var(--wall-2) 0%, transparent 72%), radial-gradient(36% 22% at 60% 2%, var(--wall-3) 0%, transparent 74%); animation: pg-drift-b 58s ease-in-out infinite alternate; }
+.wall__g { top: 0; right: 0; bottom: 0; left: 0; background: var(--grain, none) 0 0 / var(--gs) var(--gs); }
+@keyframes pg-drift-a { from { transform: translate3d(-2%, -1.5%, 0) scale(1); } to { transform: translate3d(3%, 2.5%, 0) scale(1.08); } }
+@keyframes pg-drift-b { from { transform: translate3d(3.5%, 3%, 0) scale(1.07); } to { transform: translate3d(-3.5%, -3.5%, 0) scale(1); } }
+.is-shot .wall { position: absolute; }
+
+/* ------------------------------------------------------------------ la testa: il logo che torna alla casa e il titolo piccolo */
+.pg-testa {
+  position: -webkit-sticky; position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 6px; min-height: 56px;
+  padding: calc(env(safe-area-inset-top) + 6px) var(--gutter) 6px calc(var(--gutter) - 8px);
+}
+.pg-testa::before { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: -1; background: var(--bar-glass); -webkit-backdrop-filter: saturate(1.8) blur(22px); backdrop-filter: saturate(1.8) blur(22px); box-shadow: 0 1px 0 var(--hair); opacity: 0; transition: opacity 220ms ease; }
+.pg-testa.is-stuck::before { opacity: 1; }
+.pg-casa { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: var(--ink); transition: transform var(--d-press) var(--ease-out); }
+.pg-casa:active { transform: scale(.92); }
+.pg-testa .l9 { display: grid; grid-template-columns: repeat(3, 8px); grid-auto-rows: 8px; gap: 3px; }
+.pg-testa .l9 i { display: block; border-radius: 2.4px; background: currentColor; opacity: .88; }
+.pg-testa .l9 i:nth-child(2n) { opacity: .6; }
+.pg-testa .l9 .s { border-radius: 50%; background: var(--gold-ink); opacity: 1; transform: scale(.8); box-shadow: 0 0 7px 1.5px rgba(232, 180, 88, .7); }
+.pg-titolo { font: 700 17px/1.2 var(--font-sans); letter-spacing: -.025em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ------------------------------------------------------------------ il contenuto */
+.pg { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 18px var(--gutter) calc(env(safe-area-inset-bottom) + 40px); }
+.pg-h1 { font: 800 clamp(34px, 10vw, 56px)/1.02 var(--font-sans); letter-spacing: -.05em; margin-left: -.03em; text-wrap: balance; }
+.pg-lead { margin-top: 12px; max-width: 32em; font: 500 18px/1.45 var(--font-sans); letter-spacing: -.014em; color: var(--ink-2); text-wrap: pretty; }
+.pg-h2 { margin-top: 40px; font: 700 24px/1.15 var(--font-sans); letter-spacing: -.035em; }
+.pg-p { margin-top: 12px; max-width: 36em; font: 500 17px/1.6 var(--font-sans); letter-spacing: -.01em; text-wrap: pretty; }
+.pg-p a:not(.pg-pill), .pg-lead a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: var(--ink-3); }
+.pg-nota { margin-top: 10px; font: 500 13px/19px var(--font-sans); letter-spacing: -.004em; color: var(--ink-3); text-wrap: pretty; }
+.pg-griglia { margin-top: 20px; display: grid; grid-template-columns: 1fr; gap: 12px; }
+.pg-card {
+  position: relative; overflow: hidden; border-radius: var(--r); padding: 20px 20px 18px;
+  background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--glass-mat);
+  box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgb(var(--sh) / calc(var(--s1) * .35)), 0 12px 28px -12px rgb(var(--sh) / var(--s1)), 0 36px 64px -36px rgb(var(--sh) / var(--s2));
+}
+.pg-card::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 1px 0 var(--e2); }
+.pg-card--carta { background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--paper-mat); color: var(--paper-ink); }
+.pg-card--inchiostro { background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--ink-mat); color: #e3e7f4; }
+.pg-card h3 { font: 700 18px/1.25 var(--font-sans); letter-spacing: -.025em; }
+.pg-card p { margin-top: 6px; font: 500 14.5px/1.45 var(--font-sans); letter-spacing: -.008em; color: var(--ink-2); }
+.pg-card--carta p { color: var(--paper-ink-2); }
+.pg-card--inchiostro p { color: rgba(227, 231, 244, .64); }
+a.pg-card { display: block; transition: transform 240ms var(--ease-out); }
+a.pg-card:active { transform: scale(.98); }
+.pg-pill {
+  position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 17px 0 16px; border-radius: 22px;
+  font: 600 15px/1 var(--font-sans); letter-spacing: -.012em; color: var(--ink); white-space: nowrap;
+  background: var(--btn-glass); box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--ring), 0 8px 18px -12px rgb(var(--sh) / .5);
+  -webkit-backdrop-filter: saturate(1.6) blur(16px); backdrop-filter: saturate(1.6) blur(16px);
+  transition: transform var(--d-press) var(--ease-out);
+}
+.pg-pill:active { transform: scale(.96); }
+.pg-pill--argilla { color: #fff; background: linear-gradient(180deg, var(--clay-a) 0%, var(--clay-b) 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .34), 0 10px 18px -10px rgba(150, 70, 44, .8); -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* ------------------------------------------------------------------ il fondo */
+.pg-piede { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 8px var(--gutter) calc(env(safe-area-inset-bottom) + 40px); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font: 500 13px/19px var(--font-sans); color: var(--ink-3); }
+.pg-piede a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-2); font-weight: 600; }
+
+/* ------------------------------------------------------------------ schermi più larghi */
+@media (min-width: 700px) {
+  :root { --gutter: 32px; --r: 34px; }
+  .pg { padding-top: 34px; }
+  .pg-griglia { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+}
+@media (min-width: 1100px) {
+  .pg, .pg-piede { max-width: 1040px; }
+  .pg-griglia--tre { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+}
+@media (hover: hover) and (pointer: fine) {
+  a.pg-card:hover { transform: translateY(-3px); }
+  .pg-pill:hover { transform: translateY(-1px); }
+  .pg-casa:hover { opacity: .72; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wall__a, .wall__b { animation: none; }
+  .pg-testa::before, a.pg-card, .pg-pill, .pg-casa { transition: none; }
+  a.pg-card:hover { transform: none; }
+}
+.is-shot .wall__a, .is-shot .wall__b { animation: none; }

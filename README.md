@@ -108,6 +108,30 @@ npm run start          # serve la build
   `?t=2026-11-11T21:00:00Z`, `?state=exploded`, `?fallback=1`, `?debug=1`.
 - Sulla home, `?debug=1` espone lo strumento nella console (`window.__astrolabe`).
 
+## I dati di GitHub (heatmap e progetti)
+
+La home legge due indirizzi del sito, che chiedono a GitHub e tengono la risposta in cache per tre ore
+(se GitHub non risponde si continua a mostrare l'ultima risposta buona):
+
+- `/api/github/contributi`: il calendario dei contributi dell'ultimo anno (la heatmap);
+- `/api/github/progetti`: i repository **pubblici** di `imadchatraoui` e gli ultimi commit di `threejs-journey`.
+  Un repository privato non compare mai.
+
+Aggiungendo `?debug=1` si vede che cosa è stato provato e dove si è fermato (mai il token).
+Il codice è in `lib/github/`, le prove in `node scripts/check/github.mjs`.
+
+**Il token è facoltativo, ma consigliato.** Senza token GitHub concede poche richieste all'ora per indirizzo, e su
+Vercel l'indirizzo è condiviso con altri siti: i progetti possono restare vuoti finché il limite non si azzera.
+Per evitarlo:
+
+1. su GitHub: *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*;
+   nome `imad.chat`, *Repository access: Public repositories (read-only)*, nessun altro permesso;
+2. su Vercel: progetto *imadchat* → *Settings → Environment Variables* → nome `GITHUB_TOKEN`, valore il token,
+   ambiente *Production*; poi un nuovo deploy.
+
+Con il token la heatmap usa l'API ufficiale e i conteggi sono quelli del tuo profilo (se nel profilo hai scelto di
+mostrare anche i contributi privati, contano anche quelli: solo il numero per giorno, mai i nomi dei repository).
+
 ## Pubblicare
 
 Il sito è su Vercel (Next.js). Le anteprime condivise (Instagram, WhatsApp) usano il dominio di produzione del

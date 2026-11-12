@@ -100,13 +100,15 @@
     var u = K / 2.6, CW = Math.round(150 * u), CH = Math.round(160 * u), rows = Math.ceil(LIST.length / cols), dpr = Math.min(window.devicePixelRatio || 1, 3);   /* le caselle crescono con k */
     function baseOy(s) { return s.edge === "hang" ? 26 * u : s.edge === "face" ? 70 * u : s.oy ? s.oy * u : s.edge === "top" ? 96 * u : 118 * u; }
     /* prima passata: le pose lunghe (preso, a cavallo del bordo, scivola) scendono sotto la scritta: la loro riga diventa più alta */
-    var shift = [], rowH = [], rowY = [0], r, idx;
+    var shift = [], rowH = [], rowY = [0], r, idx, band = Math.max(24 * u, Math.max(9, Math.round(10 * Math.sqrt(u))) + 12);   /* lo spazio della scritta in fondo alla casella */
     for (idx = 0; idx < LIST.length; idx++) {
       var s1 = LIST[idx]; setup(rig, s1); var e = extent(rig.frame()), oy1 = baseOy(s1), rise = s1.rise || 0;
       var top = oy1 - (e[1] + rise) * K, bot = oy1 - (e[0] + rise) * K, sh = Math.max(0, 6 * u - top);
-      shift.push(sh); r = Math.floor(idx / cols); rowH[r] = Math.max(rowH[r] || CH, Math.ceil(bot + sh + 24 * u));
+      shift.push(sh); r = Math.floor(idx / cols); rowH[r] = Math.max(rowH[r] || CH, Math.ceil(bot + sh + band));
     }
     for (r = 0; r < rows; r++) rowY.push(rowY[r] + rowH[r]);
+    window.__cells = LIST.map(function (s2, i2) { var r2 = Math.floor(i2 / cols); setup(rig, s2); var e2 = extent(rig.frame()), o2 = baseOy(s2) + shift[i2], rs = s2.rise || 0;   /* per le prove: dove sta il gatto e dove la scritta */
+      return { id: s2.id, catTop: rowY[r2] + o2 - (e2[1] + rs) * K, catBottom: rowY[r2] + o2 - (e2[0] + rs) * K, labelTop: rowY[r2] + rowH[r2] - 7 - Math.max(9, Math.round(10 * Math.sqrt(u))), cellTop: rowY[r2] }; });
     cv.width = cols * CW * dpr; cv.height = rowY[rows] * dpr; cv.style.width = cols * CW + "px"; cv.style.height = rowY[rows] + "px";
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     var tile = light ? "rgba(20,24,60,.07)" : "rgba(255,255,255,.085)", line = light ? "rgba(20,24,60,.16)" : "rgba(255,255,255,.14)", txt = light ? "rgba(20,24,50,.6)" : "rgba(255,255,255,.55)";

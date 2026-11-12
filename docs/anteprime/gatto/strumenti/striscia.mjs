@@ -41,7 +41,7 @@ const SCENES = {
   "cube-knock": { js: `var i = P.findIndex(function (p) { return p.y > P[0].y + 20; }); D.place(P[i].b - 4, i); D.tick(0.6); D.set("cube", { side: 1, knock: true, face: "side", pose: "sit" }); return { pre: 0, T: 4.4 };` },
   yarn: { js: `D.place(P[0].a + 60, 0); D.tick(0.6); D.set("yarn", { side: 1, face: "side", pose: "sit" }); return { pre: 0, T: 3.6 };` },
   laptop: { js: `D.place(P[0].a + 100, 0); D.tick(0.6); D.set("laptop", { side: 1, face: "view", pose: "sit" }); return { pre: 0, T: 6.4 };` },
-  pet: { js: `D.place(P[0].a + 100, 0); D.tick(0.6); D.set("pet", { face: "view", pose: "sit" }); D.at(4.2, function () { D.set("unroll", { face: "side", pose: "stand" }); }); return { pre: 0, T: 5.4 };` },
+  pet: { js: `D.place(P[0].a + 100, 0); D.tick(0.6); D.press(); D.at(6.3, function () { D.lift(); }); return { pre: 3.1, T: 5.6 };` },   /* un dito fermo: fusa, poi si scioglie; il dito se ne va: si alza stiracchiandosi */
   pounce: { js: `D.place(P[0].a + 50, 0); D.tick(0.6); D.set("pounce", { tx: P[0].a + 150, then: "sit" }); return { pre: 0, T: 2.0 };` },
   hide: { js: `D.place(D.box().x - 60, 0); D.tick(0.6); D.fedUp(); return { pre: 0, T: 6.0 };` },
   "tap-annoy": { js: `D.place(P[0].a + 120, 0); D.set("sulk", { face: "back", pose: "annoyed", dur: 6 }); return { pre: 0, T: 7.6 };` }
