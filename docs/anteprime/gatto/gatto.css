@@ -1,0 +1,32 @@
+/* Anteprima della mascotte: una pagina di prova con riquadri finti. Il gatto vive su una tela 3D sopra la pagina. */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; color: #fff; font: 500 14px/1.4 Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: linear-gradient(180deg, #060818 0%, #0d1236 38%, #1b1f55 70%, #3b2d63 100%) fixed; background-color: #0d1236; -webkit-font-smoothing: antialiased; }
+.pg { max-width: 460px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 110px); }
+.pg__tag { margin: 0 0 150px; font-size: 12px; letter-spacing: .02em; color: rgba(255, 255, 255, .5); text-align: center; }
+.pg__note { margin: 26px 0 0; font-size: 13px; color: rgba(255, 255, 255, .6); text-align: center; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.t { position: relative; height: var(--h, 170px); border-radius: 30px; background: linear-gradient(180deg, rgba(255, 255, 255, .11), rgba(255, 255, 255, .055));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), 0 18px 40px -24px rgba(0, 0, 0, .7); }
+.t--w { grid-column: 1 / -1; }
+.t span { position: absolute; left: 18px; bottom: 15px; font-size: 12px; color: rgba(255, 255, 255, .34); }
+
+#gl { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 40; width: 100%; height: 100%; pointer-events: none; }
+.grab { position: absolute; z-index: 45; left: 0; top: 0; width: 84px; height: 84px; margin: 0; padding: 0; border: 0; border-radius: 50%; background: transparent;
+  touch-action: none; cursor: grab; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.grab:active { cursor: grabbing; }
+.grab:focus-visible { outline: 2px solid rgba(255, 255, 255, .7); outline-offset: -6px; }
+
+/* la nuvoletta: compare una volta, sopra il gatto */
+.fum { position: absolute; z-index: 46; left: 0; top: 0; display: flex; flex-direction: column; gap: 1px; padding: 10px 15px 11px; border-radius: 18px; max-width: 230px;
+  background: rgba(250, 249, 246, .96); color: #15161c; box-shadow: 0 14px 34px -14px rgba(0, 0, 0, .6); pointer-events: none;
+  opacity: 0; transform: translate(-50%, -100%) scale(.6); transform-origin: 50% 120%; transition: opacity 180ms ease, transform 420ms cubic-bezier(.2, 1.5, .4, 1); white-space: nowrap; }
+.fum.is-on { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+.fum::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 14px; height: 14px; margin-left: -7px; border-radius: 3px; background: inherit; transform: rotate(45deg); }
+.fum b { font-weight: 800; font-size: 15px; letter-spacing: -.02em; }
+.fum span { font-weight: 600; font-size: 12.5px; color: rgba(21, 22, 28, .62); }
+
+.again { position: fixed; z-index: 50; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 14px); transform: translateX(-50%); height: 44px; padding: 0 20px; border: 1px dashed rgba(255, 255, 255, .4);
+  border-radius: 22px; background: rgba(22, 22, 30, .86); color: #fff; font: 600 13px/1 inherit; font-family: inherit; cursor: pointer; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+@media (min-width: 760px) { .pg { max-width: 760px; } .grid { grid-template-columns: repeat(4, 1fr); } .t--w { grid-column: span 2; } }

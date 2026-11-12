@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>imad.chat — anteprima della mascotte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/gatto/gatto.css">
+</head>
+<body>
+<main class="pg">
+  <p class="pg__tag">anteprima · la mascotte da sola</p>
+  <section class="grid">
+    <div class="t t--w" style="--h: 190px"><span>riquadro di prova</span></div>
+    <div class="t" style="--h: 176px"><span>riquadro</span></div>
+    <div class="t" style="--h: 176px"><span>riquadro</span></div>
+    <div class="t t--w" style="--h: 150px"><span>riquadro</span></div>
+    <div class="t" style="--h: 200px"><span>riquadro</span></div>
+    <div class="t" style="--h: 200px"><span>riquadro</span></div>
+    <div class="t t--w" style="--h: 170px"><span>riquadro</span></div>
+  </section>
+  <p class="pg__note">Tocca il gatto: si sveglia, salta. Trascinalo: lo sposti su un altro riquadro.</p>
+</main>
+
+<!-- la tela 3D sta sopra la pagina e non prende i tocchi: li prende solo la piccola maniglia sopra il gatto -->
+<canvas id="gl" aria-hidden="true"></canvas>
+<button class="grab" id="grab" type="button" aria-label="Dot, il gatto"></button>
+<div class="fum" id="fum" role="status"><b>ciao, sono Dot.</b><span>«chat» in francese è gatto.</span></div>
+<button class="again" id="again" type="button">Rivedi</button>
+
+<script type="module" src="/gatto/gatto.bundle.js"></script>
+</body>
+</html>
