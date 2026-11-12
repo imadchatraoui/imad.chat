@@ -1,7 +1,13 @@
-/* Nuova apertura di imad.chat (anteprima, disegnata a codice su una tela).
+/* Nuova apertura di imad.chat (anteprima, disegnata a codice su una tela). COPIA di intro.js per la casa nuova (CASA.md 2c F):
+   intro.js e intro.css sono quelli della home online e non si toccano. Qui ci sono tre versioni: «stella» e «cursore» come in
+   intro.js (identiche), e «gatto», quella della casa nuova (la pagina la chiede con window.__niV = "gatto"; ?v=stella mostra quella di oggi).
    imad chatraoui → si cancella «raoui» → arriva il punto (versione «stella» o «cursore») → «chat» cresce e le lettere
    diventano finestre su un mosaico di riquadri → le nove lettere si mettono in griglia, come una faccia del cubo →
    la griglia gira come un cubo e si apre nei riquadri veri → imad.chat_ con il cursore che lampeggia.
+   «gatto» (il punto è la stella) cambia solo la fine, e solo se l'apertura di Dot sta per partire (prima visita della sessione:
+   window.__niDot.passage, lo decide casa.js): i nove quadrati si premono uno dopo l'altro e si dividono in due; la base resta, la
+   finestra si accende e vola al suo riquadro; il tasto sale verso chi guarda e i nove tasti, insieme, volano sulla mensola di Dot e
+   lì la scena di Dot (dot-stage.js, lo stesso pittore) li prende sullo stesso fotogramma. In ogni altro caso la fine è quella di oggi.
    Tutto dipende da un solo tempo t (ms): ?seek=1 ferma la riproduzione e window.__ni.seek(ms) disegna quell'istante. */
 (() => {
   "use strict";
@@ -12,11 +18,14 @@
   const ctx = cvs.getContext("2d");
   const win = doc.createElement("canvas"), wctx = win.getContext("2d");
   const SEEK = Q.get("seek") === "1";
-  const VERSIONS = ["stella", "cursore"];
-  let version = "stella";
+  const VERSIONS = ["stella", "cursore", "gatto"];
+  let version = VERSIONS.includes(window.__niV) ? window.__niV : "stella";
   if (doc.getElementById("nbar")) { try { const s = localStorage.getItem("imad.anteprima.intro"); if (VERSIONS.includes(s)) version = s; } catch (e) { /* senza memoria va bene lo stesso */ } }
   if (VERSIONS.includes(Q.get("v"))) version = Q.get("v");
   const MEDIA = window.__niMedia || "media/";
+  /* il punto: «gatto» ha la stella, come «stella» (attributo data-ni: lo stile del punto nell'hero; data-ni-v: la versione) */
+  const star = () => version !== "cursore";
+  const dotKind = () => (star() ? "stella" : "cursore");
 
   /* la scritta nell'hero: nove caratteri e il cursore da terminale */
   function prepareWord() {
@@ -28,7 +37,7 @@
     return w;
   }
   /* niente intro (meno movimento, pagina aperta su un riquadro, fotografie): la pagina è già nello stato finale */
-  if (!root.classList.contains("ni-on")) { prepareWord(); root.setAttribute("data-ni", version); root.classList.add("ni-done"); window.__niDone = true; window.__niReady = true; return; }
+  if (!root.classList.contains("ni-on")) { prepareWord(); root.setAttribute("data-ni", dotKind()); root.setAttribute("data-ni-v", version); root.classList.add("ni-done"); window.__niDone = true; window.__niReady = true; return; }
 
   const MONO = '"Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace';
   const SANS = 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
@@ -79,7 +88,37 @@
     T.mv1 = T.open1 + 210; T.mv2 = T.mv1 + 210; T.fly0 = T.mv2; T.flyDur = 600; T.fly1 = T.fly0 + T.flyDur + 8 * 26;
     T.type0 = T.fly0 + 560; T.type1 = T.type0 + 9 * 44; T.end = T.type1 + 260;
   })();
-  const impact = () => T.dot0 + (version === "stella" ? 350 : 430);
+  /* «gatto», il passaggio alla scatola di Dot: i suoi numeri (ms) e i momenti con un nome, in __ni.T come gli altri.
+     settled: le nove lettere sono ferme nella griglia (il quadrato del punto è quello in cui Dot salterà, prima della pressione: DOT_GAP);
+     press: comincia la pressione (un quadrato ogni STEP, in ordine di lettura); split: il primo tasto si stacca dalla sua base;
+     landed: l'ultima base è atterrata nel suo riquadro, la pagina è libera (si scorre, si tocca); handover: i nove tasti sono fermi
+     sulla mensola e la scena di Dot li prende. I tempi di oggi (fly0, fly1, type0, type1, end...) cambiano solo quando il passaggio c'è. */
+  const G = {
+    DOT_GAP: 280,     /* fermi, prima della pressione: lo spazio per Dot che salta nel quadrato del punto (la prossima parte) */
+    STEP: 30,         /* tra un quadrato e il successivo */
+    DIP: 110,         /* il quadrato scende */
+    RISE: 300,        /* il tasto sale verso chi guarda (con un poco di troppo, poi si posa nell'aria) */
+    LIFT: 0.1,        /* quanto sale il tasto: la distanza della sua ombra, in celle */
+    CAPF: 0.64,       /* la faccia del tasto sulla griglia, in celle: intorno si vede la finestra della base */
+    FLY_AFTER: 500,   /* dalla pressione alla prima base che vola */
+    CAPS_AFTER: 560,  /* dalla pressione ai tasti che partono */
+    ROWLAG: 36,       /* le righe partono e arrivano una dopo l'altra, l'ultima in basso: in volo il gruppo si allunga appena e torna */
+    CAPDUR: 760,      /* il volo di una riga */
+    SETTLE: 190,      /* l'arrivo: il tasto «scatta» al suo posto (la riga in basso si posa sul bordo), poi tre fotogrammi fermi prima della scena */
+    ARC: 0.2,         /* quanto si incurva la strada (in parti della sua lunghezza) */
+  };
+  T.settled = T.back1 + 520;
+  T.press = T.settled + G.DOT_GAP;
+  T.split = T.press + G.DIP;
+  T.capsGo = T.press + G.CAPS_AFTER;
+  T.handover = T.capsGo + 2 * G.ROWLAG + G.CAPDUR + G.SETTLE;
+  T.landed = T.press + G.FLY_AFTER + T.flyDur + 8 * 26;
+  const T_TODAY = Object.assign({}, T);
+  function passTimes() {
+    const fly0 = T.press + G.FLY_AFTER, type0 = fly0 + 560, type1 = type0 + 9 * 44;
+    return { open0: 1e9, open1: 1e9, mv1: 1e9, mv2: 1e9, fly0, fly1: fly0 + T.flyDur + 8 * 26, type0, type1, end: Math.max(type1 + 260, T.handover + 1) };
+  }
+  const impact = () => T.dot0 + (star() ? 350 : 430);
 
   /* ------------------------------------------------------------------ immagini e scene vive */
   const IMG = {};
@@ -207,6 +246,7 @@
     SQ.length = 0;
     TILES.forEach((id, k) => { const el = doc.querySelector('[data-tile="' + id + '"]'); const r = el ? el.getBoundingClientRect() : { left: W / 2, top: H, width: cell, height: cell }; SQ.push({ k, el, x: r.left, y: r.top, w: r.width, h: r.height }); });
     const order = SQ.slice().sort((p, q) => p.y - q.y || p.x - q.x); order.forEach((q, i) => { q.t0 = T.fly0 + i * 26; });
+    if (capsCv && PASS && stg()) { CDPR = stg().dpr(); capsCv.width = Math.round(W * CDPR); capsCv.height = Math.round((H + CAPS_PAD) * CDPR); capsCv.style.width = W + "px"; capsCv.style.height = (H + CAPS_PAD) + "px"; capsTop = 0; capsCv.style.top = "0px"; }
   }
 
   /* ------------------------------------------------------------------ il mosaico: tanti riquadri con dentro le sue cose */
@@ -243,14 +283,14 @@
   function hop(i, t) { /* le lettere sentono l'atterraggio del punto: un'onda che parte dal centro */
     const d = Math.abs(i - 4), tau = t - (impact() + d * 34);
     if (tau <= 0 || tau > 900) return 0;
-    return -fm * (version === "stella" ? 0.34 : 0.2) * Math.exp(-0.55 * d) * Math.exp(-tau / 130) * Math.sin(tau / 48);
+    return -fm * (star() ? 0.34 : 0.2) * Math.exp(-0.55 * d) * Math.exp(-tau / 130) * Math.sin(tau / 48);
   }
   /* stato del punto nella riga a macchina: { x, y, r } a riposo; disegna anche l'arrivo */
   function dotRest(t) { return { x: xA + shiftX(t) + 4.5 * adv, y: baseM - rM, r: rM }; }
   function drawDotArrival(t) {
     const tau = t - T.dot0; if (tau < 0) return;
     const R = dotRest(t);
-    if (version === "stella") {
+    if (star()) {
       const hm = starHome(), xs = hm.x, ys = hm.y;
       const at = (u) => ({ x: lerp(xs, R.x, Math.pow(u, 0.82)), y: lerp(ys, R.y, u * u) });
       if (tau < 350) {
@@ -287,7 +327,7 @@
     if (ti < 340) { const p = eOut(ti / 340); ctx.strokeStyle = `rgba(243,244,248,${(0.34 * (1 - ti / 340)).toFixed(3)})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(R.x, baseM, lerp(R.r, fm * 1.5, p), lerp(R.r * 0.5, fm * 0.42, p), 0, 0, 6.3); ctx.stroke(); }
     ctx.save(); ctx.translate(R.x, baseM); ctx.scale(1 + 0.32 * q, 1 - 0.3 * q); rrect(ctx, -w / 2, -h, w, h, h / 2); ctx.fill(); ctx.restore();
   }
-  function drawDot(x, y, r) { if (version === "stella") drawStar(ctx, x, y, Math.min(r, 13), clamp(r * 5.6, 9, 170), 1); else { ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.3); ctx.fill(); } }
+  function drawDot(x, y, r) { if (star()) drawStar(ctx, x, y, Math.min(r, 13), clamp(r * 5.6, 9, 170), 1); else { ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.3); ctx.fill(); } }
 
   /* ------------------------------------------------------------------ il cielo dell'intro: stelle piccole e grandi che respirano, una stella cadente lontana.
      Una di quelle stelle ferme è quella che poi scende e diventa il punto. */
@@ -306,8 +346,8 @@
       ctx.fillStyle = `rgba(255,250,238,${a.toFixed(3)})`; ctx.beginPath(); ctx.arc(x, y, rr, 0, 6.3); ctx.fill();
     }
     /* la stella che diventerà il punto: ferma tra le altre, respira; poco prima di scendere si accende */
-    if (version !== "stella" || t < T.dot0) {
-      const h = starHome(), br = 0.5 + 0.5 * Math.sin(t * 6.283 / 3400 + 1.1), wake = version === "stella" ? eIO(seg(t, T.dot0 - 300, T.dot0)) : 0;
+    if (!star() || t < T.dot0) {
+      const h = starHome(), br = 0.5 + 0.5 * Math.sin(t * 6.283 / 3400 + 1.1), wake = star() ? eIO(seg(t, T.dot0 - 300, T.dot0)) : 0;
       drawStar(ctx, h.x, h.y, lerp(1.7 * (0.9 + 0.2 * br), rM * 1.15, wake), lerp(10 + 3 * br, fm * 1.25, wake), sat(t / 520) * k * lerp(0.78 + 0.22 * br, 1, wake));
     }
     /* una stella cadente piccola e chiara, lontana, in alto */
@@ -351,12 +391,12 @@
     }
     /* il cursore: fermo mentre si scrive, poi lampeggia */
     let cv = false, cs = 1;
-    const cursorAway = version === "cursore" && t >= T.dot0 && t < T.dot0 + 600;
+    const cursorAway = !star() && t >= T.dot0 && t < T.dot0 + 600;
     if (!cursorAway) {
-      const last = Math.max(0, ...T.key.filter((k) => k <= t), ...T.del.filter((k) => k <= t), version === "cursore" && t >= T.dot0 + 600 ? T.dot0 + 600 : 0);
+      const last = Math.max(0, ...T.key.filter((k) => k <= t), ...T.del.filter((k) => k <= t), !star() && t >= T.dot0 + 600 ? T.dot0 + 600 : 0);
       const since = t - last;
       cv = t > 60 && (last === 0 ? Math.floor(t / 265) % 2 === 0 : since < 380 || Math.floor((since - 380) / 530) % 2 === 1);
-      if (version === "cursore" && t >= T.dot0 + 600) cs = eBack(seg(t, T.dot0 + 600, T.dot0 + 760), 2);
+      if (!star() && t >= T.dot0 + 600) cs = eBack(seg(t, T.dot0 + 600, T.dot0 + 760), 2);
     }
     const ca = 1 - seg(t, T.bold0 - 40, T.bold0 + 110);
     if (cv && ca > 0) { const bw = adv * 0.84, bh = Math.max(2, fm * 0.085); ctx.globalAlpha = ca; ctx.fillStyle = INK; ctx.fillRect(xA + sx + n * adv, baseM + fm * 0.14 + bh * (1 - cs), bw, bh * cs); ctx.globalAlpha = 1; }
@@ -427,6 +467,7 @@
       const sc = lerp(0.82, 1, eBack(seg(t, t0 + 110, t0 + 400), 1.6)), s = cell * sc, px = B.cx - s / 2, py = B.cy - s / 2;
       /* il riquadro: già vivo, ma in penombra finché la lettera è accesa */
       if (pa > 0) { ctx.save(); ctx.globalAlpha = pa; rrect(ctx, px, py, s, s, s * 0.24); ctx.clip(); CONTENT[CELLS[i]](ctx, px, py, s, s, t); ctx.fillStyle = `rgba(6,7,13,${(0.62 * (1 - oa)).toFixed(3)})`; ctx.fillRect(px, py, s, s); ctx.restore(); }
+      GEO.sq[i] = { x: px, y: py, w: s, h: s, ds: 1 };                 /* solo un appunto per chi disegna Dot nell'intro: il disegno non cambia */
       if (i === 4) { const r0 = 0.095 * c.size, rb = cell * 0.075; drawDot(lerp(A.x + EM.a[4] * c.size / 2, B.cx, pe), lerp(A.y - r0, B.cy, pe), lerp(r0, rb, ps)); continue; }
       const g = { ch: NAME[i], x: lerp(A.x, B.x, pe), y: lerp(A.y, B.y, pe), size: lerp(A.size, B.size, ps) };
       if (wh < 1) glyphs.push(Object.assign({ a: 1 - wh }, g));
@@ -481,61 +522,234 @@
     }
   }
 
+  /* ------------------------------------------------------------------ 5. «gatto»: il passaggio alla scatola di Dot (solo quando PASS)
+     I nove quadrati si premono uno dopo l'altro (STEP ms, in ordine di lettura). Ognuno scende e, risalendo, si divide: la base resta
+     (la sua finestra si accende e poi vola al suo riquadro, come oggi) e il tasto (la lettera, ora un tasto color crema: lo stesso
+     disegno della scena di Dot) sale verso chi guarda con un'ombra morbida. I nove tasti tengono la loro griglia, si rimpiccioliscono
+     fino alla misura dei tasti della scena e volano insieme lungo un arco sulla mensola sopra l'hero; le righe arrivano una dopo
+     l'altra, l'ultima in basso, e scattano al loro posto. All'arrivo la scena di Dot li prende sullo stesso fotogramma. */
+  let PASS = false, freed = false, handed = false, cut = false, setupDone = false, lastT = 0;
+  let capsCv = null, cctx = null, CDPR = 1, FORMED = null, capsTop = 0;
+  const CAPS_PAD = 240;   /* la tela dei tasti è più alta dello schermo: così può salire e stare allineata, in verticale, alla tela della scena */
+  const GEO = { phase: "", sq: [], cap: null };          /* dove sono adesso i quadrati e i tasti (per chi disegna Dot nell'intro) */
+  const HOOKS = [];
+  const stg = () => { const D = window.DOT, s = D && D.stage; return s && s.paint && s.formed && s.dpr && s.size ? s : null; };
+  function passWanted() {
+    const d = window.__niDot;
+    if (version !== "gatto" || !d || !d.passage || !d.anchor || !d.handover || !stg()) return false;
+    try { return !!d.anchor(); } catch (e) { return false; }
+  }
+  function makeCaps() {
+    if (!capsCv) {
+      capsCv = doc.createElement("canvas"); capsCv.setAttribute("aria-hidden", "true"); capsCv.className = "ni-tasti";
+      const s = capsCv.style; s.position = "fixed"; s.top = "0px"; s.left = "0px"; s.margin = "0"; s.pointerEvents = "none";
+      (doc.body || root).appendChild(capsCv); cctx = capsCv.getContext("2d");
+    }
+    capsCv.style.display = "block"; capsCv.style.zIndex = "91";        /* sopra la tela dell'intro; quando la pagina è libera scende sotto i fogli (60) */
+  }
+  function anchorV() { let a = null; try { a = window.__niDot.anchor(); } catch (e) { a = null; } return a ? { x: a.x - (window.pageXOffset || 0), y: a.y - (window.pageYOffset || 0) } : null; }
+  const bez = (a, c, b, u) => (1 - u) * (1 - u) * a + 2 * u * (1 - u) * c + u * u * b;
+
+  /* un quadrato nel passaggio: quanto è premuto (ds), il buio sulla sua finestra, la lettera bianca che entra nel tasto, il tasto che esce */
+  function kst(i, t) {
+    const p0 = T.press + i * G.STEP, s0 = p0 + G.DIP, o = { ds: 1, shade: 0.62, la: 1, ls: 1, ca: 0, cs: 0.3, lf: 0 };
+    if (t <= p0) return o;
+    if (t < s0) { const u = eIO((t - p0) / G.DIP); o.ds = 1 - 0.1 * u; o.shade = 0.62 + 0.14 * u; }
+    else {
+      const tau = t - s0, r = sat(tau / G.RISE);
+      o.ds = 1 - 0.1 * Math.exp(-tau / 70) * Math.cos(tau / 42);      /* risale, un filo oltre, si ferma */
+      o.shade = 0.76 * (1 - eOut(sat(tau / 340)));                     /* la finestra si accende */
+      o.ca = sat(tau / 16); o.cs = 0.3 + 0.7 * eBack(r, 1.6); o.lf = eBack(r, 1.2);     /* il tasto sboccia dal centro della lettera, pieno da subito, e cresce */
+    }
+    const v = sat((t - (s0 - 40)) / 90); o.la = 1 - eIO(v); o.ls = o.ds * lerp(1, 0.62, eIO(v));   /* la lettera bianca scende nel quadrato */
+    return o;
+  }
+  /* la base: come square(), con il buio della griglia e senza il punto (il punto sale con il suo tasto) */
+  function baseSq(k, x, y, w, h, rad, a, t, shade, wash) {
+    if (a <= 0 || w < 1 || h < 1) return;
+    ctx.save(); ctx.globalAlpha = a; rrect(ctx, x, y, w, h, rad); ctx.clip(); CONTENT[CELLS[k]](ctx, x, y, w, h, t);
+    if (shade > 0) { ctx.fillStyle = `rgba(6,7,13,${shade.toFixed(3)})`; ctx.fillRect(x, y, w, h); }
+    if (wash > 0) { ctx.globalAlpha = a * wash; ctx.fillStyle = isDark() ? "#1e1a14" : "#fbf5e9"; ctx.fillRect(x, y, w, h); }
+    ctx.restore();
+  }
+  function phaseKeys(t) {
+    GEO.phase = t < T.capsGo ? "press" : "fly";
+    const order = [0, 1, 2, 3, 4, 5, 6, 7, 8].sort((a, b) => SQ[b].t0 - SQ[a].t0);   /* chi parte prima sta sopra */
+    for (const i of order) {
+      const q = SQ[i], k = kst(i, t), B = gCell(i), p = seg(t, q.t0, q.t0 + T.flyDur);
+      if (p >= 1) { GEO.sq[i] = null; continue; }
+      const s0 = cell * k.ds, e = eIO(p), es = eOutQ(p), paper = i === 0;   /* il quadrato che diventa il Corano */
+      const x = lerp(B.cx - s0 / 2, q.x, e), y = lerp(B.cy - s0 / 2, q.y, e), w = lerp(s0, q.w, es), h = lerp(s0, q.h, es);
+      baseSq(i, x, y, w, h, lerp(s0 * 0.24, 32, e), paper ? 1 - seg(p, 0.86, 1) : 1 - eIn(seg(p, 0.5, 1)), t, k.shade, paper ? eIO(seg(p, 0.42, 0.8)) : 0);
+      GEO.sq[i] = { x, y, w, h, ds: k.ds };
+    }
+    /* le lettere bianche e la stella del punto, finché non entrano nel loro tasto */
+    ctx.textBaseline = "alphabetic"; ctx.textAlign = "left"; ctx.fillStyle = INK;
+    for (let i = 0; i < 9; i++) {
+      const k = kst(i, t); if (k.la <= 0.003) continue;
+      const B = gCell(i);
+      ctx.save(); ctx.globalAlpha = k.la; ctx.translate(B.cx, B.cy); ctx.scale(k.ls, k.ls); ctx.translate(-B.cx, -B.cy);
+      if (i === 4) drawDot(B.cx, B.cy, cell * 0.075); else { ctx.fillStyle = INK; ctx.font = `800 ${B.size}px ${SANS}`; ctx.fillText(NAME[i], B.x, B.y); }
+      ctx.restore();
+    }
+  }
+  /* i nove tasti a un istante: stati per il pittore della scena, rispetto al punto d'appoggio della scatola (A, sullo schermo).
+     Arrivati e fermi sono una copia esatta degli stati della scena (DOT.stage.formed): lo stesso disegno, pixel per pixel */
+  function capsStates(t, A) {
+    const out = [], step = cell + gap, Z = stg().size, KEY = Z.KEY, PITCH = Z.PITCH;
+    for (let i = 0; i < 9; i++) {
+      const k = kst(i, t); if (k.ca <= 0) continue;
+      const r = (i / 3) | 0, c = i % 3, f = FORMED[i], go = T.capsGo, arr = go + G.CAPDUR + r * G.ROWLAG;
+      /* partono insieme e restano una griglia; verso la fine ogni riga resta un poco indietro, così arrivano una dopo l'altra (la più in basso per ultima) */
+      const uc = seg(t, go, go + G.CAPDUR), u = seg(t - r * G.ROWLAG * uc * uc, go, go + G.CAPDUR);
+      if (t >= arr + G.SETTLE - 50) { out.push(Object.assign({}, f)); continue; }   /* fermo: proprio lo stato della scena */
+      const lpx = G.LIFT * cell * k.lf, face0 = G.CAPF * cell * k.cs;
+      /* la riga, dalla griglia (il tasto alzato: un filo in alto a sinistra, verso la luce) alla mensola, lungo un arco */
+      const sx0 = W / 2 - 0.15 * lpx, sy0 = gridY + r * step + cell / 2 - 0.3 * lpx, ex = A.x, ey = A.y - KEY / 2 - (2 - r) * PITCH;
+      const ant = u < 0.3 ? Math.sin(Math.PI * u / 0.3) : 0;            /* prima di partire si raccoglie: un passo indietro, un filo più grande */
+      const e = eIO(u * 0.93) / eIO(0.93) - 0.025 * ant, z = eIO(sat((u - 0.04) / 0.8));   /* arriva con un filo di velocità: lo scatto si sente */
+      const dx = ex - sx0, dy = ey - sy0, len = Math.sqrt(dx * dx + dy * dy) || 1, cx = (sx0 + ex) / 2 - dy / len * G.ARC * len, cy = (sy0 + ey) / 2 + dx / len * G.ARC * len;   /* l'arco piega a destra: lontano dalla scritta dell'hero */
+      const pitch = lerp(step, PITCH, z), face = lerp(face0, KEY, z) * (1 + 0.035 * ant);
+      let x = bez(sx0, cx, ex, e) + (c - 1) * pitch, y = bez(sy0, cy, ey, e), kk = face / KEY, qx = 1, qy = 1;
+      const tau = t - arr;                                              /* l'arrivo: il tasto scatta al suo posto (la riga in basso si posa sul bordo) */
+      if (tau > 0) { const q = Math.exp(-tau / 38) * Math.sin(tau / 19); qy = 1 - (r === 2 ? 0.17 : 0.11) * q; qx = 1 + (r === 2 ? 0.09 : 0.06) * q; if (r === 2) y += KEY / 2 * (1 - qy); }
+      const s = Object.assign({}, f), fl = 1 - eIO(u);
+      s.x = x - A.x; s.y = y - A.y; s.sx = kk * qx; s.sy = kk * qy; s.k = kk; s.alpha = k.ca;
+      s.lift = lpx * fl * (face / Math.max(1, face0)); s.light = 0.12 * Math.min(1, k.lf) * fl;
+      if (f.dot) s.glow = lerp(0.95, f.glow, eIO(u));
+      if (r === 2) { const land = eOut(seg(t, arr - 90, arr + 30)); s.ground = true; s.ca = land; s.aoK = 1 - land; }
+      out.push(s);
+    }
+    return out;
+  }
+  function drawCaps(t) {
+    if (!capsCv) return;
+    cctx.setTransform(1, 0, 0, 1, 0, 0); cctx.clearRect(0, 0, capsCv.width, capsCv.height); GEO.cap = null;
+    if (!PASS || cut || handed || t < T.split) return;
+    const A = anchorV(); if (!A) return;
+    const st = capsStates(t, A); if (!st.length) return;
+    const S = stg(), Z = S.size, rows = [[], [], []];
+    for (const s of st) rows[s.row].push(s);
+    /* la tela dei tasti comincia alla stessa altezza della tela della scena (dot-stage.js la mette a round(y - OY) nello strato di Dot):
+       con le stesse righe di pixel il disegno è lo stesso anche a densità 1 (Chromium disegna le immagini rimpicciolite in modo diverso
+       a seconda della riga in cui cadono). In orizzontale non serve: lì non cambia niente */
+    let ly = 0; try { ly = window.__niDot.layerTop ? window.__niDot.layerTop() : 0; } catch (e) { ly = 0; }
+    const ay = A.y + (window.pageYOffset || 0), top0 = ly + Math.round(ay - ly - Z.OY) - (window.pageYOffset || 0), top = top0 <= 0 && top0 >= -CAPS_PAD ? top0 : 0;
+    if (top !== capsTop) { capsTop = top; capsCv.style.top = top + "px"; }
+    cctx.setTransform(CDPR, 0, 0, CDPR, CDPR * A.x, CDPR * (A.y - top));
+    /* riga per riga, dal basso: lo stesso ordine di disegno della scena (a riposo è identico), e ogni riga con gli sprite della sua misura */
+    for (let r = 2; r >= 0; r--) {
+      if (!rows[r].length) continue;
+      let sc = 0; for (const s of rows[r]) sc = Math.max(sc, Math.abs(s.sx), Math.abs(s.sy));
+      cctx.imageSmoothingQuality = sc > 1.001 ? "high" : "low";
+      S.paint(cctx, rows[r], { dpr: CDPR, scale: sc });
+    }
+    GEO.cap = st.map((s) => ({ i: s.i, x: A.x + s.x - Z.KEY / 2 * Math.abs(s.sx), y: A.y + s.y - (Z.KEY / 2 + Z.BAND) * Math.abs(s.sy), w: Z.KEY * Math.abs(s.sx), h: (Z.KEY + Z.BAND) * Math.abs(s.sy), lift: s.lift || 0 }));
+  }
+  function doFree() {                                                   /* l'ultima base è atterrata: la pagina si scorre e si tocca */
+    freed = true; root.classList.remove("ni-on", "is-locked");
+    if (capsCv) capsCv.style.zIndex = "55";                            /* sopra il dock (50), sotto i fogli (60) */
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cvs.width, cvs.height);
+  }
+  function doHandover(formed) {                                         /* la scena di Dot prende i tasti: la tela dei tasti si svuota nello stesso compito */
+    if (handed) return; handed = true;
+    if (capsCv) { cctx.setTransform(1, 0, 0, 1, 0, 0); cctx.clearRect(0, 0, capsCv.width, capsCv.height); }
+    try { window.__niDot.handover(!!formed); } catch (e) { if (window.console) console.error(e); }
+  }
+  function hooks(t) {                                                   /* per chi disegnerà Dot nell'intro (versione «gatto»): un aggancio a ogni fotogramma */
+    if (version !== "gatto" || !HOOKS.length) return;
+    const info = { t, T, G, W, H, dpr: DPR, ctx, caps: PASS ? cctx : null, capsDpr: CDPR, pass: PASS, freed, handed, cell, gap, gridX, gridY, centre: gCell(4), geo: GEO, press: (i) => kst(i, t), anchor: PASS ? anchorV() : null };
+    for (const fn of HOOKS) { ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); try { fn(info); } catch (e) { if (window.console) console.error(e); } ctx.restore(); }
+  }
+
   /* ------------------------------------------------------------------ la pagina sotto: compare mentre i quadrati atterrano */
   function applyDom(t) {
-    const live = t < T.end;
+    const live = t < (PASS ? T.landed : T.end), typing = t < T.end;   /* col passaggio la pagina è libera prima che finisca di scrivere */
     for (const q of SQ) { if (!q.el) continue; q.el.style.opacity = live ? String(eOut(seg(t, q.t0 + T.flyDur * (q.k === 0 ? 0.84 : 0.45), q.t0 + T.flyDur))) : ""; }
     if (heroEl) { const p = eOut(seg(t, T.fly0 + 120, T.fly0 + 620)); heroEl.style.opacity = live ? String(p) : ""; heroEl.style.transform = live && p < 1 ? `translateY(${((1 - p) * 16).toFixed(2)}px) scale(${(0.965 + 0.035 * p).toFixed(4)})` : ""; }
     const pb = live ? String(eOut(seg(t, T.fly0 + 360, T.fly0 + 760))) : "";
     if (barEl) barEl.style.opacity = pb; if (footEl) footEl.style.opacity = pb;
     const n = t < T.type0 ? 0 : Math.min(9, Math.floor((t - T.type0) / 44) + 1);
-    chars.forEach((s, i) => { s.style.display = i < n || !live ? "" : "none"; });
+    chars.forEach((s, i) => { s.style.display = i < n || !typing ? "" : "none"; });
     if (curEl) {
       const since = t - T.type1;
-      curEl.style.opacity = !live ? "" : t < T.fly0 + 300 ? "0" : since < 320 || Math.floor((since - 320) / 530) % 2 === 1 ? "1" : "0";
+      curEl.style.opacity = !typing ? "" : t < T.fly0 + 300 ? "0" : since < 320 || Math.floor((since - 320) / 530) % 2 === 1 ? "1" : "0";
     }
   }
 
   /* ------------------------------------------------------------------ un fotogramma */
   function frame(t) {
-    if (cvs.style.background !== "transparent") cvs.style.background = "transparent";
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
-    ctx.clearRect(0, 0, W, H);
-    const bg = 1 - eIO(seg(t, T.fly0 + 30, T.fly0 + 560));
-    if (bg > 0) { ctx.globalAlpha = bg; ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; drawSky(t, bg); }
-    if (t >= T.zoom0 - 40 && t < T.fly1) updateScenes(t);
-    if (t < T.bold1) phaseType(t);
-    else if (t < T.back1) phaseCam(t);
-    else if (t < T.open1) phaseGrid(t);
-    else if (t < T.fly1) phaseSquares(t);
+    lastT = t; GEO.sq = []; GEO.phase = "";
+    if (!(PASS && freed)) {                                             /* col passaggio, dopo l'atterraggio la tela dell'intro è già via */
+      if (cvs.style.background !== "transparent") cvs.style.background = "transparent";
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+      ctx.clearRect(0, 0, W, H);
+      const bg = 1 - eIO(seg(t, T.fly0 + 30, T.fly0 + 560));
+      if (bg > 0) { ctx.globalAlpha = bg; ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; drawSky(t, bg); }
+      if (t >= T.zoom0 - 40 && t < T.fly1) updateScenes(t);
+      if (t < T.bold1) phaseType(t);
+      else if (t < T.back1) phaseCam(t);
+      else if (PASS) { if (t < T.press) phaseGrid(t); else if (t < T.fly1) phaseKeys(t); }
+      else if (t < T.open1) phaseGrid(t);
+      else if (t < T.fly1) phaseSquares(t);
+    }
     applyDom(t);
+    if (PASS) drawCaps(t);                                             /* dopo applyDom: i tasti mirano all'hero com'è in questo istante (anche con seek) */
+    hooks(t);
   }
 
   /* ------------------------------------------------------------------ avvio, fine, comandi dell'anteprima */
   let raf = 0, t0 = 0, playing = false, ready = false;
   function setup() {
-    root.classList.remove("ni-done"); root.classList.add("ni-on", "is-locked"); root.setAttribute("data-ni", version);
+    root.classList.remove("ni-done"); root.classList.add("ni-on", "is-locked"); root.setAttribute("data-ni", dotKind()); root.setAttribute("data-ni-v", version);
     window.scrollTo(0, 0);
+    /* il passaggio c'è solo se l'apertura di Dot sta per partire e la sua scena c'è; altrimenti la fine è quella di oggi */
+    PASS = passWanted(); freed = false; handed = false; cut = false; setupDone = true;
+    Object.assign(T, T_TODAY); if (PASS) Object.assign(T, passTimes());
+    if (window.__niDot) window.__niDot.wait = PASS;
+    if (PASS) { makeCaps(); FORMED = stg().formed(); } else if (capsCv) capsCv.style.display = "none";
     heroEl = doc.getElementById("hero"); barEl = doc.getElementById("bar"); footEl = doc.querySelector(".foot"); wordEl = prepareWord();
     chars = wordEl ? Array.from(wordEl.querySelectorAll(".ch")) : []; curEl = wordEl ? wordEl.querySelector(".cur") : null;
     measure();
+    if (PASS) {                                                         /* gli sprite dei tasti si fanno adesso, non al primo fotogramma del passaggio */
+      const S = stg(), k0 = G.CAPF * cell * 1.12 / S.size.KEY;
+      [1, Math.min(k0, 2), k0].forEach((sc) => { if (sc >= 1) S.paint(cctx, [], { dpr: CDPR, scale: sc }); });
+    }
   }
   function finish() {
     playing = false; cancelAnimationFrame(raf);
+    if (PASS) { if (!freed) doFree(); if (!handed) doHandover(!cut); }
     applyDom(T.end); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cvs.width, cvs.height);
     root.classList.remove("ni-on", "is-locked"); root.classList.add("ni-done");
+    if (capsCv) { cctx.setTransform(1, 0, 0, 1, 0, 0); cctx.clearRect(0, 0, capsCv.width, capsCv.height); capsCv.style.display = "none"; }
+    if (PASS && stg() && stg().trim) stg().trim();
+    setupDone = false;
     window.__niDone = true;
+  }
+  /* col passaggio: la pagina si libera all'atterraggio delle basi, la scena prende i tasti al loro arrivo; con un giro rotto
+     (una rotazione mentre i tasti ci sono) i tasti spariscono e, a pagina libera, Dot fa la sua apertura intera */
+  function milestones(t) {
+    if (!PASS) return;
+    if (!freed && t >= T.landed) doFree();
+    if (!handed && freed && (t >= T.handover || cut)) doHandover(!cut);
   }
   let lastNow = 0, slow = 0;
   function loop(now) {
-    const t = now - t0; if (t >= T.end) { finish(); return; }
+    const t = now - t0; milestones(t); if (t >= T.end) { finish(); return; }
     /* se i fotogrammi arrivano tardi nella parte pesante, la tela si alleggerisce (il tempo dell'animazione non cambia) */
     if (lastNow && t > T.zoom0 && t < T.fly1) { if (now - lastNow > 30) { if (++slow >= 5 && DPRCAP > 1) { DPRCAP = Math.max(1, DPRCAP - 0.5); slow = 0; measure(); } } else if (slow > 0) slow--; }
     lastNow = now; frame(t); raf = requestAnimationFrame(loop);
   }
   function play() { cancelAnimationFrame(raf); window.__niDone = false; lastNow = 0; slow = 0; setup(); sNight(SC.night.getContext("2d"), SW, SH); playing = true; t0 = performance.now(); raf = requestAnimationFrame(loop); }
-  function seek(ms) { if (!ready) return false; cancelAnimationFrame(raf); playing = false; if (!root.classList.contains("ni-on") || !chars.length) { setup(); sNight(SC.night.getContext("2d"), SW, SH); } if (ms >= T.end) { frame(T.end); finish(); } else frame(ms); return true; }
-  window.addEventListener("resize", () => { if (playing) measure(); });
+  function seek(ms) {
+    if (!ready) return false; cancelAnimationFrame(raf); playing = false;
+    if (!(PASS && setupDone) && (!root.classList.contains("ni-on") || !chars.length)) { setup(); sNight(SC.night.getContext("2d"), SW, SH); }
+    if (PASS && freed && ms < T.landed) { freed = false; root.classList.add("ni-on", "is-locked"); if (capsCv) capsCv.style.zIndex = "91"; }   /* indietro, prima dell'atterraggio (solo per gli strumenti; dopo il passaggio Dot resta) */
+    milestones(ms);
+    if (ms >= T.end) { frame(T.end); finish(); } else frame(ms);
+    return true;
+  }
+  window.addEventListener("resize", () => { if (!playing) return; measure(); if (PASS && !handed && lastT >= T.press) cut = true; });
 
   const seg_ = doc.querySelectorAll(".nbar__seg button"), paint = () => seg_.forEach((b) => b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === version)));
   seg_.forEach((b) => b.addEventListener("click", () => { version = b.getAttribute("data-v"); try { localStorage.setItem("imad.anteprima.intro", version); } catch (e) { /* va bene lo stesso */ } paint(); play(); }));
@@ -546,5 +760,10 @@
   const pics = loadImages();
   const wait = SEEK ? Promise.race([Promise.all([pics, Promise.all(fonts).catch(() => 0)]), new Promise((r) => setTimeout(r, 6000))]) : Promise.race([Promise.all(fonts).catch(() => 0), new Promise((r) => setTimeout(r, 1500))]);
   wait.then(() => { ready = true; window.__niReady = true; if (SEEK) { setup(); sNight(SC.night.getContext("2d"), SW, SH); frame(0); } else play(); });
-  window.__ni = { seek, play, T, get version() { return version; }, set version(v) { if (VERSIONS.includes(v)) { version = v; paint(); } } };
+  /* __ni.T: i tempi (con i momenti del passaggio: settled, press, split, capsGo, landed, handover); __ni.G: i numeri del passaggio;
+     __ni.onFrame(fn): fn(info) a ogni fotogramma della versione «gatto», dopo il disegno, con la tela dell'intro (info.ctx, in px CSS),
+     quella dei tasti (info.caps), i tempi, dove stanno i quadrati e i tasti (info.geo.sq, info.geo.cap, info.centre: il quadrato del punto),
+     info.press(i) (quanto è premuto il quadrato i). Serve a disegnare Dot nell'intro; questa parte non disegna niente di Dot. */
+  window.__ni = { seek, play, T, G, onFrame(fn) { if (typeof fn === "function") HOOKS.push(fn); }, offFrame(fn) { const i = HOOKS.indexOf(fn); if (i >= 0) HOOKS.splice(i, 1); },
+    get pass() { return PASS; }, get version() { return version; }, set version(v) { if (VERSIONS.includes(v)) { version = v; paint(); } } };
 })();

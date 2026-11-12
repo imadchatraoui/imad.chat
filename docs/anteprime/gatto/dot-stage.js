@@ -5,7 +5,18 @@
    Contratto (lo usa il cervello, dot-brain.js):
      DOT.stage = { TS, mount(layer, {x, y}), place(x, y), draw(ts, t), rim(), lid(open), hit(x, y), unmount() }
    x, y sono coordinate della pagina del punto sul bordo alto del riquadro dove poggia la scatola (in basso al centro).
-   Si disegna solo quando si chiama draw() o lid(). Solo ES2017. */
+   Si disegna solo quando si chiama draw() o lid(). Solo ES2017.
+   Per l'intro (il passaggio dalla griglia 3x3 ai nove tasti, docs/anteprime/casa/CASA.md 2c B): un solo pittore, due utenti.
+     DOT.stage.keys(x, y[, k])   i nove rettangoli dei tasti «formati» per un punto d'appoggio x, y (le stesse misure della scena;
+                                 k la scala, 1 = quella vera): [{ i, row, col, cx, cy (centro della faccia), x, y, w, h (filo di sopra compreso) }]
+     DOT.stage.formed()          i nove stati dei tasti formati (TS.keys: arrivati e fermi, prima della prima piega), rispetto al punto d'appoggio
+     DOT.stage.paint(ctx, stati, { dpr, scale })   disegna quei tasti (o altri stati dello stesso tipo) in un contesto 2D qualsiasi, con il
+                                 codice con cui li disegna la scena: ombre di contatto, ombre morbide, tasti dal basso in alto.
+                                 Campi in più di uno stato, tutti facoltativi (senza, il disegno è quello della scena): k (scala di ombre e
+                                 scarti), g0 (la riga del bordo), lift (quanto è alzato verso chi guarda: un'ombra morbida più lontana),
+                                 ca (quanto si vede l'ombra di contatto), aoK (l'ombra stretta sotto un tasto che poggia)
+     DOT.stage.paintKey(ctx, i, stato, opz)   un tasto solo, con le sue ombre
+     DOT.stage.dpr()             la densità con cui disegna la scena; DOT.stage.trim() libera gli sprite grandi usati dall'intro */
 (function () {
   "use strict";
   var DOT = (window.DOT = window.DOT || {});
@@ -20,7 +31,8 @@
 
   /* i tempi dell'apertura (secondi): il cervello li legge. Il coperchio finisce di aprirsi a lid + 0.42;
      eyes: due occhi verdi si aprono nel buio; blink: battono; peek: la testa sale; poi guarda, salta, atterra, saluta */
-  var TS = { fl: 0.70, fr: 0.98, ft: 1.52, fb: 1.76, fd: 0.42, drop: 2.30, box: 2.72, wob: 3.00, lid: 3.50, eyes: 4.02, blink: 4.52, peek: 4.92, lookL: 5.46, lookR: 5.96, lookC: 6.42, crouch: 6.56, jump: 6.80, land: 7.28, bubble: 7.86, end: 8.10 };
+  var TS = { fl: 0.70, fr: 0.98, ft: 1.52, fb: 1.76, fd: 0.42, drop: 2.30, box: 2.72, wob: 3.00, lid: 3.50, eyes: 4.02, blink: 4.52, peek: 4.92, lookL: 5.46, lookR: 5.96, lookC: 6.42, crouch: 6.56, jump: 6.80, land: 7.28, bubble: 7.86, end: 8.10,
+    keys: 0.62 };   /* keys: i nove tasti sono arrivati e stanno fermi (fino alla prima piega, fl): da qui parte l'apertura dopo l'intro */
 
   /* misure (px CSS) */
   var CW = 280, CH = 250, OX = 140, OY = 222;            /* tela e punto d'appoggio dentro la tela */
@@ -87,21 +99,33 @@
     for (i = 0; i < stops.length; i++) g.addColorStop(stops[i][0], stops[i][1]);
     c.fillStyle = g; c.fillRect(0, 0, 64, 64); return o.cv;
   }
-  function buildSprites() {
-    var k = S.dpr * 1.15, i, sp = { front: [], back: null, white: null, black: null };
+  /* res > 1: sprite più fitti, per l'intro che disegna i tasti più grandi del vero (res 1 è quello della scena) */
+  function buildSprites(dpr, res) {
+    var d = dpr * (res || 1), k = d * 1.15, i, sp = { front: [], back: null, white: null, black: null, res: res || 1 };
     for (i = 0; i < 9; i++) sp.front.push(keySprite(LETTERS[i], "front", k));
     sp.back = keySprite("", "back", k); sp.white = keySprite("", "white", k); sp.black = keySprite("", "black", k);
-    sp.ao = blurSprite(KEY - 2, KEY - 2, KR, 2.2, S.dpr);
-    sp.soft = blurSprite(KEY, KEY, KR, 5, S.dpr);
-    sp.contact = radialSprite([[0, "rgba(6,6,14,.55)"], [0.55, "rgba(6,6,14,.25)"], [1, "rgba(6,6,14,0)"]], S.dpr);
-    sp.glow = radialSprite([[0, "rgba(255,220,150,.95)"], [0.22, "rgba(242,180,70,.55)"], [0.55, "rgba(236,166,58,.16)"], [1, "rgba(236,166,58,0)"]], S.dpr * 1.5);
-    sp.spark = radialSprite([[0, "rgba(255,246,214,1)"], [0.18, "rgba(255,214,140,.9)"], [0.45, "rgba(240,176,66,.28)"], [1, "rgba(240,176,66,0)"]], S.dpr);
-    S.sp = sp;
+    sp.ao = blurSprite(KEY - 2, KEY - 2, KR, 2.2, d);
+    sp.soft = blurSprite(KEY, KEY, KR, 5, d);
+    sp.contact = radialSprite([[0, "rgba(6,6,14,.55)"], [0.55, "rgba(6,6,14,.25)"], [1, "rgba(6,6,14,0)"]], d);
+    sp.glow = radialSprite([[0, "rgba(255,220,150,.95)"], [0.22, "rgba(242,180,70,.55)"], [0.55, "rgba(236,166,58,.16)"], [1, "rgba(236,166,58,0)"]], d * 1.5);
+    sp.spark = radialSprite([[0, "rgba(255,246,214,1)"], [0.18, "rgba(255,214,140,.9)"], [0.45, "rgba(240,176,66,.28)"], [1, "rgba(240,176,66,0)"]], d);
+    return sp;
   }
+  /* gli sprite si fanno una volta per densità e li usano tutti (la scena e l'intro): lo stesso disegno, gli stessi pixel.
+     Fatti prima che Manrope arrivi, si rifanno quando c'è */
+  var SPR = {};
+  function fontReady() { try { return !document.fonts || !document.fonts.check || document.fonts.check(FONT); } catch (e) { return true; } }
+  function sprites(dpr, res) {
+    res = res || 1; var key = dpr + "x" + res, sp = SPR[key];
+    if (sp && (sp.font || !fontReady())) return sp;
+    sp = buildSprites(dpr, res); sp.font = fontReady(); SPR[key] = sp; return sp;
+  }
+  function stageDpr() { return DOT.stageDpr || Math.min(Math.max(window.devicePixelRatio || 1, 1), 3); }   /* DOT.stageDpr: solo per le foto di prova */
+  function resFor(scale) { var s = Math.abs(scale || 1); return s <= 1.001 ? 1 : s <= 2.2 ? 2 : 4; }
 
   /* ------------------------------------------------------------------ la stella-punto: il nucleo dorato e il suo alone */
-  function drawDot(c, x, y, r, ky, glow) {
-    var sp = S.sp; ky = Math.max(0.04, ky);
+  function drawDot(c, x, y, r, ky, glow, sp) {
+    ky = Math.max(0.04, ky);
     if (glow > 0.01) { c.globalAlpha = Math.min(1, glow); c.drawImage(sp.glow, x - r * 3.3, y - r * 3.3 * Math.max(ky, 0.5), r * 6.6, r * 6.6 * Math.max(ky, 0.5)); c.globalAlpha = 1; }
     var g = c.createRadialGradient(x - r * 0.25, y - r * 0.3 * ky, 0, x, y, r); g.addColorStop(0, C.dotC); g.addColorStop(0.45, "#f0b54c"); g.addColorStop(1, C.dot);
     c.fillStyle = g; c.beginPath(); c.ellipse(x, y, r, r * ky, 0, 0, TAU); c.fill();
@@ -109,8 +133,8 @@
   }
 
   /* ------------------------------------------------------------------ un tasto: posizione del centro della faccia, scale, retro, luce */
-  function drawKey(c, i, s) {
-    var sp = S.sp, img = s.back ? sp.back : sp.front[i], ax = Math.abs(s.sx), ay = Math.abs(s.sy);
+  function drawKey(c, i, s, sp) {
+    var img = s.back ? sp.back : sp.front[i], ax = Math.abs(s.sx), ay = Math.abs(s.sy);
     if (s.alpha <= 0.01 || (ax < 0.002 && !s.side) || ay < 0.002) return;
     c.save(); c.globalAlpha = s.alpha;
     /* lo spessore della lastra mentre gira: una fascia del colore del fianco tra la faccia e il retro */
@@ -126,7 +150,7 @@
       c.drawImage(img, ox, oy, SW, SH);
       if (s.dark > 0.01) { c.globalAlpha = s.alpha * Math.min(0.6, s.dark); c.drawImage(sp.black, ox, oy, SW, SH); }
       if (s.light > 0.01) { c.globalAlpha = s.alpha * Math.min(0.5, s.light); c.drawImage(sp.white, ox, oy, SW, SH); }
-      if (s.dot && !s.back) { c.globalAlpha = s.alpha; drawDot(c, 0, 0.5, 4.4, 1, s.glow); }
+      if (s.dot && !s.back) { c.globalAlpha = s.alpha; drawDot(c, 0, 0.5, 4.4, 1, s.glow, sp); }
     }
     c.restore();
   }
@@ -185,19 +209,29 @@
     return out;
   }
 
-  function drawKeys(c, ts) {
-    var st = keysState(ts), sp = S.sp, i, s, order = [];
-    /* ombre di contatto sul bordo del riquadro */
-    for (i = 0; i < 9; i++) { s = st[i]; if (!s.ground || s.alpha <= 0.01) continue; var gk = s.gk == null ? 1 : s.gk, hgt = -(s.y + KEY / 2 * s.sy);
-      var cw = (KEY + 8) * Math.abs(s.sx) * (1 + hgt / 60), chh = 7 * (1 + hgt / 50);
-      c.globalAlpha = s.alpha * (0.85 - 0.4 * sat(hgt / 34)) * (0.4 + 0.6 * gk); c.drawImage(sp.contact, s.x - cw / 2, 1 - chh / 2, cw, chh); }
+  /* IL pittore dei tasti: lo usa la scena (drawKeys) e lo usa l'intro (DOT.stage.paint) per i tasti in volo e all'arrivo.
+     Con i campi facoltativi assenti (k, g0, lift, ca, aoK) il disegno è esattamente quello di sempre della scena. */
+  function paintKeys(c, st, sp) {
+    var i, s, order = [], n = st.length;
+    /* ombre di contatto sul bordo del riquadro; poi le ombre morbide dei tasti alzati verso chi guarda (cadono sotto, non su altri tasti) */
+    for (i = 0; i < n; i++) { s = st[i]; if (!s.ground || s.alpha <= 0.01) continue; var k = s.k || 1, g0 = s.g0 || 0, gk = s.gk == null ? 1 : s.gk, hgt = (g0 - (s.y + KEY / 2 * s.sy)) / k;
+      var cw = (KEY + 8) * Math.abs(s.sx) * (1 + hgt / 60), chh = 7 * k * (1 + hgt / 50);
+      c.globalAlpha = s.alpha * (0.85 - 0.4 * sat(hgt / 34)) * (0.4 + 0.6 * gk) * (s.ca == null ? 1 : s.ca); c.drawImage(sp.contact, s.x - cw / 2, g0 + k - chh / 2, cw, chh); }
+    for (i = 0; i < n; i++) { s = st[i]; if (!(s.lift > 0) || s.alpha <= 0.01) continue; var kl = s.k || 1, z = s.lift, zk = z / kl;
+      var wsh = KEY * Math.max(Math.abs(s.sx), 0.3) + z * 0.6, hsh = (KEY + BAND) * Math.max(Math.abs(s.sy), 0.3) + z * 0.4;
+      c.globalAlpha = s.alpha * 0.3 * sat(zk / 6) * (1 - 0.45 * sat(zk / 40)); c.drawImage(sp.soft.cv, s.x + z * 0.5 - wsh / 2 - 5 * kl, s.y + z * 0.62 - hsh / 2 - 5 * kl, wsh + 10 * kl, hsh + 10 * kl); }
     c.globalAlpha = 1;
     /* prima i tasti fermi, dal basso in alto (l'ombra di quello sopra cade sul filo di quello sotto), poi i lembi che girano */
-    for (i = 0; i < 9; i++) if (!st[i].flap) order.push(st[i]);
+    for (i = 0; i < n; i++) if (!st[i].flap) order.push(st[i]);
     order.sort(function (a, b) { return b.row - a.row; });
     for (i = 0; i < order.length; i++) { s = order[i]; if (s.alpha <= 0.01) continue;
-      if (!s.ground || s.row < 2) { c.globalAlpha = s.alpha * 0.26; c.drawImage(sp.ao.cv, s.x - sp.ao.w / 2 * s.sx, s.y + 2.6 - sp.ao.h / 2 * s.sy, sp.ao.w * s.sx, sp.ao.h * s.sy); c.globalAlpha = 1; }
-      drawKey(c, s.i, s); }
+      if (!s.ground || s.row < 2 || s.aoK > 0) { var ka = s.k || 1, ao = (s.aoK == null ? 1 : s.aoK) * (1 - sat((s.lift || 0) / ka / 6));
+        if (ao > 0.001) { c.globalAlpha = s.alpha * 0.26 * ao; c.drawImage(sp.ao.cv, s.x - sp.ao.w / 2 * s.sx, s.y + 2.6 * ka - sp.ao.h / 2 * s.sy, sp.ao.w * s.sx, sp.ao.h * s.sy); c.globalAlpha = 1; } }
+      drawKey(c, s.i, s, sp); }
+    return order;
+  }
+  function drawKeys(c, ts) {
+    var st = keysState(ts), sp = S.sp, i, s, order = paintKeys(c, st, sp);
     var flaps = []; for (i = 0; i < 9; i++) if (st[i].flap && st[i].alpha > 0.01) flaps.push(st[i]);
     if (flaps.length) {
       /* l'ombra del lembo cade solo sui tasti che stanno sotto */
@@ -207,7 +241,7 @@
         for (i = 0; i < flaps.length; i++) { s = flaps[i]; var z = s.z, wsh = KEY * Math.max(Math.abs(s.sx), 0.3) + z * 0.6, hsh = KEY * Math.max(Math.abs(s.sy), 0.3) + z * 0.4;
           c.globalAlpha = 0.3 * (z / (PITCH / 2)) * s.alpha; c.drawImage(sp.soft.cv, s.x + z * 0.5 - wsh / 2 - 5, s.y + z * 0.62 - hsh / 2 - 5, wsh + 10, hsh + 10); } }
       c.restore(); c.globalAlpha = 1;
-      for (i = 0; i < flaps.length; i++) drawKey(c, flaps[i].i, flaps[i]);
+      for (i = 0; i < flaps.length; i++) drawKey(c, flaps[i].i, flaps[i], sp);
     }
     S.geo = { mode: "keys", x0: -PITCH * 1.5, x1: PITCH * 1.5, y0: -KEY - 2 * PITCH - BAND - 4, y1: 2 };
   }
@@ -307,7 +341,7 @@
       c.globalAlpha = tipK; c.fillStyle = vgrad(c, yT, yB, C.top0, C.top1); rr(c, x0, yT, w, h, rad, radB); c.fill(); c.globalAlpha = 1;
       c.strokeStyle = C.hair; c.lineWidth = 0.6; rr(c, x0 + 0.3, yT + 0.3, w - 0.6, h - 0.6, rad, radB); c.stroke();
       c.strokeStyle = "rgba(255,255,255," + (0.6 + 0.35 * tipK).toFixed(2) + ")"; c.lineWidth = 0.8; c.beginPath(); c.moveTo(x0 + rad, yT + 0.6); c.lineTo(x0 + w - rad, yT + 0.6); c.stroke();
-      if (h > 0.6) { var dr = lerp(4.4, 5.4, sat((b.W - KEY) / (BW - KEY))); drawDot(c, 0, (yT + yB) / 2 + (1 - tipK) * 0.5, dr, lerp(1, Math.min(1, h / L.D), tipK), b.glow * sat(h / 4)); }
+      if (h > 0.6) { var dr = lerp(4.4, 5.4, sat((b.W - KEY) / (BW - KEY))); drawDot(c, 0, (yT + yB) / 2 + (1 - tipK) * 0.5, dr, lerp(1, Math.min(1, h / L.D), tipK), b.glow * sat(h / 4), S.sp); }
     } else {
       /* coperchio aperto, in piedi dietro l'apertura: la sua faccia di sotto, un tono più scura; in cima il labbro chiaro */
       var yU = yH - e, hu = e + 1, ed = Math.max(1.5, off);
@@ -364,17 +398,17 @@
     TS: TS,
     mount: function (layer, p) {
       if (S) DOT.stage.unmount();
-      var cv = document.createElement("canvas"), dpr = DOT.stageDpr || Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);   /* DOT.stageDpr: solo per le foto di prova */
+      var cv = document.createElement("canvas"), dpr = stageDpr();
       cv.width = Math.round(CW * dpr); cv.height = Math.round(CH * dpr);
       cv.setAttribute("aria-hidden", "true");
       var st = cv.style; st.position = "absolute"; st.width = CW + "px"; st.height = CH + "px"; st.pointerEvents = "none"; st.left = "0px"; st.top = "0px"; st.zIndex = "0";   /* sotto il gatto (3), i graffi e gli oggetti (1), il fez (2) */
       layer.appendChild(cv);
       S = { cv: cv, c: cv.getContext("2d"), dpr: dpr, layer: layer, ax: p ? p.x : 0, ay: p ? p.y : 0, lastTs: null, lastT: 0, lidOv: null, geo: null };
-      buildSprites(); setPos();
+      S.sp = sprites(dpr, 1); setPos();
       /* aspetta Manrope: quando arriva rifà le lettere e ridisegna */
       var me = S;
       try {
-        if (document.fonts && document.fonts.load) document.fonts.load(FONT).then(function () { if (S !== me) return; buildSprites(); if (S.lastTs != null) render(S.lastTs, S.lastT); }, function () {});
+        if (document.fonts && document.fonts.load) document.fonts.load(FONT).then(function () { if (S !== me) return; var sp = sprites(S.dpr, 1); if (sp !== S.sp) { S.sp = sp; if (S.lastTs != null) render(S.lastTs, S.lastT); } }, function () {});
       } catch (e) {}
     },
     place: function (x, y) { if (!S) return; S.ax = x; S.ay = y; setPos(); if (S.lastTs != null) render(S.lastTs, S.lastT); },
@@ -393,6 +427,19 @@
       lx = lx / b.sx; ly = (ly - b.hop) / b.sy;
       return lx >= -b.W / 2 - 4 && lx <= b.W / 2 + 4 && ly >= top && ly <= 3;
     },
-    unmount: function () { if (!S) return; if (S.cv.parentNode) S.cv.parentNode.removeChild(S.cv); S = null; }
+    unmount: function () { if (!S) return; if (S.cv.parentNode) S.cv.parentNode.removeChild(S.cv); S = null; },
+    /* ---------------------------------------------------------------- per l'intro: le stesse misure, lo stesso pittore */
+    keys: function (x, y, k) {
+      var out = [], i, col, row, cx, cy; k = k || 1;
+      for (i = 0; i < 9; i++) { col = i % 3; row = (i / 3) | 0; cx = x + (col - 1) * PITCH * k; cy = y + (-KEY / 2 - (2 - row) * PITCH) * k;
+        out.push({ i: i, row: row, col: col, cx: cx, cy: cy, x: cx - KEY / 2 * k, y: cy - (KEY / 2 + BAND) * k, w: KEY * k, h: (KEY + BAND) * k }); }
+      return out;
+    },
+    formed: function () { return keysState(TS.keys); },
+    paint: function (c, st, o) { o = o || {}; return paintKeys(c, st, sprites(o.dpr || stageDpr(), resFor(o.scale))); },
+    paintKey: function (c, i, s, o) { var one = {}, key; for (key in s) one[key] = s[key]; one.i = i; DOT.stage.paint(c, [one], o); },
+    dpr: stageDpr,
+    size: { KEY: KEY, PITCH: PITCH, BAND: BAND, KR: KR, CW: CW, CH: CH, OX: OX, OY: OY },   /* CW, CH, OX, OY: la tela della scena e il punto d'appoggio dentro di lei */
+    trim: function () { var key; for (key in SPR) if (SPR[key].res !== 1) delete SPR[key]; }
   };
 })();

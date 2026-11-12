@@ -1,12 +1,12 @@
 // Galleria di Dot: dodici scene grandi (con gli oggetti e nelle pose migliori) sulla pagina dell'anteprima (index.html), in un solo PNG.
-// Uso:  node docs/anteprime/gatto/strumenti/galleria.mjs <uscita.png> [aspetto=adesivo] [tema=scuro|chiaro] [candidati]
+// Uso:  node docs/anteprime/gatto/strumenti/galleria.mjs <uscita.png> [aspetto=manifesto] [tema=scuro|chiaro] [candidati]
 //   con «candidati» fa un foglio per scena con più istanti (per scegliere i tempi), accanto all'uscita: <uscita>-<scena>.png
 //   un quinto argomento (es. "slide,long") limita le scene
 // Orologio fermo (?manual=1, seme fisso), Dot alla grandezza vera del telefono, finestra 390 px fotografata a 4x (DOT.photoDpr).
 import http from "node:http"; import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url"; import { createRequire } from "node:module";
 const here = path.dirname(fileURLToPath(import.meta.url)), dir = path.resolve(here, ".."), root = path.resolve(here, "../../../..");
 const require = createRequire(path.join(root, "package.json")); const { chromium } = require("playwright");
-const [out = "galleria.png", look = "adesivo", tema = "scuro", mode = "", only = ""] = process.argv.slice(2);
+const [out = "galleria.png", look = "manifesto", tema = "scuro", mode = "", only = ""] = process.argv.slice(2);
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".mp3": "audio/mpeg", ".m4a": "audio/mp4" };
 const server = http.createServer((req, res) => { let f = path.join(dir, decodeURIComponent(new URL(req.url, "http://x").pathname)); if (fs.existsSync(f) && fs.statSync(f).isDirectory()) f = path.join(f, "index.html"); if (!fs.existsSync(f)) { res.writeHead(404).end(); return; } res.writeHead(200, { "content-type": MIME[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(res); });
 await new Promise((r) => server.listen(+(process.env.PORT || 0), "127.0.0.1", r)); const base = `http://127.0.0.1:${server.address().port}/`;

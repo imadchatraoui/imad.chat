@@ -3,7 +3,8 @@
    Un aspetto NON muove nulla: riceve il fotogramma dello scheletro (dot-rig.js) e lo disegna.
    draw(ctx, frame, env): ctx è già in unità del modello, origine sul punto a terra sotto il gatto, y IN ALTO.
    env = { dark, scale (pixel per unità: 1 pixel = 1/scale), shadow: { y, k } | null, clipY: numero | null (si disegna
-   solo sopra quella quota: «dietro il bordo»), pawsOnEdge: bool (le zampe davanti restano davanti al bordo) }. */
+   solo sopra quella quota: «dietro il bordo»), pawsOnEdge: bool (le zampe davanti restano davanti al bordo),
+   rim: "notte" | false (facoltativo: il filo di luce per il fondo quasi nero; questo aspetto di prova lo ignora, Manifesto no) }. */
 (function () {
   "use strict";
   var DOT = (window.DOT = window.DOT || {}); DOT.looks = DOT.looks || {};

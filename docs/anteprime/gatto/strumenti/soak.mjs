@@ -24,11 +24,14 @@ for (const seed of SEEDS) {
   const { page, errs, ctx } = await phone(browser); await open(page, base + PAGE + "?manual=1&primo=0&suono=no&seme=" + seed);
   const rep = await page.evaluate(({ MIN, seed }) => {
     var D = DOT.debug, s = seed * 7919 + 13; function R() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }
+    /* gli errori dentro l'aspetto: il cervello li inghiotte e passa a «base»; qui si contano */
+    var LE = { n: 0, first: null }; Object.keys(DOT.looks).forEach(function (ln) { ["draw", "drawFez", "drawProp"].forEach(function (fn) { var L = DOT.looks[ln], o = L[fn]; if (!o) return;
+      L[fn] = function () { try { return o.apply(this, arguments); } catch (e) { LE.n++; if (!LE.first) LE.first = ln + "." + fn + ": " + e.message + " | " + (e.stack || "").split("\n")[1]; throw e; } }; }); });
     var IDS = [].map.call(document.querySelectorAll(".t"), function (e) { return e.id; }), canReorder = typeof window.order === "function";
     function rect(e) { var r = e.getBoundingClientRect(); return { l: r.left + pageXOffset, t: r.top + pageYOffset, r: r.right + pageXOffset, b: r.bottom + pageYOffset, w: r.width }; }
     function zones(mode) { return [].filter.call(document.querySelectorAll(".t"), function (e) { return e.getAttribute("data-dot") === mode && getComputedStyle(e).display !== "none"; }).map(rect); }
     var REST = { sit: 1, look: 1, loaf: 1, sleep: 1, groom: 1, yawn: 1, stretch: 1, drape: 1, walk: 1, pause: 1, tea: 1, star: 1, cube: 1, yarn: 1, laptop: 1, purr: 1, meow: 1, hop: 1, greet: 1, pet: 1, melt: 1, getup: 1, sulk: 1, annoyed: 1, fezoff: 1, shake: 1, tangle: 1, pounce: 1, brace: 1, wakeup: 1 };
-    var out = { frames: 0, thrown: [], nan: 0, overNo: {}, overNoMax: {}, quietRest: {}, overQuietRest: {}, quietBubble: 0, stuck: [], invisLong: [], states: {}, fezOverNo: 0, maxCv: 0, actions: {}, propOnQuiet: 0, floatFrames: {} };
+    var out = { lookErr: LE, frames: 0, thrown: [], nan: 0, overNo: {}, overNoMax: {}, quietRest: {}, overQuietRest: {}, quietBubble: 0, stuck: [], invisLong: [], states: {}, fezOverNo: 0, maxCv: 0, actions: {}, propOnQuiet: 0, floatFrames: {} };
     var F = Math.round(MIN * 60 * 60), last = "", since = 0, invis = 0, dragging = 0, paused = 0, pressing = 0, lastAct = "", afterDrop = 0, dragT = null;
     function act(n) { out.actions[n] = (out.actions[n] || 0) + 1; lastAct = n + "@" + (out.frames / 60).toFixed(1); }
     var NO = zones("no"), QU = zones("quiet");
@@ -58,7 +61,7 @@ for (const seed of SEEDS) {
       else if ((r -= 1 / 240) < 1 / 500) { if (ok) { dragT = { x: 20 + R() * 350, y: pageYOffset + 40 + R() * 760 }; D.dragTo(dragT.x, dragT.y); dragging = 20 + Math.floor(R() * 60); act("drag"); } }
       else if ((r -= 1 / 500) < 1 / 900) { window.scrollTo(0, Math.floor(R() * Math.max(0, document.documentElement.scrollHeight - innerHeight))); act("scroll"); }
       else if ((r -= 1 / 900) < 1 / 6000) { DOT.replay(); act("replay"); }
-      else if ((r -= 1 / 6000) < 1 / 3000) { DOT.setLook(["adesivo", "manifesto", "pelo"][Math.floor(R() * 3)]); act("look"); }
+      else if ((r -= 1 / 6000) < 1 / 3000) { DOT.setLook(["manifesto", "base"][Math.floor(R() * 2)]); act("look"); }
       else if ((r -= 1 / 3000) < 1 / 1500) { for (var k = 0; k < 5; k++) D.tap(); act("5taps"); }
       else if ((r -= 1 / 1500) < 1 / 1200) { if (canReorder) { var ids = IDS.filter(function (x) { return x !== "corano"; }), i2, j2, tmp; for (i2 = ids.length - 1; i2 > 0; i2--) { j2 = Math.floor(R() * (i2 + 1)); tmp = ids[i2]; ids[i2] = ids[j2]; ids[j2] = tmp; }
           var ci = Math.floor(R() * 4); ids.splice(ci, 0, "corano"); window.order(ids);

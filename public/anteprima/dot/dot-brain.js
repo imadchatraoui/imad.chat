@@ -1430,12 +1430,14 @@
     window.addEventListener("scroll", onScroll, { passive: true }); window.addEventListener("resize", onResize); doc.addEventListener("visibilitychange", onVis);
     if (window.ResizeObserver) { try { RO = new ResizeObserver(function () { world.at = -9; }); RO.observe(doc.body); } catch (e) { RO = null; } }
     stillI = setInterval(stillTick, 250);
+    B.fromKeys = !!O.keysFormed;                                        /* keysFormed: l'intro ha già messo i nove tasti al loro posto: l'apertura parte da lì (stage.TS.keys) */
     begin(O.firstVisit !== false && !reduced);
     step(0); render(0);                                                /* il primo fotogramma subito, prima che la pagina si mostri: niente che spunta dal nulla */
     raf = requestAnimationFrame(loop);
     return DOT;
   };
   function begin(first) {
+    var fromKeys = B.fromKeys; B.fromKeys = false;                      /* vale una volta sola: «Rivedi» riparte dall'inizio */
     var h = homePoint(); B.home = h; killFez(); rig.fezOn = true; cat.s = 1; cat.voff = 0; cat.voffV = 0; cat.rot = 0; cat.lift = 0; cat.clipAt = null; cat.clipTop = null;
     cat.mood = null; cat.taps = []; cat.jit = 0; cat.tangle = 0; life.fezRollT = 0; life.fezRoll = 0; life.fezRollV = 0; if (bubble) bubble.hide(); sound("purr", false);   /* «Rivedi»: si riparte puliti */
     var i; for (i = 0; i < props.length; i++) props[i].sp.remove(); props = [];
@@ -1444,7 +1446,7 @@
     B.lidA = null; readWorld();
     var p = platBelow(h.x, h.y - 4, true) || world.plats[0];
     if (first && underNo(h.x, h.y)) first = false;                       /* la casa sta sotto il Corano (non dovrebbe mai): niente apertura lì */
-    if (first) { B.lidV = 1; if (stageOn) { try { stage.lid(null); } catch (e) {} } B.openT0 = now; cat.vis = false; cat.x = h.x; cat.y = h.y; set("opening", { first: true, p: p, x: p ? clamp(h.x, p.a, p.b) : h.x }); }
+    if (first) { B.lidV = 1; if (stageOn) { try { stage.lid(null); } catch (e) {} } B.openT0 = now - (fromKeys && stageOn && TS().keys ? TS().keys : 0); cat.vis = false; cat.x = h.x; cat.y = h.y; set("opening", { first: true, p: p, x: p ? clamp(h.x, p.a, p.b) : h.x }); }
     else {
       B.openT0 = null; B.lidV = 0;
       if (stageOn) { try { stage.lid(0); stage.draw(TS().end + 2, now); } catch (e) {} readWorld(); }   /* la scatola sta già al suo posto, chiusa */

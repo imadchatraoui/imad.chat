@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   /* Pagina di prova del cervello di Dot: riquadri finti come sul sito, scuri, con 16 px di margine.
-     ?look=nome  ?primo=0 (niente apertura)  ?calma=1 (movimento ridotto)  ?k=1.9 (grandezza)  ?manual=1 (orologio fermo, per le strisce)  ?seme=7 */
+     ?look=manifesto|base (manifesto se manca)  ?primo=0 (niente apertura)  ?calma=1 (movimento ridotto)  ?k=1.9 (grandezza)  ?manual=1 (orologio fermo, per le strisce)  ?seme=7 */
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; min-height: 100vh; color: #fff; font: 500 14px/1.4 Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -57,8 +57,8 @@
   "use strict";
   var q = new URLSearchParams(location.search), lookName = q.get("look");
   if (q.get("manual") === "1") window.__manual = true;
-  var list = ["dot-rig.js", "look-base.js"]; ["adesivo", "manifesto", "pelo"].forEach(function (n) { list.push("look-" + n + ".js"); });
-  if (lookName && ["base", "adesivo", "manifesto", "pelo"].indexOf(lookName) < 0) list.push("look-" + lookName + ".js");
+  var list = ["dot-rig.js", "look-base.js", "look-manifesto.js"];
+  if (lookName && ["base", "manifesto"].indexOf(lookName) < 0) list.push("look-" + lookName + ".js");   /* un aspetto nuovo in prova: look-<nome>.js */
   list.push("dot-stage.js", "dot-sound.js", "dot-fx.js", "dot-brain.js");
   function load(i) {
     if (i >= list.length) return go();
@@ -69,7 +69,7 @@
     if (q.get("seme") && DOT.debug) DOT.debug.seed(+q.get("seme"));
     var sel = document.getElementById("aspetto"), names = Object.keys(DOT.looks || {});
     names.forEach(function (n) { var o = document.createElement("option"); o.value = n; o.textContent = (DOT.looks[n].label || n); sel.appendChild(o); });
-    if (!lookName || !DOT.looks[lookName]) lookName = DOT.looks.adesivo ? "adesivo" : "base";
+    if (!lookName || !DOT.looks[lookName]) lookName = DOT.looks.manifesto ? "manifesto" : "base";
     sel.value = lookName; sel.addEventListener("change", function () { DOT.setLook(sel.value); });
     DOT.start({ tiles: ".t", home: document.querySelector("[data-home]"), look: lookName, firstVisit: q.get("primo") !== "0", reducedMotion: q.get("calma") === "1", dark: true, k: q.get("k") ? +q.get("k") : 0 });
     document.getElementById("rivedi").addEventListener("click", function () { window.scrollTo(0, 0); DOT.replay(); });

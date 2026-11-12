@@ -1,8 +1,8 @@
 // Strisce di movimento di Dot: apre prova.html con l'orologio fermo, esegue un'azione e mette N fotogrammi in fila in un PNG,
 // con il tempo sotto ogni fotogramma. Serve a giudicare tempi, archi, piedi che non scivolano, niente scatti.
 // Uso:  node docs/anteprime/gatto/strumenti/striscia.mjs <uscita.png> <scena> [n=14] [aspetto] [k=1.5]
-//   scene: opening opening-keys walk turn jump tap-meow tap-fez wake-annoyed drag-drop-edge drag-drop-face hang peek-climb drape idle-bubble hop tea star cube cube-knock yarn laptop pet pounce hide
-//   es. node .../striscia.mjs /tmp/walk.png walk 14 adesivo
+//   scene: opening opening-keys walk turn jump slide tap-meow tap-fez wake-annoyed drag-drop-edge drag-drop-face hang peek-climb drape idle-bubble hop tea star cube cube-knock yarn laptop pet pounce hide
+//   es. node .../striscia.mjs /tmp/walk.png walk 14 manifesto   (aspetto: manifesto se manca, oppure base)
 // Due passate identiche (seme fisso): la prima trova il riquadro che il gatto occupa, la seconda fotografa.
 import http from "node:http"; import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url"; import { createRequire } from "node:module";
 const here = path.dirname(fileURLToPath(import.meta.url)), dir = path.resolve(here, ".."), root = path.resolve(here, "../../../..");
@@ -29,6 +29,7 @@ const SCENES = {
   "drag-drop-face": { js: `var x = P[0].a + 80; D.place(x, 0); D.tick(0.5); var T = D.tiles().filter(function (t) { return !t.mode; })[1];
     D.dragTo(x, P[0].y - 50); for (var i = 1; i <= 6; i++) (function (i) { D.at(i * 0.08, function () { D.dragTo(x + ((T.l + T.r) / 2 - x) * i / 6, P[0].y - 50 + (T.t + 40 - (P[0].y - 50)) * i / 6); }); })(i);
     D.at(0.9, function () { D.drop(0, 0); }); return { pre: 0.85, T: 2.6 };` },
+  slide: { js: `var T = D.tiles().filter(function (t) { return !t.mode && t.b - t.t > 160; })[0], i = P.findIndex(function (p) { return Math.abs(p.y - T.t) < 3; }); D.place((T.l + T.r) / 2, i); D.tick(0.3); D.set("slide", { t: T, face: "front", pose: "slide" }); return { pre: 0, T: 1.5 };` },   /* scivola dalla cima di un riquadro alto: le unghie e i graffi */
   hang: { js: `var x = P[0].a + 80; D.place(x, 0); D.tick(0.5); var T = D.tiles().filter(function (t) { return !t.mode; })[1];
     D.dragTo((T.l + T.r) / 2, T.b + 8); D.tick(0.6); D.drop(0, 0); return { pre: 0, T: 3.2 };` },
   "peek-climb": { js: `D.place(P[0].a + 100, 0); D.set("peek", { p: D.platsRaw()[0], x: P[0].a + 100 }); return { pre: 0, T: 3.0 };` },

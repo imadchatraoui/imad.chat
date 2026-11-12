@@ -352,14 +352,17 @@ function titoliMondo(h, list) {
 }
 
 // ------------------------------------------------------------------ l'anteprima di Dot, il gatto: /gatto (non indicizzata)
-// Copia la pagina di docs/anteprime/gatto e i suoi file; gli indirizzi diventano assoluti (/gatto/...),
-// perché la pagina si apre anche come /gatto, senza barra finale. Le pagine di prova (prova, scena, tavola) non vanno online.
+// Copia la pagina di docs/anteprime/gatto e solo i file che la pagina usa (gli script che index.html carica, gatto.css, i suoni);
+// gli indirizzi diventano assoluti (/gatto/...), perché la pagina si apre anche come /gatto, senza barra finale.
+// Le pagine di prova (prova, scena, tavola, riordina) e gli strumenti non vanno online.
 {
   const src = path.join(root, "docs/anteprime/gatto");
   const dst = path.join(root, "public/gatto");
   const G = "/gatto/";
-  const scripts = fs.readdirSync(src).filter((f) => /^(dot|look)-[a-z]+\.js$/.test(f)).sort();
   let h = fs.readFileSync(path.join(src, "index.html"), "utf8");
+  const scripts = [...h.matchAll(/<script src="([a-z-]+\.js)"><\/script>/g)].map((m) => m[1]);
+  for (const f of scripts) if (!fs.existsSync(path.join(src, f))) throw new Error("gatto index.html: manca " + f);
+  if (!scripts.includes("look-manifesto.js")) throw new Error("gatto index.html: non carica look-manifesto.js");
   h = swap(h, '<link rel="stylesheet" href="gatto.css">', `<link rel="stylesheet" href="${G}gatto.css">`, "gatto index.html");
   h = swap(h, 'window.DOT.mediaBase = "media/";', `window.DOT.mediaBase = "${G}media/";`, "gatto index.html");
   for (const f of scripts) if (h.includes(`<script src="${f}"></script>`)) h = swap(h, `<script src="${f}"></script>`, `<script src="${G}${f}"></script>`, "gatto index.html");

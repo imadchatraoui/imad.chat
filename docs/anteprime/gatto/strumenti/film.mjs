@@ -1,11 +1,11 @@
 // Il film dell'anteprima: l'apertura e poi una ventina di secondi di vita (un tocco, il fez che cade, una presa e una scivolata),
 // fotogramma per fotogramma con l'orologio fermo (60 al secondo), uniti con ffmpeg in un MP4 H.264 a forma di telefono.
-// Uso:  node docs/anteprime/gatto/strumenti/film.mjs <cartella di uscita> [aspetto=adesivo] [tema=scuro]
+// Uso:  node docs/anteprime/gatto/strumenti/film.mjs <cartella di uscita> [aspetto=manifesto] [tema=scuro]
 // Scrive <cartella>/apertura.mp4 e sei fotogrammi chiave <cartella>/apertura-<n>-<istante>.png. Il dito finto è un cerchio chiaro.
 import http from "node:http"; import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url"; import { createRequire } from "node:module";
 const here = path.dirname(fileURLToPath(import.meta.url)), dir = path.resolve(here, ".."), root = path.resolve(here, "../../../..");
 const require = createRequire(path.join(root, "package.json")); const { chromium } = require("playwright");
-const [outDir = ".", look = "adesivo", tema = "scuro"] = process.argv.slice(2);
+const [outDir = ".", look = "manifesto", tema = "scuro"] = process.argv.slice(2);
 fs.mkdirSync(outDir, { recursive: true });
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".mp3": "audio/mpeg", ".m4a": "audio/mp4" };
 const server = http.createServer((req, res) => { let f = path.join(dir, decodeURIComponent(new URL(req.url, "http://x").pathname)); if (fs.existsSync(f) && fs.statSync(f).isDirectory()) f = path.join(f, "index.html"); if (!fs.existsSync(f)) { res.writeHead(404).end(); return; } res.writeHead(200, { "content-type": MIME[path.extname(f)] || "application/octet-stream" }); fs.createReadStream(f).pipe(res); });

@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Dot — tavola delle pose</title>
-<style>html, body { margin: 0; } body { background: #0d1236; } body.light { background: #eceef4; } canvas { display: block; }</style>
+<style>html, body { margin: 0; } body { background: #0d1236; } body.light { background: #eceef4; } body.notte { background: #05060a; } canvas { display: block; }</style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <script src="dot-rig.js"></script>
 <script>
 /* Tavola delle pose: ogni casella è lo scheletro fermo in una posa, disegnato con un aspetto.
-   ?look=base|adesivo|manifesto|pelo  ?bg=dark|light  ?k=2.6 (pixel per unità: 1.5 è la grandezza vera sul sito)  ?cols=6  ?pose=id,id (solo quelle)
+   ?look=manifesto|base (manifesto se manca)  ?bg=dark|light|notte (notte: il fondo quasi nero dell'intro, #05060a, con il filo di luce «notte»)  ?rim=notte|no  ?k=2.6 (pixel per unità: 1.5 è la grandezza vera sul sito)  ?cols=6  ?pose=id,id (solo quelle)
    La casella è larga 58 × k pixel: apri la finestra larga almeno cols × 58 × k.
    Per le strisce di un'azione (camminata, ecc.) vedi ?striscia=walk|turn|blink&n=12 */
 (function () {
   "use strict";
-  var q = new URLSearchParams(location.search), lookName = q.get("look") || "base", light = q.get("bg") === "light", K = +(q.get("k") || 2.6), cols = +(q.get("cols") || 6), only = q.get("pose"), strip = q.get("striscia"), N = +(q.get("n") || 12);
-  if (light) document.body.className = "light";
+  var q = new URLSearchParams(location.search), lookName = q.get("look") || "manifesto", light = q.get("bg") === "light", notte = q.get("bg") === "notte", rimQ = q.get("rim") || (notte ? "notte" : null), K = +(q.get("k") || 2.6), cols = +(q.get("cols") || 6), only = q.get("pose"), strip = q.get("striscia"), N = +(q.get("n") || 12);
+  if (light) document.body.className = "light"; else if (notte) document.body.className = "notte";
   var Y = DOT.YAW, V = "viewer";
   var LIST = [
     { id: "sit", label: "seduto", pose: "sit", yaw: Y.viewRight, look: V },
@@ -63,18 +63,23 @@
     { id: "cube", label: "con il cubo", pose: "hold", yaw: Y.viewRight, look: [-0.5, -0.3], gaze: [0.2, -0.8], prop: ["cube", "hold", 0, -2] },
     { id: "yarn", label: "il gomitolo", pose: "wiggle", yaw: Y.right, look: [-0.2, -0.1], pupil: 1, prop: ["yarn", "ground", 19, 0] },
     { id: "star", label: "la stella", pose: "bat", yaw: Y.viewRight, look: [-0.5, 0.15], gaze: [0.5, 1], pupil: 1, prop: ["star", "air", 15, 27] },
-    { id: "laptop", label: "programma", pose: "type", yaw: Y.right, look: [0, -0.15], prop: ["laptop", "ground", 13, 0] }
+    { id: "laptop", label: "programma", pose: "type", yaw: Y.right, look: [0, -0.15], prop: ["laptop", "ground", 13, 0] },
+    /* le pose di questo giro (DOT.POSE_KEYS): bussa, collottola, spinge, in groppa */
+    { id: "knock", label: "bussa: zampa indietro", pose: "knock", yaw: Y.front, look: [0, 0.06], pupil: 1 },
+    { id: "knock-glass", label: "bussa: sul vetro", pose: "knock-glass", yaw: Y.front, look: [0, 0.04], pupil: 1 },
+    { id: "knock-3q", label: "bussa, di tre quarti", pose: "knock-glass", yaw: Y.viewRight, look: V, pupil: 1 },
+    { id: "scruff", label: "per la collottola", pose: "scruff", yaw: Y.viewRight, look: V, long: 6, oy: 30, grounded: false },
+    { id: "scruff-front", label: "per la collottola, di fronte", pose: "scruff", yaw: Y.front, look: [0, 0], long: 6, oy: 30, grounded: false },
+    { id: "push", label: "spinge: allunga", pose: "push", yaw: Y.front, look: [-0.35, 0.02], gaze: [0.7, -0.3], edge: "top", clip: true, paws: true },
+    { id: "push-touch", label: "spinge: tocca", pose: "push-touch", yaw: Y.front, look: [-0.45, 0], gaze: [0.8, -0.4], edge: "top", clip: true, paws: true },
+    { id: "push-sweep", label: "spinge: passa oltre", pose: "push-sweep", yaw: Y.front, look: [0.25, 0], gaze: [-0.5, -0.5], edge: "top", clip: true, paws: true },
+    { id: "ride", label: "in groppa (appoggio stretto)", pose: "ride", yaw: Y.viewRight, look: V, perch: 30 },
+    { id: "ride-front", label: "in groppa, di fronte", pose: "ride", yaw: Y.front, look: [0, 0.04], perch: 30 }
   ];
-  if (only) { var ids = only.split(","); LIST = LIST.filter(function (s) { return ids.indexOf(s.id) >= 0; }).sort(function (m, n) { return ids.indexOf(m.id) - ids.indexOf(n.id); }); }
-  /* ?prova=[{"dy":3},{"dy":5,"hp":0}] : la stessa posa (la prima di ?pose) con numeri diversi, una casella per variante: per cercare i numeri giusti.
-     Le chiavi in CELL valgono per la casella (dove guarda, quanto può girare la testa, ...), le altre sono numeri della posa. */
-  var CELL = { look: 1, yaw: 1, gaze: 1, headMax: 1, faceTurn: 1, roll: 1, pitch: 1, pupil: 1, fez: 1, long: 1, walk: 1, speed: 1 };
-  var prova = null; try { prova = q.get("prova") ? JSON.parse(q.get("prova")) : null; } catch (e) { prova = null; }
-  if (prova && LIST.length) { var s0 = LIST[0]; LIST = prova.map(function (o, i) { var c = {}, k2; for (k2 in s0) c[k2] = s0[k2]; c.over = {}; for (k2 in (s0.over || {})) c.over[k2] = s0.over[k2]; for (k2 in o) { if (CELL[k2]) c[k2] = o[k2]; else c.over[k2] = o[k2]; } c.label = Object.keys(o).map(function (n) { return n + " " + JSON.stringify(o[n]); }).join("  ") || "com'è"; c.id = "v" + i; return c; }); }
   /* ?giri=1 : la testa girata di 0, 0.35, 0.7 e 1 radianti dalle due parti, seduto, in piedi, camminando, sbirciando.
      Il giro si misura da chi guarda (0 = il muso verso di noi); in piedi e camminando il corpo guarda dalla stessa parte. */
   if (q.get("giri")) {
-    LIST = []; cols = 7;
+    LIST = []; cols = +(q.get("cols") || 7);
     var GT = [-1, -0.7, -0.35, 0, 0.35, 0.7, 1], GR = [["sit", "seduto"], ["stand", "in piedi"], ["walk", "cammina"], ["peek", "spunta"]];
     GR.forEach(function (gr) { GT.forEach(function (t) {
       var side = gr[0] === "stand" || gr[0] === "walk", yaw = side ? (t >= 0 ? Y.right : Y.left) : Y.front, ty = DOT.util.wrap(t - Math.PI / 2 - yaw);
@@ -84,6 +89,12 @@
       LIST.push(cell);
     }); });
   }
+  if (only && !strip) { var ids = only.split(","); LIST = LIST.filter(function (s) { return ids.indexOf(s.id) >= 0; }).sort(function (m, n) { return ids.indexOf(m.id) - ids.indexOf(n.id); }); }
+  /* ?prova=[{"dy":3},{"dy":5,"hp":0}] : la stessa posa (la prima di ?pose) con numeri diversi, una casella per variante: per cercare i numeri giusti.
+     Le chiavi in CELL valgono per la casella (dove guarda, quanto può girare la testa, ...), le altre sono numeri della posa. */
+  var CELL = { look: 1, yaw: 1, gaze: 1, headMax: 1, faceTurn: 1, roll: 1, pitch: 1, pupil: 1, fez: 1, long: 1, walk: 1, speed: 1 };
+  var prova = null; try { prova = q.get("prova") ? JSON.parse(q.get("prova")) : null; } catch (e) { prova = null; }
+  if (prova && LIST.length) { var s0 = LIST[0]; LIST = prova.map(function (o, i) { var c = {}, k2; for (k2 in s0) c[k2] = s0[k2]; c.over = {}; for (k2 in (s0.over || {})) c.over[k2] = s0.over[k2]; for (k2 in o) { if (CELL[k2]) c[k2] = o[k2]; else c.over[k2] = o[k2]; } c.label = Object.keys(o).map(function (n) { return n + " " + JSON.stringify(o[n]); }).join("  ") || "com'è"; c.id = "v" + i; return c; }); }
   if (strip) { LIST = []; for (var i = 0; i < N; i++) LIST.push(strip === "walk" ? { id: "w" + i, label: "passo " + (i + 1) + "/" + N, pose: "stand", yaw: Y.right, look: V, walk: i / N }
     : strip === "turn" ? { id: "t" + i, label: "giro " + (i + 1) + "/" + N, pose: i < N / 2 ? "stand" : "sit", yaw: Y.right + (Y.left - Y.right) * i / (N - 1), look: V }
     : { id: "b" + i, label: "occhi " + (i + 1) + "/" + N, pose: "sit", yaw: Y.viewRight, look: V, over: { eye: 1.3 - 1.3 * i / (N - 1), lid: i % 2 ? 0.4 : 0, brow: i % 3 === 0 ? 0.8 : 0 } }); }
@@ -124,7 +135,7 @@
       return { id: s2.id, catTop: rowY[r2] + o2 - (e2[1] + rs) * K, catBottom: rowY[r2] + o2 - (e2[0] + rs) * K, labelTop: rowY[r2] + rowH[r2] - 7 - Math.max(9, Math.round(10 * Math.sqrt(u))), cellTop: rowY[r2] }; });
     cv.width = cols * CW * dpr; cv.height = rowY[rows] * dpr; cv.style.width = cols * CW + "px"; cv.style.height = rowY[rows] + "px";
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    var tile = light ? "rgba(20,24,60,.07)" : "rgba(255,255,255,.085)", line = light ? "rgba(20,24,60,.16)" : "rgba(255,255,255,.14)", txt = light ? "rgba(20,24,50,.6)" : "rgba(255,255,255,.55)";
+    var tile = light ? "rgba(20,24,60,.07)" : notte ? "rgba(255,255,255,.035)" : "rgba(255,255,255,.085)", line = light ? "rgba(20,24,60,.16)" : notte ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.14)", txt = light ? "rgba(20,24,50,.6)" : "rgba(255,255,255,.55)";
     LIST.forEach(function (s, idx) {
       var row = Math.floor(idx / cols), CHr = rowH[row], x0 = (idx % cols) * CW, y0 = rowY[row], ox = x0 + CW / 2, oy = y0 + baseOy(s) + shift[idx];
       c.save(); c.beginPath(); c.rect(x0, y0, CW, CHr); c.clip();
@@ -132,10 +143,11 @@
       if (s.edge === "hang") { c.fillStyle = tile; c.fillRect(x0 + 14 * u, y0 + 6 * u, CW - 28 * u, oy - y0 - 6 * u); }
       else if (s.edge === "face") { c.fillStyle = tile; c.fillRect(x0 + 8 * u, y0 + 8 * u, CW - 16 * u, CHr - 30 * u); }
       else if (s.oy) {}                                              /* tenuto in aria: l'origine è il punto di presa */
+      else if (s.perch) { var pw2 = s.perch * K, ph2 = 14 * u; c.fillStyle = tile; c.beginPath(); c.moveTo(ox - pw2 / 2 + ph2 / 2, oy); c.lineTo(ox + pw2 / 2 - ph2 / 2, oy); c.arc(ox + pw2 / 2 - ph2 / 2, oy + ph2 / 2, ph2 / 2, -Math.PI / 2, Math.PI / 2); c.lineTo(ox - pw2 / 2 + ph2 / 2, oy + ph2); c.arc(ox - pw2 / 2 + ph2 / 2, oy + ph2 / 2, ph2 / 2, Math.PI / 2, Math.PI * 1.5); c.fill(); }   /* un appoggio stretto, largo perch unità */
       else { c.fillStyle = tile; c.fillRect(x0 + 8 * u, oy, CW - 16 * u, y0 + CHr - 22 * u - oy); }
       c.fillStyle = txt; c.font = "500 " + Math.max(9, Math.round(10 * Math.sqrt(u))) + "px system-ui, sans-serif"; c.textAlign = "center"; c.fillText(s.label, ox, y0 + CHr - 7);
       setup(rig, s); var f = rig.frame();
-      var env = { dark: !light, scale: K, shadow: s.oy || s.edge === "hang" || s.edge === "face" ? null : { y: -(s.rise || 0), k: s.rise ? 0.6 : 1 }, clipY: s.clip ? 0 : null, pawsOnEdge: !!s.paws };
+      var env = { dark: !light, rim: rimQ === "notte" ? "notte" : rimQ === "no" ? false : undefined, scale: K, shadow: s.oy || s.edge === "hang" || s.edge === "face" ? null : { y: -(s.rise || 0), k: s.rise ? 0.6 : 1 }, clipY: s.clip ? 0 : null, pawsOnEdge: !!s.paws };
       c.translate(ox, oy); c.scale(K, -K);
       if (s.rise) c.translate(0, s.rise);
       look.draw(c, f, env);

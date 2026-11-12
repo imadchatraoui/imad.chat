@@ -57,6 +57,7 @@ function tempo(s: string | null): number {
 /**
  * La lista di /users/<utente>/repos → i repository pubblici dell'utente, nella forma del contratto:
  * i suoi prima (per ultimo push), i fork in fondo (anche loro per ultimo push).
+ * Il repository del profilo (quello che si chiama come l'utente, maiuscole a parte) si scarta.
  */
 export function formaRepos(json: unknown, user: string): Esito<Repo[]> {
   if (!Array.isArray(json)) {
@@ -68,6 +69,7 @@ export function formaRepos(json: unknown, user: string): Esito<Repo[]> {
   const tenuti: Repo[] = [];
   let privati = 0;
   let altri = 0;
+  let profilo = 0;
   let malformati = 0;
   for (const raw of json) {
     if (!raw || typeof raw !== "object") {
@@ -91,6 +93,11 @@ export function formaRepos(json: unknown, user: string): Esito<Repo[]> {
       malformati++;
       continue;
     }
+    // Il repository del profilo (<utente>/<utente>, il README della pagina GitHub) non è un progetto.
+    if (name.toLowerCase() === user.toLowerCase()) {
+      profilo++;
+      continue;
+    }
     tenuti.push({
       name,
       description: testo(r.description, MAX_DESCRIZIONE),
@@ -107,7 +114,7 @@ export function formaRepos(json: unknown, user: string): Esito<Repo[]> {
     const d = tempo(b.pushedAt) - tempo(a.pushedAt);
     return d !== 0 ? d : a.name.localeCompare(b.name);
   });
-  return { ok: true, value: tenuti, info: { ricevuti: json.length, tenuti: tenuti.length, privati, altri, malformati } };
+  return { ok: true, value: tenuti, info: { ricevuti: json.length, tenuti: tenuti.length, privati, altri, profilo, malformati } };
 }
 
 /** La lista di /repos/<utente>/<repo>/commits?per_page=3 → al massimo tre {message (solo la prima riga), date}. */

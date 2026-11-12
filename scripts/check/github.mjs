@@ -284,6 +284,24 @@ const LISTA = [
 }
 
 {
+  // il repository del profilo (<utente>/<utente>) non è un progetto; uno dal nome simile sì
+  const lista = [
+    ...LISTA,
+    repoFinto(U, { pushed_at: "2026-11-12T00:00:00Z" }),
+    repoFinto("ImadChatraoui", { pushed_at: "2026-11-12T01:00:00Z" }),
+    repoFinto(U + "-notes", { pushed_at: "2026-11-12T02:00:00Z" }),
+    repoFinto(U + ".github.io", { pushed_at: "2026-11-12T03:00:00Z" }),
+  ];
+  const r = P.formaRepos(lista, U);
+  const nomi = r.value.map((x) => x.name);
+  ok(r.ok && !nomi.some((n) => n.toLowerCase() === U), "repos: il repository del profilo si scarta (anche con maiuscole diverse)", nomi);
+  ok(nomi.includes(U + "-notes") && nomi.includes(U + ".github.io"), "repos: un nome simile al profilo resta", nomi);
+  eq(nomi.length, 9, "repos: solo i due del profilo in meno");
+  eq(r.info.profilo, 2, "repos: info.profilo conta gli scartati");
+  eq(P.formaRepos(lista, "ImadChatraoui").value.map((x) => x.name), nomi, "repos: utente scritto con maiuscole → stesso filtro");
+}
+
+{
   const commits = [
     { sha: "a", commit: { message: "Lezione 12: luci\n\nDettagli lunghi", author: { date: "2026-11-10T08:00:00Z" }, committer: { date: "2026-11-10T09:00:00Z" } } },
     { sha: "b", commit: { message: "Fix\r\nsecondo", author: { date: "2026-11-09T08:00:00Z" }, committer: null } },
@@ -390,6 +408,17 @@ const nessunSegreto = (x) => !JSON.stringify(x).includes(TOKEN) && !/authorizati
   eq(Object.keys(r.data), ["ok", "repos", "learning", "updated"], "progetti: chiavi del contratto");
   eq(r.why[0].rateRemaining, "57", "why: limite rimasto");
   ok(!JSON.stringify(r.data).includes("segreto"), "progetti: nessun privato nella risposta");
+}
+{
+  // il profilo nella lista non tocca "Sto imparando"
+  const lista = [repoFinto(U, { pushed_at: "2026-11-12T00:00:00Z" }), ...LISTA];
+  const f = finto([
+    ["https://api.github.com/users/imadchatraoui/repos", { body: lista }],
+    ["https://api.github.com/repos/imadchatraoui/threejs-journey/commits", { body: [{ commit: { message: "Lezione 12\n\nx", committer: { date: "2026-11-10T09:00:00Z" } } }] }],
+  ]);
+  const r = await L.caricaProgetti({ fetchImpl: f, adesso: ADESSO });
+  ok(r.data && r.data.repos.length === 7 && !r.data.repos.some((x) => x.name === U), "progetti: il profilo non è tra i repos", r.why);
+  eq(r.data && r.data.learning, { repo: "threejs-journey", url: "https://github.com/imadchatraoui/threejs-journey", pushedAt: "2026-11-10T09:00:00.000Z", commits: [{ message: "Lezione 12", date: "2026-11-10T09:00:00.000Z" }] }, "progetti: learning invariato col profilo nella lista");
 }
 {
   // il repository di studio è privato: i suoi commit non si chiedono nemmeno

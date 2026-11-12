@@ -157,22 +157,41 @@
      La prima volta in una sessione del browser c'è l'apertura (i nove tasti, la scatola, «salam, sono Dot.»); dopo, Dot è già in giro. */
   var clip = $("#dotclip"), mqDark = window.matchMedia("(prefers-color-scheme: dark)");
   function bottomInset() { var r = dock.getBoundingClientRect(); return r.height ? Math.max(0, window.innerHeight - r.top) + 12 : 0; }
-  function startDot() {
+  /* la prima volta in questa sessione del browser? (deciso al caricamento: l'intro deve saperlo prima di finire) */
+  var first = true; try { first = sessionStorage.getItem("imad.dot.aperto") !== "1"; } catch (e) { }
+  if (I.shot || Q.get("primo") === "0") first = false;
+  if (Q.get("primo") === "1") first = true;
+  /* dove sta la scatola sull'hero: la regola di DOT (homePoint in dot-brain.js), con questo numero passato come homeX */
+  var HOME_X = 0.58, started = false;
+  function dotOk() { var D = window.DOT; return !!(D && D.start && D.looks && clip && Q.get("dot") !== "no"); }
+  function startDot(keysFormed) {
     var DOT = window.DOT;
-    if (!DOT || !DOT.start || !DOT.looks || !clip || Q.get("dot") === "no") return;
+    if (started || !dotOk()) return; started = true;
     if (clip.getAttribute("data-media")) DOT.mediaBase = clip.getAttribute("data-media");
     var look = Q.get("look"); if (!look || !DOT.looks[look]) look = DOT.looks.manifesto ? "manifesto" : Object.keys(DOT.looks)[0];
-    var first = true; try { first = sessionStorage.getItem("imad.dot.aperto") !== "1"; sessionStorage.setItem("imad.dot.aperto", "1"); } catch (e) { }
-    if (I.shot || Q.get("primo") === "0") first = false;
-    if (Q.get("primo") === "1") first = true;
+    if (first) { try { sessionStorage.setItem("imad.dot.aperto", "1"); } catch (e) { } }
     if (Q.get("seme") && DOT.debug && DOT.debug.seed) DOT.debug.seed(+Q.get("seme"));
     try {
-      DOT.start({ tiles: ".testa > .tile, .grid > .tile", home: $("#hero"), parent: clip, look: look, firstVisit: first, dark: I.isDark(), bottomInset: bottomInset });
+      DOT.start({ tiles: ".testa > .tile, .grid > .tile", home: $("#hero"), homeX: HOME_X, parent: clip, look: look, firstVisit: first, keysFormed: !!(first && keysFormed), dark: I.isDark(), bottomInset: bottomInset });
     } catch (e) { if (window.console) console.error(e); return; }
+    if (root.classList.contains("is-sheet") && DOT.pause) DOT.pause();   /* un foglio aperto mentre i tasti volavano: Dot aspetta sotto */
     if (DOT.sound && DOT.sound.setMuted) { DOT.sound.setMuted(!I.sound.on()); I.sound.listen(function (on) { DOT.sound.setMuted(!on); }); }
     var dark = function () { if (DOT.setDark) DOT.setDark(I.isDark()); };
     if (mqDark.addEventListener) mqDark.addEventListener("change", dark); else if (mqDark.addListener) mqDark.addListener(dark);
     window.__dot = true;
   }
-  I.whenFree(startDot);
+  /* il passaggio (intro versione «gatto», CASA.md 2c B): i nove tasti dell'intro volano sulla mensola e qui la scena di Dot li prende
+     sullo stesso fotogramma. L'intro legge passage e anchor(); se fa il passaggio mette wait = true e alla fine chiama handover(formed):
+     formed = i tasti sono già fermi ai loro posti (l'apertura parte da lì); false = un giro rotto (rotazione): l'apertura intera */
+  window.__niDot = {
+    passage: first && dotOk() && !!(window.DOT && window.DOT.stage && window.DOT.stage.paint),
+    wait: false,
+    layerTop: function () { return clip ? clip.getBoundingClientRect().top + (window.pageYOffset || 0) : 0; },   /* dove comincia lo strato di Dot (la sua tela dei tasti si allinea a quello) */
+    anchor: function () { var h = $("#hero"); if (!h) return null; var r = h.getBoundingClientRect(); return { x: r.left + (window.pageXOffset || 0) + (r.width > 220 ? r.width * HOME_X : r.width / 2), y: r.top + (window.pageYOffset || 0) }; },
+    handover: function (formed) { startDot(formed); }
+  };
+  I.whenFree(function () {
+    if (!window.__niDot.wait) { startDot(false); return; }
+    setTimeout(function () { startDot(false); }, 4000);   /* se il passaggio non arriva (una scheda nascosta, un errore), Dot parte lo stesso */
+  });
 })();

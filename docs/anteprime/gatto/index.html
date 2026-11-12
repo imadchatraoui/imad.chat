@@ -39,11 +39,6 @@
 
 <!-- barra di questa anteprima: non fa parte del design -->
 <div class="barra" role="group" aria-label="comandi dell'anteprima">
-  <div class="seg" id="aspetto" role="group" aria-label="aspetto">
-    <button type="button" data-look="manifesto" aria-pressed="true">Manifesto</button>
-    <button type="button" data-look="adesivo" aria-pressed="false">Adesivo</button>
-    <button type="button" data-look="pelo" aria-pressed="false">Pelo</button>
-  </div>
   <div class="seg" id="tema" role="group" aria-label="tema">
     <button type="button" data-tema="scuro" aria-pressed="true">Scuro</button>
     <button type="button" data-tema="chiaro" aria-pressed="false">Chiaro</button>
@@ -56,23 +51,21 @@
 <script>window.DOT = window.DOT || {}; window.DOT.mediaBase = "media/";</script>
 <script src="dot-rig.js"></script>
 <script src="look-base.js"></script>
-<script src="look-adesivo.js"></script>
 <script src="look-manifesto.js"></script>
-<script src="look-pelo.js"></script>
 <script src="dot-stage.js"></script>
 <script src="dot-sound.js"></script>
 <script src="dot-fx.js"></script>
 <script src="dot-brain.js"></script>
 <script>
-/* L'anteprima: accende Dot sui riquadri finti e collega la barra.
-   ?look=adesivo|manifesto|pelo  ?tema=scuro|chiaro  ?suono=no  — per gli strumenti: ?manual=1 (orologio fermo)  ?seme=7  ?primo=0 (niente apertura)  ?k=3 (Dot più grande, per le foto) */
+/* L'anteprima: accende Dot sui riquadri finti e collega la barra. L'aspetto è Manifesto, quello scelto da Imad (2026-11-12).
+   ?tema=scuro|chiaro  ?suono=no  — per gli strumenti: ?manual=1 (orologio fermo)  ?seme=7  ?primo=0 (niente apertura)  ?k=3 (Dot più grande, per le foto)  ?look=base (l'aspetto semplice di prova) */
 (function () {
   "use strict";
   var DOT = window.DOT, doc = document, html = doc.documentElement, q;
   try { q = new URLSearchParams(location.search); } catch (e) { q = { get: function () { return null; } }; }
   if (!DOT || !DOT.start || !DOT.looks) return;
-  var LOOKS = ["adesivo", "manifesto", "pelo"];
-  var look = q.get("look"); if (LOOKS.indexOf(look) < 0 || !DOT.looks[look]) look = "manifesto";   /* Manifesto: lo ha scelto Imad (2026-11-12) */
+  var look = q.get("look") === "base" ? "base" : "manifesto";   /* Manifesto: lo ha scelto Imad (2026-11-12) */
+  if (!DOT.looks[look]) look = "base";
   var tema = html.getAttribute("data-tema") === "chiaro" ? "chiaro" : "scuro";
   var suono = q.get("suono") !== "no";
   if (q.get("manual") === "1") window.__manual = true;
@@ -81,7 +74,7 @@
   /* l'indirizzo segue la barra, così ricaricando resta tutto com'era */
   function addr() {
     try {
-      var u = new URLSearchParams(location.search); u.set("look", look); u.set("tema", tema); if (suono) u.delete("suono"); else u.set("suono", "no");
+      var u = new URLSearchParams(location.search); u.set("tema", tema); if (suono) u.delete("suono"); else u.set("suono", "no");
       history.replaceState(null, "", location.pathname + "?" + u.toString() + location.hash);
     } catch (e) {}
   }
@@ -94,16 +87,11 @@
     try { if (DOT.sound && DOT.sound.setMuted) DOT.sound.setMuted(!on); } catch (e) {}
   }
 
-  press("aspetto", "data-look", look); press("tema", "data-tema", tema); setSuono(suono);
+  press("tema", "data-tema", tema); setSuono(suono);
   /* la barra in basso copre il fondo dello schermo: Dot lì non si vede, quindi non ci resta */
   function coperto() { var b = doc.querySelector(".barra"), r; if (!b) return 0; r = b.getBoundingClientRect(); return Math.max(0, window.innerHeight - r.top) + 12; }
   DOT.start({ tiles: ".t", home: doc.querySelector("[data-home]"), parent: doc.getElementById("dotclip"), look: look, firstVisit: q.get("primo") !== "0", dark: tema === "scuro", k: +q.get("k") > 0 ? Math.min(4, +q.get("k")) : 0, bottomInset: coperto });
 
-  doc.getElementById("aspetto").addEventListener("click", function (e) {
-    var b = e.target && e.target.closest ? e.target.closest("button") : null; if (!b) return;
-    var n = b.getAttribute("data-look"); if (!DOT.looks[n] || n === look) return;
-    look = n; DOT.setLook(n); press("aspetto", "data-look", n); addr();
-  });
   doc.getElementById("tema").addEventListener("click", function (e) {
     var b = e.target && e.target.closest ? e.target.closest("button") : null; if (!b) return;
     var n = b.getAttribute("data-tema"); if (n === tema) return;
