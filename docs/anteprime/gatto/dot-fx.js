@@ -29,7 +29,7 @@
 
   /* ------------------------------------------------------------------ una tela che segue qualcosa: origine (ox, oy) dentro la tela */
   fx.Sprite = function (layer, w, h, ox, oy, z) {
-    var cv = doc.createElement("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2), o = { cv: cv, ctx: cv.getContext("2d"), w: w, h: h, ox: ox, oy: oy, dpr: dpr, on: true };
+    var cv = doc.createElement("canvas"), dpr = DOT.photoDpr || Math.min(window.devicePixelRatio || 1, 2), o = { cv: cv, ctx: cv.getContext("2d"), w: w, h: h, ox: ox, oy: oy, dpr: dpr, on: true };   /* DOT.photoDpr: solo per le foto di prova */
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.width = w + "px"; cv.style.height = h + "px"; cv.style.zIndex = z || 2; cv.setAttribute("aria-hidden", "true");
     layer.appendChild(cv);
     o.place = function (x, y) { cv.style.transform = "translate3d(" + (x - ox).toFixed(2) + "px," + (y - oy).toFixed(2) + "px,0)"; };

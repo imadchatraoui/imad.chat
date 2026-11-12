@@ -2,7 +2,7 @@
    Non disegna il gatto: guida lo scheletro (dot-rig.js) per nome di posa, valori forzati e pochi comandi, poi passa il
    fotogramma all'aspetto scelto (look-*.js). Le cose attorno (nuvoletta, graffi, oggetti) sono in dot-fx.js.
    Coordinate: pixel della pagina (x a destra, y in GIÙ); il gatto è disegnato in unità del modello (y in alto),
-   K pixel per unità. Uso: DOT.start({ tiles, home, look, firstVisit, reducedMotion }), DOT.stop(), DOT.setLook(nome),
+   K pixel per unità. Uso: DOT.start({ tiles, home, look, firstVisit, reducedMotion, dark, parent }), DOT.stop(), DOT.setLook(nome), DOT.setDark(bool),
    DOT.say(testo, secondi), DOT.replay(). Per le prove: window.__manual = true e DOT.debug.tick(dt). Solo ES2017. */
 (function () {
   "use strict";
@@ -122,6 +122,7 @@
   function aligned(tol) { return Math.abs(wrap(rig.yaw - rig.yawT)) < (tol || 0.4); }
   function set(state, d) {
     if (cat.state === "slide" && cat.d.sc) cat.d.sc.done();
+    if (cat.state !== state && (cat.state === "purr" || cat.state === "pet" || cat.state === "belly") && state !== "belly") sound("purr", false);   /* le fusa finiscono con lo stato */
     cat.state = state; cat.st = 0; cat.d = d || {};
     rig.over = {}; rig.walkT = 0; rig.pitchT = 0; rig.rollT = 0; rig.longT = 0; rig.tailSwish = 0; rig.tailRate = 0; rig.grounded = true; rig.rate = 12; rig.pupilT = 0.8; rig.pupilDotT = 0;
     rig.poseAs = null; rig.edge = null; rig.eyeMood = null; rig.faceTurn = null; rig.gaitT = null; cat.moodKeys = null;
@@ -149,7 +150,7 @@
     cat.moodKeys = keys;
   }
   function fx() { return DOT.fx; }
-  function sound(n) { try { if (DOT.sound && typeof DOT.sound[n] === "function") DOT.sound[n](); } catch (e) {} }
+  function sound(n, a) { try { if (DOT.sound && typeof DOT.sound[n] === "function") DOT.sound[n](a); } catch (e) {} }
   function say(text, sec, kind) { if (bubble) bubble.say(text, sec || 3, kind); }
 
   /* ------------------------------------------------------------------ la vita di tutti i giorni */
@@ -407,7 +408,7 @@
     },
     purr: function (dt, d) {                                           /* fusa: occhi chiusi, testa inclinata, un tremito lieve */
       var st = cat.st, e = seg(st, 0, 0.3) * (1 - seg(st, d.dur - 0.3, d.dur)); rig.over.eye = st < d.dur - 0.2 ? 0 : 0.7; rig.eyeMood = "happy"; rig.over.hr = 0.16 * e; rig.over.br = 1.4; rig.over.ear = -0.05;
-      cat.jit = 0.22 * e; if (st > 0.4 && !d.said) { d.said = 1; say("prr", 1.2, "mini"); sound("purr"); }
+      cat.jit = 0.22 * e; if (st > 0.4 && !d.said) { d.said = 1; say("prr", 1.2, "mini"); sound("purr", true); }
       if (st > d.dur) { cat.jit = 0; life.slow = now; sitFor(rr(1.8, 2.8)); }
     },
     fezoff: function (dt, d) {                                         /* il tocco lo schiaccia, la testa scatta, il fez vola; Dot lo segue, va a prenderlo e se lo rilancia in testa */
@@ -708,7 +709,7 @@
     pet: function (dt, d) {                                            /* il dito fermo sopra: si appoggia, fusa, occhi che si chiudono piano */
       var st = cat.st, h = lastF ? toPage(lastF.head.x, lastF.head.y) : { x: cat.x, y: cat.y - 30 }, dx = drag ? drag.x - h.x : 0;
       rig.over.hr = clamp(dx / 40, -1, 1) * 0.24 * seg(st, 0, 0.4); rig.over.hp = 0.1; rig.over.eye = 1 - seg(st, 0.3, 1.1); rig.over.ear = -0.1; rig.over.br = 1.4; cat.jit = 0.2 * seg(st, 0.4, 0.8);
-      if (st > 0.7 && !d.said) { d.said = 1; say("prr", 1.6, "mini"); sound("purr"); }
+      if (st > 0.7 && !d.said) { d.said = 1; say("prr", 1.6, "mini"); sound("purr", true); }
       if (st > 3.4 && cat.plat) set("belly", { face: "side", pose: "b-knead" });
     },
     belly: function (dt, d) {                                          /* a pancia in su; il fez rotola via */
@@ -986,7 +987,9 @@
     try { grab.releasePointerCapture(d.id); } catch (er) {}
     if (!d.moved) { if (d.pet) { if (cat.state === "pet") { cat.jit = 0; life.slow = now + 0.2; sitFor(rr(2, 3)); } } else if (e && e.type !== "pointercancel") tap(); return; }
     if (cat.state !== "held") return;
-    var h = d.hist, a = h[0], b = h[h.length - 1], i, rt = b.rt; for (i = h.length - 1; i >= 0; i--) if (rt - h[i].rt <= 0.1) a = h[i];
+    /* la velocità degli ultimi 0.1 s fino al momento in cui si alza il dito: se il dito era fermo, il gatto non viene lanciato */
+    var h = d.hist, a = null, b = h[h.length - 1], i, rt = perf(); for (i = h.length - 1; i >= 0; i--) if (rt - h[i].rt <= 0.1) a = h[i];
+    if (!a) { release(0, 0); return; }
     var dtt = Math.max(0.016, rt - a.rt); release(clamp((b.x - a.x) / dtt, -2400, 2400), clamp((b.y - a.y) / dtt, -2400, 2400));
   }
   function onKey(e) { if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") { e.preventDefault(); tap(); } }
@@ -1025,7 +1028,7 @@
     reduced = !!O.reducedMotion; try { if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) reduced = true; } catch (e) {}
     dark = O.dark != null ? !!O.dark : true; try { if (O.dark == null && window.matchMedia) dark = !matchMedia("(prefers-color-scheme: light)").matches; } catch (e) {}
     fx().css(); dpr = Math.min(window.devicePixelRatio || 1, 2);
-    layer = doc.createElement("div"); layer.className = "dot-layer"; doc.body.appendChild(layer);
+    layer = doc.createElement("div"); layer.className = "dot-layer"; (O.parent && O.parent.nodeType === 1 ? O.parent : doc.body).appendChild(layer);   /* O.parent: un contenitore che taglia ciò che sporge */
     grab = doc.createElement("button"); grab.type = "button"; grab.className = "dot-grab"; grab.setAttribute("aria-label", "Dot, il gatto"); grab.style.display = "none"; layer.appendChild(grab);
     bubble = fx().Bubble(layer);
     look = DOT.looks[O.look] || DOT.looks.base; rig = DOT.makeRig(look.preset); addPoses(rig); rig.autoBlink = false; rig.spring = 1; rig.earTwitch = false;
@@ -1059,7 +1062,7 @@
     }
   }
   DOT.stop = function () {
-    if (!B.on) return; B.on = false; cancelAnimationFrame(raf); clearInterval(stillI);
+    if (!B.on) return; B.on = false; cancelAnimationFrame(raf); clearInterval(stillI); sound("purr", false);
     window.removeEventListener("pointermove", onPtr); window.removeEventListener("pointerdown", onPtrDown); window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onResize); doc.removeEventListener("visibilitychange", onVis);
     if (RO) { try { RO.disconnect(); } catch (e) {} RO = null; }
     if (stageOn && stage.unmount) { try { stage.unmount(); } catch (e) {} } stageOn = false; B.mounted = false;
@@ -1071,6 +1074,7 @@
     rig.look.ty = old.look.ty; rig.look.tp = old.look.tp; rig.pupilT = old.pupilT; rig.pupilDotT = old.pupilDotT; rig.poseAs = old.poseAs; rig.edge = old.edge; rig.eyeMood = old.eyeMood; rig.faceTurn = old.faceTurn; rig.gaitT = old.gaitT;
     rig.snap(old.pose); rig.gait = old.gait; rig.autoBlink = false;
   };
+  DOT.setDark = function (d) { dark = !!d; };                         /* tema della pagina: scuro (true) o chiaro; vale dal fotogramma dopo */
   DOT.say = function (text, sec) { say(text, sec || 3, text.length > 26 ? "long" : text.length < 8 ? "mini" : null); };
   DOT.replay = function () { if (!B.on) return; drag = null; fake = null; begin(!reduced); };
 

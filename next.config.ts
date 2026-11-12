@@ -16,6 +16,8 @@ const config: NextConfig = {
         { source: "/", destination: "/home/index.html" },
         // l'anteprima della bento nuova: stessa cosa, a un indirizzo a parte (non indicizzato)
         { source: "/anteprima", destination: "/anteprima/index.html" },
+        // l'anteprima di Dot, il gatto (non indicizzata)
+        { source: "/gatto", destination: "/gatto/index.html" },
       ],
       afterFiles: [],
       fallback: [],

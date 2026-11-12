@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="it" data-tema="scuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark light">
+<title>Dot — anteprima</title>
+<script>
+/* il tema prima del primo disegno: ?tema=chiaro | scuro (scuro se non c'è) */
+(function () { try { var t = new URLSearchParams(location.search).get("tema"); if (t === "chiaro" || t === "scuro") document.documentElement.setAttribute("data-tema", t); } catch (e) {} })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/gatto/gatto.css">
+</head>
+<body>
+<div class="cielo" aria-hidden="true"></div>
+<!-- qui dentro dot-brain.js mette il gatto, la scatola, i graffi: taglia ciò che sporge di lato -->
+<div class="dot-clip" id="dotclip"></div>
+<main class="pg">
+  <p class="tag">anteprima · Dot</p>
+  <div class="sopra" aria-hidden="true"></div>
+  <section class="grid" aria-label="riquadri finti">
+    <div class="t t--4x2 t--home" data-home><h1 class="marchio">imad.chat<i>_</i></h1></div>
+    <div class="t t--2x2"><b>Le città</b><s></s><s></s></div>
+    <div class="t t--2x1"><b>Su di me</b><s></s></div>
+    <div class="t t--2x1"><b>Saluti</b><s></s></div>
+    <div class="t t--4x2" data-dot="no"><b>Corano (qui Dot non sale)</b></div>
+    <div class="t t--2x1"><b>Tools</b><s></s></div>
+    <div class="t t--2x2"><b>Progetti</b><s></s><s></s></div>
+    <div class="t t--2x1"><b>Heatmap</b><s></s></div>
+    <div class="t t--4x1" data-dot="quiet"><b>Nel mondo (qui Dot sta tranquillo)</b><s></s></div>
+    <div class="t t--4x1"><b>Sto imparando</b><s></s></div>
+  </section>
+  <p class="prova">Toccalo. Toccalo mentre dorme. Trascinalo e lascialo su un bordo o sulla faccia di un riquadro. Oppure aspetta e guardalo.</p>
+</main>
+
+<!-- barra di questa anteprima: non fa parte del design -->
+<div class="barra" role="group" aria-label="comandi dell'anteprima">
+  <div class="seg" id="aspetto" role="group" aria-label="aspetto">
+    <button type="button" data-look="adesivo" aria-pressed="true">Adesivo</button>
+    <button type="button" data-look="manifesto" aria-pressed="false">Manifesto</button>
+    <button type="button" data-look="pelo" aria-pressed="false">Pelo</button>
+  </div>
+  <div class="seg" id="tema" role="group" aria-label="tema">
+    <button type="button" data-tema="scuro" aria-pressed="true">Scuro</button>
+    <button type="button" data-tema="chiaro" aria-pressed="false">Chiaro</button>
+  </div>
+  <span class="barra__tit">anteprima</span>
+  <button type="button" class="solo" id="suono" aria-pressed="true">Suono sì</button>
+  <button type="button" class="solo" id="rivedi">Rivedi</button>
+</div>
+
+<script>window.DOT = window.DOT || {}; window.DOT.mediaBase = "/gatto/media/";</script>
+<script src="/gatto/dot-rig.js"></script>
+<script src="/gatto/look-base.js"></script>
+<script src="/gatto/look-adesivo.js"></script>
+<script src="/gatto/look-manifesto.js"></script>
+<script src="/gatto/look-pelo.js"></script>
+<script src="/gatto/dot-stage.js"></script>
+<script src="/gatto/dot-sound.js"></script>
+<script src="/gatto/dot-fx.js"></script>
+<script src="/gatto/dot-brain.js"></script>
+<script>
+/* L'anteprima: accende Dot sui riquadri finti e collega la barra.
+   ?look=adesivo|manifesto|pelo  ?tema=scuro|chiaro  ?suono=no  — per gli strumenti: ?manual=1 (orologio fermo)  ?seme=7  ?primo=0 (niente apertura)  ?k=3 (Dot più grande, per le foto) */
+(function () {
+  "use strict";
+  var DOT = window.DOT, doc = document, html = doc.documentElement, q;
+  try { q = new URLSearchParams(location.search); } catch (e) { q = { get: function () { return null; } }; }
+  if (!DOT || !DOT.start || !DOT.looks) return;
+  var LOOKS = ["adesivo", "manifesto", "pelo"];
+  var look = q.get("look"); if (LOOKS.indexOf(look) < 0 || !DOT.looks[look]) look = "adesivo";
+  var tema = html.getAttribute("data-tema") === "chiaro" ? "chiaro" : "scuro";
+  var suono = q.get("suono") !== "no";
+  if (q.get("manual") === "1") window.__manual = true;
+  if (q.get("seme") && DOT.debug) DOT.debug.seed(+q.get("seme"));
+
+  /* l'indirizzo segue la barra, così ricaricando resta tutto com'era */
+  function addr() {
+    try {
+      var u = new URLSearchParams(location.search); u.set("look", look); u.set("tema", tema); if (suono) u.delete("suono"); else u.set("suono", "no");
+      history.replaceState(null, "", location.pathname + "?" + u.toString() + location.hash);
+    } catch (e) {}
+  }
+  function press(groupId, attr, val) {
+    var b = doc.getElementById(groupId).querySelectorAll("button"), i;
+    for (i = 0; i < b.length; i++) b[i].setAttribute("aria-pressed", b[i].getAttribute(attr) === val ? "true" : "false");
+  }
+  function setSuono(on) {
+    suono = on; var b = doc.getElementById("suono"); b.setAttribute("aria-pressed", on ? "true" : "false"); b.textContent = on ? "Suono sì" : "Suono no";
+    try { if (DOT.sound && DOT.sound.setMuted) DOT.sound.setMuted(!on); } catch (e) {}
+  }
+
+  press("aspetto", "data-look", look); press("tema", "data-tema", tema); setSuono(suono);
+  DOT.start({ tiles: ".t", home: doc.querySelector("[data-home]"), parent: doc.getElementById("dotclip"), look: look, firstVisit: q.get("primo") !== "0", dark: tema === "scuro", k: +q.get("k") > 0 ? Math.min(4, +q.get("k")) : 0 });
+
+  doc.getElementById("aspetto").addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest("button") : null; if (!b) return;
+    var n = b.getAttribute("data-look"); if (!DOT.looks[n] || n === look) return;
+    look = n; DOT.setLook(n); press("aspetto", "data-look", n); addr();
+  });
+  doc.getElementById("tema").addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest("button") : null; if (!b) return;
+    var n = b.getAttribute("data-tema"); if (n === tema) return;
+    tema = n; html.setAttribute("data-tema", n); if (DOT.setDark) DOT.setDark(n === "scuro"); press("tema", "data-tema", n); addr();
+  });
+  doc.getElementById("suono").addEventListener("click", function () { setSuono(!suono); addr(); });
+  doc.getElementById("rivedi").addEventListener("click", function () {
+    try { window.scrollTo(0, 0); } catch (e) {}
+    setTimeout(function () { DOT.replay(); }, 60);
+  });
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>

@@ -91,8 +91,8 @@ Files in `docs/anteprime/gatto/` (each has one owner while agents work in parall
 - `dot-stage.js` — the nine keys and the box, Canvas 2D.
 - `dot-sound.js`, `media/` — sounds.
 - `index.html`, `gatto.css` — the preview page: mock tiles, look toggle, dark and light, "Rivedi".
-- `tavola.html`, `strumenti/` — pose sheets and frame strips for checking; `strumenti/tavola.mjs` takes the pictures.
-- `gatto.js` — the rejected first draft, kept only for its movement logic (state machine, drag and drop, opening timeline). Delete it when the brain no longer needs it.
+- `dot-fx.js` — the small things around Dot: the bubble, the scratches, the canvases of loose objects (fez, cube, yarn, star).
+- `tavola.html`, `prova.html`, `scena.html`, `strumenti/` — tools for checking, never online (see section 6).
 
 Drawing surfaces: canvases **positioned absolutely in page coordinates** inside one layer above the tiles, so they scroll with the page natively (a fixed full-screen canvas lags behind iOS scrolling). One small canvas follows the cat; the box and keys have their own; the loose fez and the scratches get theirs when needed. All of them `pointer-events: none`; one small transparent button over the cat takes the touches (`touch-action: none` on it only). "Behind a tile" is done by clipping the cat at the tile's edge.
 
@@ -100,4 +100,16 @@ Tiles tell Dot what they are with `data-dot`: `no` (never on it or over it: the 
 
 ## 6. State (update this)
 
-- 2026-11-12: this document, the skeleton `dot-rig.js`, a plain baseline look `look-base.js` and the pose sheet were written; agents then build three looks, the brain, the stage and the sounds, and an integrator assembles the preview at `/gatto`. See `CLAUDE.md` for what happened next.
+- 2026-11-12: the skeleton, three looks (`adesivo` chosen as default; then `manifesto`, `pelo`), the brain, the stage, the sounds and the preview page exist. The first draft (`gatto.js`, three.js) is deleted.
+- **The preview**: `index.html` + `gatto.css`. Dark page (light with the toggle), ten mock tiles in a 4-column bento (30 px radius, frosted), one `data-dot="no"` (Corano, no text), one `data-dot="quiet"`. A dashed bar at the bottom (not part of the design): look, theme, sound, "Rivedi". Address: `?look=adesivo|manifesto|pelo`, `?tema=scuro|chiaro`, `?suono=no`; for tools `?manual=1`, `?seme=7`, `?primo=0`, `?k=3`. The opening plays on every load (for judging). Dot's layer sits in `#dotclip`, which cuts what sticks out on the right (without it the phone widens the page).
+- **Online, prepared, not published**: `node scripts/home/build.mjs` also writes `public/gatto/` (addresses rewritten to `/gatto/...`); `next.config.ts` rewrites `/gatto` to it; `robots.ts` disallows `/gatto`; the page is `noindex`. `npm run build` passes; `public/home` and `public/anteprima` are unchanged.
+- **Checked** in headless Chromium, phone viewport 390x844 with touch, served from `public/`: no console errors; the opening reaches the cat sitting with "salam, sono Dot." (about 8.3 s); taps give a different reaction each time; a tap while asleep wakes it annoyed and it walks off and sulks; drag → long cat, drop on a tile face → slide with scratches, drop above an edge → lands, throw → flies and lands; look, theme and sound toggles; reduced motion → no opening, sits; scrolling keeps it on its tile; hidden tab → 0 frames drawn; about 0.3 ms of work per frame on a desktop CPU. All scripts parse as ES2017.
+- **Fixed while assembling**: a drop after holding the finger still threw the cat (the speed ignored the pause); the purr sound never started (it was called without `true`); `DOT.setDark()` added for the theme toggle; `DOT.start({ parent })` and `DOT.photoDpr` added.
+- **Not tested**: Safari, a real iPhone (Imad's is on iOS 18.0), the sounds by ear, touch on a real screen. Ask Imad what he sees.
+- **Known limits**: while the visitor drags it, Dot can pass over the Corano tile (it never lands there); on a tile right under another one there is no room to sit, so Dot only uses tiles with headroom; tiles under the Corano are never sat on.
+- **Tools** (run from the repo root; pictures go wherever you say):
+  - `node docs/anteprime/gatto/strumenti/tavola.mjs out.png "look=adesivo&bg=light"` — the pose sheet (`tavola.html`; a cell is 58 x k px wide).
+  - `node docs/anteprime/gatto/strumenti/striscia.mjs out.png walk 14 adesivo` — a frame strip of one action on `prova.html` (scenes listed in the script).
+  - `node docs/anteprime/gatto/strumenti/galleria.mjs out.png adesivo scuro` — twelve scenes at true size, 4x (add `candidati` to choose the instants).
+  - `node docs/anteprime/gatto/strumenti/film.mjs outdir adesivo scuro` — `apertura.mp4` (opening + 20 s of life, 60 fps, H.264) and six key frames.
+  - `scena.html?check=1` checks the stage contract; `prova.html` is the behaviour bench.

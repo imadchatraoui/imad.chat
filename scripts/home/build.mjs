@@ -88,3 +88,26 @@ console.log("public/home pronta:", fs.readdirSync(out).join(", "), "| media:", f
   for (const dir of [path.join(intro, "media"), path.join(bento, "media")]) for (const f of fs.readdirSync(dir)) fs.copyFileSync(path.join(dir, f), path.join(dst, "media", f));
   console.log("public/anteprima pronta:", fs.readdirSync(dst).join(", "));
 }
+
+// ------------------------------------------------------------------ l'anteprima di Dot, il gatto: /gatto (non indicizzata)
+// Copia la pagina di docs/anteprime/gatto e i suoi file; gli indirizzi diventano assoluti (/gatto/...),
+// perché la pagina si apre anche come /gatto, senza barra finale. Le pagine di prova (prova, scena, tavola) non vanno online.
+{
+  const src = path.join(root, "docs/anteprime/gatto");
+  const dst = path.join(root, "public/gatto");
+  const G = "/gatto/";
+  const scripts = fs.readdirSync(src).filter((f) => /^(dot|look)-[a-z]+\.js$/.test(f)).sort();
+  let h = fs.readFileSync(path.join(src, "index.html"), "utf8");
+  h = swap(h, '<link rel="stylesheet" href="gatto.css">', `<link rel="stylesheet" href="${G}gatto.css">`, "gatto index.html");
+  h = swap(h, 'window.DOT.mediaBase = "media/";', `window.DOT.mediaBase = "${G}media/";`, "gatto index.html");
+  for (const f of scripts) if (h.includes(`<script src="${f}"></script>`)) h = swap(h, `<script src="${f}"></script>`, `<script src="${G}${f}"></script>`, "gatto index.html");
+  const left = h.match(/(?:src|href)="(?!https?:|\/|#|data:)[^"]+"/g);
+  if (left) throw new Error("gatto index.html: indirizzi ancora relativi: " + left.join(" "));
+  if (!h.includes('<meta name="robots" content="noindex')) throw new Error("gatto index.html: manca noindex");
+  fs.rmSync(dst, { recursive: true, force: true });
+  fs.mkdirSync(path.join(dst, "media"), { recursive: true });
+  fs.writeFileSync(path.join(dst, "index.html"), h);
+  for (const f of ["gatto.css", ...scripts]) fs.copyFileSync(path.join(src, f), path.join(dst, f));
+  for (const f of fs.readdirSync(path.join(src, "media"))) fs.copyFileSync(path.join(src, "media", f), path.join(dst, "media", f));
+  console.log("public/gatto pronta:", fs.readdirSync(dst).join(", "), "| media:", fs.readdirSync(path.join(dst, "media")).length, "file");
+}
