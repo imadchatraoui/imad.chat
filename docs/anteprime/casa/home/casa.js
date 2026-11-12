@@ -188,7 +188,8 @@
       /* i posatoi sempre buoni: la mensola (il bordo alto dell'hero, con la scatola), il dock (fisso sullo schermo: ci va in groppa) e il
          logo 3x3 del fondo (data-dot="perch": solo la sua fila di tasti in alto) */
       DOT.start({ tiles: ".testa > .tile, .grid > .tile, .foot [data-dot=\"perch\"]", home: $("#hero"), homeX: HOME_X, parent: clip, look: look, firstVisit: first, keysFormed: !!(first && keysFormed), dark: I.isDark(), bottomInset: bottomInset,
-        keep: KEEP, strict: true, dock: dock, fixedParent: fisso });
+        keep: KEEP, strict: true, dock: dock, fixedParent: fisso,
+        hint: Q.get("suggerimento") !== "no" });   /* il suggerimento che Dot si può toccare (CASA.md 2c C): il dito fantasma, bussa, si accorge del dito */
     } catch (e) { if (window.console) console.error(e); return; }
     seguiPagina();
     if (root.classList.contains("is-sheet") && DOT.pause) DOT.pause();   /* un foglio aperto mentre i tasti volavano: Dot aspetta sotto */

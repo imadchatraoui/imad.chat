@@ -583,7 +583,8 @@
       }
     },
     land: function (dt, d) {                                           /* schiaccia, rimbalza un filo, si assesta; orecchie e coda arrivano dopo */
-      var st = cat.st, hard = clamp(d.v / 900, 0.3, 1); rig.rate = 18;
+      var st = cat.st, hard = clamp(d.v / 900, d.soft ? 0.12 : 0.3, 1), sf = d.soft ? 1.6 : 1; rig.rate = d.soft ? lerp(6, 12, smooth(0.1, 0.45, st)) : 18;   /* soft: rimesso giù da un dito, si assesta piano sulle zampe */
+      if (d.soft) st /= sf;
       if (st < 0.09) { rig.pose = "land"; rig.over.sqy = 1 - 0.2 * hard; rig.over.sqx = 1 + 0.12 * hard; }
       else if (st < 0.22) { rig.pose = "crouch"; rig.over.sqy = 1 + 0.035 * hard; rig.over.sqx = 0.985; }
       else { rig.pose = "stand"; delete rig.over.sqy; delete rig.over.sqx; }
@@ -841,7 +842,7 @@
       cat.rot = -pend.a; cat.piv = 0; cat.ownRot = true;
       var sp = Math.abs(vx);
       if (!drag && fake && fake.ghost) {                               /* il dito fantasma: lungo e molle, per niente impressionato, guarda dritto chi guarda */
-        rig.pose = "scruff"; rig.longT = clamp(1.4 + cat.st * 6, 0, 6) + sp / 260;
+        rig.pose = "scruff"; rig.rate = cat.st < 0.45 ? 8 : 12; rig.longT = clamp(1 + cat.st * 4, 0, 4) + sp / 300; rig.over.tc = 0.6;   /* la posa cambia piano mentre sale: le zampe lasciano il bordo poco a poco */
         rig.over.lid = 0.5; rig.over.eye = 0.92; rig.over.brow = 0.14; rig.over.ear = 0.3 + 0.12 * sat(sp / 500); rig.tailSwish = 0.16; rig.tailRate = 1.5;
         cat.att = null; cat.gz = false; rig.look.ty = clamp(wrap(-PI / 2 - rig.yaw), -0.9, 0.9) * 0.85; rig.look.tp = -0.06; rig.gazeT[0].x = rig.gazeT[1].x = 0; rig.gazeT[0].y = rig.gazeT[1].y = 0.02;
         return;
@@ -1531,8 +1532,9 @@
   function typing() { var a = doc.activeElement, t = a && a.tagName; return now - SG.keyAt < 3 || !!(a && (t === "INPUT" || t === "TEXTAREA" || t === "SELECT" || a.isContentEditable)); }
   /* un punto del modello (unità, y in alto) dove è disegnato adesso, in pagina: con lo scarto dell'origine e la rotazione */
   function drawnPt(mx, my) { var k = px(), Oy = cat.y - cat.lift - cat.voff * k, cr = Math.cos(cat.rot), sr = Math.sin(cat.rot), yy = my - cat.piv; return { x: cat.x + (mx * cr - yy * sr) * k, y: Oy - (mx * sr + yy * cr + cat.piv) * k }; }
-  /* la collottola: sulla schiena, subito dietro la testa */
-  function scruffPt(f) { var c = f.body.chest, h = f.head; return drawnPt(lerp(c.x, h.x, 0.3), Math.max(c.y + c.r * 0.82, h.y - h.ry * 0.35)); }
+  /* la collottola: dietro la testa, dal lato della schiena (di tre quarti la testa copre il collo: il dito sta sul bordo di dietro della
+     testa, mai sugli occhi) */
+  function scruffPt(f) { var c = f.body.chest, h = f.head, bx = Math.abs(c.x - h.x) > 0.4 ? (c.x > h.x ? 1 : -1) : -cat.dir; return drawnPt(h.x + bx * h.rx * 0.9, h.y - h.ry * 0.1); }
   function sgRing(x, y, o) {   /* un anello sul vetro (x, y in pagina adesso); nello strato fisso, se c'è: resta sul vetro anche se la pagina si muove */
     var par = flayer || layer; if (!par) return; o = o || {}; o.dark = dark;
     var r = fx().Anello(par, x - (flayer ? view.sx : 0), y - (flayer ? view.sy : 0), o); r.t0 = now; r.dur = o.dur || 0.42; SG.rings.push(r);
@@ -1565,13 +1567,13 @@
     return s;
   }
   /* i tempi del dito fantasma (secondi dall'arrivo): arriva, preme, prende, alza, tiene, rimette giù */
-  var GT = { press: 0.34, grab: 0.43, lift: 0.47, up: 1.1, hold: 1.6, down: 2.1, set: 0.16, out: 0.38 };
+  var GT = { press: 0.42, grab: 0.52, lift: 0.55, up: 1.15, hold: 1.65, down: 2.12, set: 0.24, out: 0.34 };
   function ghostStart() {
     var f = lastF, p = cat.plat; if (!f || !p || !(layer || flayer)) return false;
-    var s0 = scruffPt(f), side = ghostSide();
+    var side = -cat.dir, s0 = scruffPt(f), as = ghostSide() === side ? side : 0;   /* il dito arriva da dietro (dal lato della schiena); l'arco va da quella parte se c'è posto, se no dritto su */
     SG.ghostOk = false; sgStore(0, SGK.sess, "1"); sgStore(1, SGK.visti, SG.seen + 1);
     sitFor(60, { ghost: true });                                      /* seduto, fermo: guarda il dito che arriva */
-    SG.g = { t0: now, ph: "in", plat: p, side: side, H: 28 * K / 1.5, x: s0.x + side * 22, y: s0.y - 30, sx: 0, sy: 0 };
+    SG.g = { t0: now, ph: "in", plat: p, side: side, as: as, H: 34 * K / 1.5, x: s0.x + side * 30, y: s0.y - 38, sx: 0, sy: 0 };
     SG.fp = { x: SG.g.x, y: SG.g.y, a: 0, sc: 1.18, press: 0 };
     if (!SG.fing) SG.fing = fx().Dito(flayer || layer);
     return true;
@@ -1584,7 +1586,7 @@
     if (!p) { reanchor(below() - below("air")); set("fall", { vy: 0, face: "view", pose: "air" }); ghostLeave(false); sgRing(SG.fp.x, SG.fp.y, { r0: 5, r1: 17, a: 0.42 }); return; }
     reanchor(below() - below("land")); reanchor((p.y - cat.y) / px());
     cat.x = clamp(cat.x, p.a, p.b); landOn(p);
-    set("land", { v: 240, face: "view", pose: "land", then: "shake" });
+    set("land", { v: 160, soft: true, face: "view", pose: "land", then: "shake" });
     g.ph = "set"; g.tSet = now; g.plat = p;
   }
   /* un dito vero, uno scorrimento, la tastiera, un tocco altrove: il dito fantasma lascia stare, pulito. why = "touch": il dito vero l'ha già preso */
@@ -1604,28 +1606,28 @@
     if (g.ph === "in" || g.ph === "press") {
       if (cat.state !== "sit" || !cat.d.ghost || drag) return ghostCancel("state");
       s = f ? scruffPt(f) : { x: g.x, y: g.y }; u = seg(t, 0, GT.press); e = eOut(u);
-      F.x = lerp(g.x, s.x, e) + g.side * 5 * bell(u); F.y = lerp(g.y, s.y, e); F.a = eOut(seg(t, 0, 0.24)); F.sc = lerp(1.18, 1, e);   /* arriva lungo un arco, scendendo verso il vetro */
-      if (t < GT.press) { cat.att = t > 0.08 ? { x: F.x, y: F.y } : null; return; }   /* lo guarda arrivare */
+      F.x = lerp(g.x, s.x, e) + g.side * 6 * bell(u); F.y = lerp(g.y, s.y, e); F.a = eOut(seg(t, 0, 0.3)); F.sc = lerp(1.2, 1, eIO(u));   /* arriva lungo un arco, scendendo verso il vetro */
+      if (t < GT.press) { cat.att = t > 0.1 ? { x: F.x, y: F.y } : null; return; }   /* lo guarda arrivare */
       g.ph = "press"; F.x = s.x; F.y = s.y; F.press = eOut(seg(t, GT.press, GT.press + 0.07)); cat.att = null;
       if (!g.r1) { g.r1 = 1; sgRing(F.x, F.y, { r0: 6, r1: 19, a: 0.46 }); life.earFlick = 1; life.earSide = g.side; }
       if (t < GT.grab) { rig.over.sqy = 1 - 0.035 * eOut(seg(t, GT.press, GT.grab)); rig.over.lid = 0.3; return; }   /* il dito preme: si fa un filo più basso, socchiude */
-      g.ph = "lift"; pickUp(true); reanchor((F.y - cat.y) / px()); fake = { x: F.x, y: F.y, ghost: true }; g.sx = F.x; g.sy = F.y;   /* preso per la collottola: l'origine passa sotto il dito, il disegno resta dov'era */
+      g.ph = "lift"; pickUp(true); fake = { x: cat.x, y: cat.y, ghost: true }; g.sx = cat.x; g.sy = cat.y;   /* preso per la collottola: l'origine passa al punto di presa, il disegno resta dov'era */
       return;
     }
     if (g.ph === "lift" || g.ph === "hold" || g.ph === "down") {
       if (cat.state !== "held" || !fake || !fake.ghost) return ghostCancel("state");
       F.press = 1; F.a = 1; F.sc = 1;
-      if (t < GT.up) { e = eIO(seg(t, GT.lift, GT.up)); fake.x = g.sx + g.side * 9 * Math.pow(e, 1.6); fake.y = g.sy - g.H * e; }   /* su lungo un arco: prima in alto, poi un poco di lato */
-      else if (t < GT.hold) { g.ph = "hold"; u = t - GT.up; fake.x = g.sx + g.side * 9 + 0.5 * Math.sin(u * 6.1); fake.y = g.sy - g.H + 0.45 * Math.sin(u * 4.3 + 1); g.tx = fake.x; g.ty = fake.y; }   /* tenuto: un dito non è mai fermo del tutto */
+      if (t < GT.up) { e = eIO(seg(t, GT.lift, GT.up)); fake.x = g.sx + g.as * 9 * Math.pow(e, 1.6); fake.y = g.sy - g.H * e; }   /* su lungo un arco: prima in alto, poi un poco di lato */
+      else if (t < GT.hold) { g.ph = "hold"; u = t - GT.up; fake.x = g.sx + g.as * 9 + 0.5 * Math.sin(u * 6.1); fake.y = g.sy - g.H + 0.45 * Math.sin(u * 4.3 + 1); g.tx = fake.x; g.ty = fake.y; }   /* tenuto: un dito non è mai fermo del tutto */
       else {
         g.ph = "down"; var p = fresh(g.plat, cat.x); if (!p) return ghostCancel("lost"); g.plat = p;
         var lo = -1e9, i, l, q; if (f) for (i = 0; i < 4; i++) { l = f.legs[i]; q = drawnPt(l.fx, l.fy - l.paw * 0.85); if (q.y > lo) lo = q.y; }
         if (g.tx == null) { g.tx = fake.x; g.ty = fake.y; }
         u = seg(t, GT.hold, GT.down); e = eIO(u); var ty = p.y - (lo > -1e8 ? lo - cat.y : 30 * k);   /* dove deve stare il dito perché le zampe tocchino il bordo */
-        fake.x = lerp(g.tx, g.sx + g.side * 3, e); fake.y = lerp(g.ty, ty, e);
-        if ((lo > -1e8 && lo >= p.y - 0.8 && u > 0.5) || u >= 1) { F.x = fake.x; F.y = fake.y; ghostPut(); return; }
+        fake.x = lerp(g.tx, g.sx + g.as * 3, e); fake.y = lerp(g.ty, ty, e);
+        if ((lo > -1e8 && lo >= p.y - 0.8 && u > 0.5) || u >= 1) { if (f) { s = scruffPt(f); F.x = s.x; F.y = s.y; } ghostPut(); return; }
       }
-      F.x = fake.x; F.y = fake.y; return;
+      if (f) { s = scruffPt(f); F.x = s.x; F.y = s.y; } return;         /* il dito sta sulla collottola del gatto appeso (il gatto pende dal punto di presa) */
     }
     if (g.ph === "set") {                                               /* appoggiato: il dito resta sulla collottola mentre si assesta */
       if (f) { s = scruffPt(f); F.x = lerp(F.x, s.x, 0.5); F.y = lerp(F.y, s.y, 0.5); }
@@ -2051,6 +2053,7 @@
     B.lidA = null; readWorld();
     var p = platBelow(h.x, h.y - 4, true) || world.plats[0];
     if (first && underNo(h.x, h.y)) first = false;                       /* la casa sta sotto il Corano (non dovrebbe mai): niente apertura lì */
+    sgInit(first);                                                       /* il suggerimento: dopo l'apertura conta da «salam, sono Dot.», se no da adesso */
     if (first) { B.lidV = 1; if (stageOn) { try { stage.lid(null); } catch (e) {} } B.openT0 = now - (fromKeys && stageOn && TS().keys ? TS().keys : 0); cat.vis = false; cat.x = h.x; cat.y = h.y; set("opening", { first: true, p: p, x: p ? clamp(h.x, p.a, p.b) : h.x }); }
     else {
       B.openT0 = null; B.lidV = 0;
@@ -2119,11 +2122,12 @@
   /* congela tutto mentre un foglio copre la pagina: nessun fotogramma, nessun suono, nessuna nuvoletta, nessun tocco */
   DOT.pause = function () {
     if (!B.on || B.paused) return; B.paused = true; cancelAnimationFrame(raf); raf = 0; clearInterval(stillI); stillI = 0; sound("purr", false);
-    if (drag) { try { grab.releasePointerCapture(drag.id); } catch (e) {} drag = null; }
+    if (drag) { try { grab.releasePointerCapture(drag.id); } catch (e) {} drag = null; } grabbing(false);
+    if (SG.g || SG.fing || SG.rings.length) sgClear();                 /* un foglio si apre: il dito fantasma lascia stare (il gatto torna seduto dov'era) */
     if (grab) grab.style.visibility = "hidden"; if (bubble && bubble.el) bubble.el.style.visibility = "hidden";
   };
   DOT.resume = function () {
-    if (!B.on || !B.paused) return; B.paused = false; last = 0; world.at = -9;   /* al primo passo rilegge i riquadri: mentre era fermo l'impaginazione può essere cambiata */
+    if (!B.on || !B.paused) return; B.paused = false; last = 0; world.at = -9; SG.resAt = now;   /* al primo passo rilegge i riquadri: mentre era fermo l'impaginazione può essere cambiata */
     if (grab) grab.style.visibility = ""; if (bubble && bubble.el) bubble.el.style.visibility = "";
     if (cat.state === "purr" && cat.d.said) sound("purr", true);
     stillI = setInterval(stillTick, 250); raf = requestAnimationFrame(loop);
@@ -2163,6 +2167,14 @@
     dockdown: function () { if (onDock()) set("dockdown", { away: true }); },
     blocked: function (x, e) { return dockBlocked(x, e); }, dockFree: function () { var p = world.dock, x, o = { n: 0, q: 0, c: 0, w: 0 }; if (!p) return o; for (x = p.a + 8; x <= p.b - 8; x += 6) { o.n++; if (!dockBlocked(x, 4)) { o.q++; if (!dockWords(x, true)) { o.c++; if (!dockWords(x)) o.w++; } } } return o; }, no: function () { return world.no.map(function (n) { return { l: n.l, t: n.t, r: n.r, b: n.b, m: n.m }; }); },
     home: function () { leaveThen(function () { var h = homeSpot(); if (h) arrive({ kind: "home", p: h.p, x: h.x }); }); },
-    look: function () { return look; }, rig: function () { return rig; }, cat: cat, life: life
+    look: function () { return look; }, rig: function () { return rig; }, cat: cat, life: life,
+    /* il suggerimento, per gli strumenti: hint() lo stato; hintGo() il dito fantasma adesso (se si può: ritorna true); hintKnock() bussa adesso;
+       hintReset() dimentica tutto quello che ricordano sessione e telefono; hintAt(s) il dito fantasma fra s secondi */
+    hint: function () { var g = SG.g; return { on: SG.on, ok: SG.ghostOk, at: SG.ghostAt, salam: SG.salamAt, end: SG.ghostEnd, touched: SG.touched, dragged: SG.dragged, seen: SG.seen, knocks: SG.knocks, knockAt: SG.knockAt, near: SG.near, gest: SG.gest, batAt: SG.batAt,
+      ph: g ? g.ph : null, t: g ? now - g.t0 : null, cancel: g ? g.cancel || null : null, fing: SG.fp && (SG.fing || g) ? { x: SG.fp.x, y: SG.fp.y, a: SG.fp.a, sc: SG.fp.sc, press: SG.fp.press } : null, rings: SG.rings.length, fake: fake ? { x: fake.x, y: fake.y, ghost: !!fake.ghost } : null, now: now }; },
+    hintGo: function () { if (SG.g || !SG.on) return false; return ghostStart(); }, hintCan: function () { return ghostCan(); },
+    hintKnock: function () { if (!SG.on || SG.g) return false; SG.knocks++; SG.knockAt = now; SG.ks = true; set("knock", { face: "front", pose: narrow() ? "ride" : "sit" }); return true; },
+    hintReset: function () { [SGK.sess, SGK.tocco, SGK.bussa].forEach(function (k) { try { sessionStorage.removeItem(k); } catch (e) {} }); [SGK.preso, SGK.visti].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} }); },
+    hintAt: function (s) { SG.ghostOk = SG.on; SG.ghostAt = now + (s || 0); SG.chk = 0; }
   };
 })();
