@@ -1,0 +1,30 @@
+/* imad.chat — Su di me. Sopra il guscio comune (../comune/pagina.css): una finestra sulla foto e, accanto o sotto, le parole.
+   Per ora la foto è quella provvisoria del riquadro della casa e le parole non ci sono: si aspetta Imad. */
+.sm { display: flex; flex-direction: column; gap: 22px; }
+.sm-foto {
+  position: relative; overflow: hidden; isolation: isolate; margin-top: 6px;
+  aspect-ratio: 4 / 5; border-radius: var(--r); background: #1a2040;
+  box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgb(var(--sh) / calc(var(--s1) * .35)), 0 12px 28px -12px rgb(var(--sh) / var(--s1)), 0 36px 64px -36px rgb(var(--sh) / var(--s2));
+}
+@supports not (aspect-ratio: 1) { .sm-foto { height: 0; padding-bottom: 125%; } }
+.sm-foto__img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; display: block; transition: opacity 700ms var(--ease-out), transform 1200ms var(--ease-out); }
+.sm-foto.is-attesa .sm-foto__img { opacity: 0; transform: scale(1.03); }
+/* il bordo di luce dei riquadri della casa, dentro la finestra */
+.sm-foto__vel { position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 0 0 1px rgba(255, 255, 255, .06); background: linear-gradient(180deg, rgba(6, 8, 20, 0) 62%, rgba(6, 8, 20, .18) 100%); }
+
+.sm-testo { padding: 0 2px; }
+.sm-nome { font-size: clamp(44px, 14vw, 72px); }
+.sm-attesa { margin-top: 12px; font: 500 18px/1.45 var(--font-sans); letter-spacing: -.014em; color: var(--ink-3); }
+.sm-link { margin-top: 22px; }
+.sm-link svg { flex: none; opacity: .62; }
+.sm-cred { margin-top: 26px; }
+
+@media (min-width: 700px) {
+  .sm { flex-direction: row; align-items: center; gap: 40px; padding-top: 40px; }
+  .sm-foto { flex: 0 0 auto; width: min(46%, 420px); margin-top: 0; }
+  .sm-testo { flex: 1 1 auto; min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sm-foto__img { transition: none; }
+  .sm-foto.is-attesa .sm-foto__img { opacity: 1; transform: none; }
+}

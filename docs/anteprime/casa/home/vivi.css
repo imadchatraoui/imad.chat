@@ -1,3 +1,127 @@
-/* imad.chat — la casa nuova (anteprima): gli stili dei tre riquadri vivi nuovi (Tools con il mini QR, Heatmap, Sto imparando).
-   VUOTO DI PROPOSITO: lo riempie il prossimo agente (vedi il commento in cima a vivi.js). Viene dopo casa.css.
-   Safari non recente: niente :has() in una lista di selettori, top/right/bottom/left al posto di inset, -webkit-backdrop-filter. */
+/* imad.chat — la casa nuova (anteprima): i tre riquadri vivi nuovi. Tools con il mini QR, la Heatmap di GitHub, Sto imparando.
+   Viene dopo casa.css; il comportamento sta in vivi.js. Le misure dei riquadri non cambiano con i filtri: qui si riempie il posto che c'è.
+   Safari non recente: niente :has() in una lista di selettori, top/right/bottom/left al posto di inset, -webkit-appearance sui campi,
+   input a 16 px (l'iPhone non zooma). Niente corsivo, niente emoji. */
+
+/* ------------------------------------------------------------------ Tools: il mini QR */
+.tools .vivo { margin-top: 12px; }
+.qr { display: flex; flex-direction: column; gap: 10px; }
+
+/* il campo: vetro inciso, il testo a 16 px; la croce per cancellare compare quando c'è qualcosa */
+.qr__campo { position: relative; flex: none; }
+.qr__in {
+  display: block; width: 100%; height: 44px; margin: 0; padding: 0 44px 0 14px; border: 0; border-radius: 14px;
+  font: 500 16px/44px var(--font-sans); letter-spacing: -.012em; color: var(--t-ink);
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair);
+  -webkit-appearance: none; appearance: none; outline: none; -webkit-user-select: text; user-select: text;
+  text-overflow: ellipsis; caret-color: var(--gold-ink);
+  transition: box-shadow 220ms ease, background-color 220ms ease;
+}
+.qr__in::placeholder { color: var(--ink-3); opacity: 1; }
+.qr__in::-webkit-input-placeholder { color: var(--ink-3); opacity: 1; }
+.qr__in:focus, .qr__in:focus-visible { outline: none; background: var(--btn-glass); box-shadow: inset 0 0 0 1.5px var(--t-ink-2), 0 0 0 4px var(--fill); }
+.qr__x { position: absolute; top: 0; right: 0; width: 44px; height: 44px; display: grid; place-items: center; color: var(--t-ink-2); border-radius: 14px; }
+.qr__x circle { fill: var(--fill-2); }
+.qr__x path { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+.qr__x:focus-visible { outline-offset: -4px; }
+.qr__x:active svg { transform: scale(.88); }
+.qr__x svg { transition: transform var(--d-press) var(--ease-out); }
+
+/* il codice e accanto quello che dice */
+.qr__riga { flex: 1 1 auto; min-height: 0; display: flex; gap: 14px; align-items: stretch; }
+.qr__carta {
+  position: relative; flex: none; height: 100%; width: 112px; border-radius: 15px; overflow: hidden;
+  background: #fff;                                   /* il codice si legge scuro su chiaro, in tutti e due i temi */
+  box-shadow: 0 0 0 1px rgba(30, 28, 70, .07), 0 1px 2px rgba(30, 28, 70, .08), 0 10px 22px -14px rgb(var(--sh) / .55);
+}
+.qr__cv { position: absolute; top: 0; left: 0; display: block; transition: opacity 260ms ease; }
+.qr.is-troppo .qr__cv { opacity: .28; }
+.qr__info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding-top: 2px; }
+.qr__info > * { flex: none; }                         /* niente si schiaccia: se c'è una nota, prende il posto della seconda riga */
+.qr.has-nota .qr__val { display: none; }
+.qr__tipo { font: 700 15px/20px var(--font-sans); letter-spacing: -.02em; color: var(--t-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qr__val {
+  margin-top: 3px; font: 500 13px/18px var(--font-sans); letter-spacing: -.006em; color: var(--t-ink-2);
+  overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; word-break: break-word;
+}
+.qr__val.is-link { font: 500 12.5px/18px var(--font-mono); letter-spacing: -.02em; }
+.qr__nota { margin-top: 4px; font: 600 12.5px/17px var(--font-sans); letter-spacing: -.006em; color: var(--clay); }
+.qr__nota:empty { display: none; }
+.qr__salva {
+  position: relative; margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 7px;
+  height: 36px; padding: 0 15px 0 12px; border-radius: 18px;
+  font: 700 14px/36px var(--font-sans); letter-spacing: -.012em; color: var(--bg); background: var(--ink);
+  box-shadow: 0 1px 2px rgb(var(--sh) / .2), 0 8px 16px -10px rgb(var(--sh) / .7);
+  transition: transform var(--d-press) var(--ease-out), opacity 260ms ease, background-color 260ms ease;
+}
+.qr__salva::before { content: ""; position: absolute; top: -4px; right: -4px; bottom: -4px; left: -4px; }   /* il bersaglio arriva a 44 px */
+.qr__salva svg { flex: none; }
+.qr__salva:active { transform: scale(.95); }
+.qr__salva[disabled] { opacity: .32; cursor: default; box-shadow: none; }
+.qr__salva[disabled]:active { transform: none; }
+.qr__salva span { display: inline-block; transition: opacity 180ms ease, transform 260ms var(--ease-out); }
+.qr__salva.is-cambia span { opacity: 0; transform: translateY(4px); }
+
+/* gli strumenti che arrivano: piccole etichette ferme, non sono ancora link */
+.qr__chips { flex: none; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
+.chip { flex: none; height: 26px; padding: 0 10px; border-radius: 13px; font: 600 12px/26px var(--font-sans); letter-spacing: -.004em; color: var(--t-ink-2); background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); }
+.chip__presto { flex: none; margin-left: 2px; font: 500 12px/26px var(--font-sans); color: var(--ink-3); }
+@media (max-width: 374px) {
+  .tools .vivo { margin-top: 10px; } .qr { gap: 8px; } .qr__riga { gap: 12px; }
+  .chip { padding: 0 8px; font-size: 11.5px; } .qr__chips { gap: 5px; }
+  .qr__salva { height: 32px; line-height: 32px; padding: 0 13px 0 11px; } .qr__salva::before { top: -6px; bottom: -6px; }
+}
+
+/* mentre si scrive nel campo il dock si fa da parte: la tastiera del telefono non lo porta sopra il campo */
+.is-scrivo .dock { opacity: 0; pointer-events: none; transform: translateY(18px); }
+
+/* ------------------------------------------------------------------ Heatmap: l'anno su GitHub */
+.heatmap {
+  --hm-0: rgba(227, 231, 244, .085);                    /* vuoto: un grigio freddo sull'inchiostro */
+  --hm-1: #5a4a2c; --hm-2: #94713a; --hm-3: #d2a352; --hm-4: #f7dc9a;   /* l'oro del punto, cinque passi (il primo regge 1.7:1 sul vuoto) */
+}
+.heatmap .tile__head { position: relative; }
+.hm__gh {
+  position: relative; display: inline-flex; align-items: center; gap: 3px; pointer-events: auto;
+  font: 600 13px/18px var(--font-sans); letter-spacing: -.008em; color: var(--t-ink-2); transition: color 200ms ease;
+}
+.hm__gh::before { content: ""; position: absolute; top: -13px; right: -12px; bottom: -13px; left: -12px; }   /* 44 px da toccare */
+.hm__gh svg { opacity: .85; }
+.hm__gh:focus-visible { outline-offset: 4px; border-radius: 6px; }
+.hm { display: flex; flex-direction: column; margin-top: 8px; }
+.hm__riga { flex: none; display: flex; align-items: flex-end; height: 32px; font: 600 14px/20px var(--font-sans); letter-spacing: -.012em; color: var(--t-ink-2); white-space: nowrap; overflow: hidden; }
+.hm__riga b { display: inline-block; margin-right: 5px; font: 800 27px/30px var(--font-sans); letter-spacing: -.045em; color: var(--t-ink); vertical-align: baseline; }
+.hm__a { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; transition: opacity 200ms ease, transform 320ms var(--ease-out); }
+.hm__a.is-giorno { font-size: 15px; }
+.hm__a.is-via { opacity: 0; transform: translateY(5px); }
+.hm__a .hm__d { color: var(--t-ink); font-weight: 700; }
+.hm__a .hm__s { opacity: .5; margin: 0 .3em; }
+/* la tela sporge di 4 px nel margine: 53 settimane ci stanno a quadrati interi anche sullo schermo più stretto */
+.hm__g { flex: 1 1 auto; min-height: 0; display: flex; align-items: flex-end; justify-content: center; margin: 0 -4px; }
+.hm__cv { display: block; flex: none; touch-action: pan-y; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; border-radius: 3px; }
+.hm__cv:focus-visible { outline: 2px solid var(--t-ink); outline-offset: 5px; }
+
+/* ------------------------------------------------------------------ Sto imparando: Three.js Journey */
+.ip__cv { position: absolute; top: 0; left: 0; z-index: 0; display: block; width: 100%; height: 100%; pointer-events: none; }
+.ip { display: flex; flex-direction: column; justify-content: flex-end; margin-top: 0; }
+.ip__t { letter-spacing: -.03em; }
+.ip__log { margin-top: 6px; }
+.ip__log li { display: block; min-width: 0; }
+.ip__log li + li { margin-top: 6px; }
+.ip__msg { display: block; font: 600 13px/17px var(--font-sans); letter-spacing: -.008em; color: var(--t-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ip__msg--vuoto { color: var(--t-ink-2); font-weight: 500; }
+.ip__ago { display: block; font: 500 12px/16px var(--font-sans); letter-spacing: 0; color: var(--t-ink-2); white-space: nowrap; }
+.ip__log.is-nuovo li { animation: ip-in 520ms var(--ease-out) both; }
+.ip__log.is-nuovo li + li { animation-delay: 70ms; }
+@keyframes ip-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ------------------------------------------------------------------ puntatore fine, meno movimento */
+@media (hover: hover) and (pointer: fine) {
+  .hm__gh:hover { color: var(--t-ink); }
+  .qr__salva:not([disabled]):hover { transform: translateY(-1px); }
+  .qr__x:hover { color: var(--t-ink); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qr__cv, .qr__salva, .qr__salva span, .hm__a, .qr__in { transition: none; }
+  .ip__log.is-nuovo li { animation: none; }
+}

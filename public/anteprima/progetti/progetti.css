@@ -1,0 +1,91 @@
+/* imad.chat — Progetti. Sopra il guscio comune (../comune/pagina.css): il cubo in evidenza e le schede dei repository.
+   Safari non recente: niente :has() in una lista, top/right/bottom/left scritti per esteso. */
+
+/* ------------------------------------------------------------------ il cubo in evidenza */
+.pj-cubo { margin-top: 26px; padding: 0; display: flex; flex-direction: column; }
+.pj-cubo__scena { position: relative; height: clamp(250px, 72vw, 340px); }
+.pj-cubo__cv { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; cursor: grab; -webkit-tap-highlight-color: transparent; }
+.pj-cubo__cv.is-giro { cursor: grabbing; }
+.pj-cubo__dito { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font: 500 12px/16px var(--font-sans); letter-spacing: -.004em; color: var(--ink-3); pointer-events: none; transition: opacity 500ms ease; }
+.pj-cubo__dito.is-via { opacity: 0; }
+.pj-cubo__testo { position: relative; display: flex; flex-direction: column; align-items: flex-start; padding: 4px 22px 22px; }
+.pj-cubo__k { display: flex; align-items: center; gap: 9px; font: 600 13px/18px var(--font-sans); letter-spacing: -.008em; color: var(--ink-2); }
+.pj-kukko { display: inline-grid; grid-template-columns: repeat(6, 9px); gap: 3px; }
+.pj-kukko i { display: block; width: 9px; height: 9px; border-radius: 3px; box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .12); }
+.pj-cubo__t { margin-top: 8px; font: 800 30px/1.05 var(--font-sans); letter-spacing: -.045em; }
+.pj-cubo__p { margin-top: 8px; max-width: 30em; font: 500 16px/1.5 var(--font-sans); letter-spacing: -.01em; color: var(--ink-2); text-wrap: pretty; }
+.pj-cubo__a { align-self: flex-start; margin-top: 16px; font-family: var(--font-mono); font-size: 14px; font-weight: 500; letter-spacing: -.01em; }
+.pj-cubo__a svg, .pj-r__sito svg, .pj-vuoto svg { flex: none; opacity: .62; }
+
+/* ------------------------------------------------------------------ l'elenco */
+.pj-lista { margin-top: 16px; display: grid; grid-template-columns: 1fr; gap: 12px; }
+.pj-r { display: flex; flex-direction: column; min-height: 118px; padding: 18px 20px 16px; transition: transform 240ms var(--ease-out), opacity 460ms var(--ease-out); }
+.pj-r.is-prima { opacity: 0; transform: translateY(12px); transition: none; }
+.pj-r__n { padding-right: 30px; font: 700 18px/1.25 var(--font-sans); letter-spacing: -.025em; overflow-wrap: anywhere; }
+.pj-r__a { color: var(--ink); }
+/* il nome è il link, e la sua area copre tutta la scheda (il link al sito resta sopra) */
+.pj-r__a::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 1; border-radius: var(--r); }
+.pj-r__a:focus-visible { outline: none; }
+.pj-r__a:focus-visible::after { box-shadow: inset 0 0 0 2.5px var(--focus); }
+.pj-r__go { position: absolute; top: 18px; right: 18px; color: var(--ink-3); transition: transform 240ms var(--ease-out), color 240ms ease; }
+.pj-r__d { margin-top: 6px; font: 500 14.5px/1.45 var(--font-sans); letter-spacing: -.008em; color: var(--ink-2); text-wrap: pretty; overflow-wrap: anywhere; }
+.pj-r__m { margin-top: auto; padding-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; font: 500 13px/18px var(--font-sans); letter-spacing: -.004em; color: var(--ink-3); }
+.pj-r__l { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-2); }
+.pj-r__sep { display: inline-block; width: 3px; height: 3px; margin: 0 9px; border-radius: 50%; background: currentColor; opacity: .7; }
+.pj-r__sito {
+  position: relative; z-index: 2; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 36px; margin-top: 10px; padding: 0 12px 0 13px; border-radius: 18px;
+  font: 600 13.5px/1 var(--font-sans); letter-spacing: -.01em; color: var(--ink);
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair);
+  transition: transform var(--d-press) var(--ease-out), background 200ms ease;
+}
+.pj-r__sito::before { content: ""; position: absolute; top: -4px; right: -4px; bottom: -4px; left: -4px; }  /* 44 px da toccare */
+.pj-r__sito:active { transform: scale(.96); }
+.pj-r:active { transform: scale(.985); }
+.pj-r__sito:active ~ .pj-r__go { transform: none; }
+
+.pj-fork { margin-top: 34px; }
+.pj-fork__t { font: 700 15px/1.2 var(--font-sans); letter-spacing: -.02em; color: var(--ink-2); }
+.pj-fork .pj-lista { margin-top: 12px; }
+.pj-agg { margin-top: 22px; }
+
+/* in attesa: tre schede vuote che respirano piano (nessun numero, nessun nome) */
+.pj-attesa { display: flex; flex-direction: column; gap: 10px; min-height: 118px; padding: 20px; border-radius: var(--r); background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); animation: pj-respiro 1.8s ease-in-out infinite alternate; }
+.pj-attesa:nth-child(2) { animation-delay: .2s; }
+.pj-attesa:nth-child(3) { animation-delay: .4s; }
+.pj-attesa i { display: block; height: 12px; border-radius: 6px; background: var(--fill-2); }
+.pj-attesa i:nth-child(1) { width: 42%; height: 15px; }
+.pj-attesa i:nth-child(2) { width: 78%; }
+.pj-attesa i:nth-child(3) { width: 30%; margin-top: auto; }
+@keyframes pj-respiro { from { opacity: .55; } to { opacity: 1; } }
+
+.pj-vuoto { padding: 22px 20px 20px; border-radius: var(--r); background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); }
+.pj-vuoto p { font: 500 16px/1.45 var(--font-sans); letter-spacing: -.01em; color: var(--ink-2); }
+.pj-vuoto .pg-pill { margin-top: 14px; }
+.pj-stato:empty { display: none; }
+
+/* ------------------------------------------------------------------ schermi più larghi */
+@media (min-width: 700px) {
+  .pj-cubo { flex-direction: row; align-items: stretch; }
+  .pj-cubo__scena { flex: 1 1 54%; height: auto; min-height: 340px; }
+  .pj-cubo__testo { flex: 1 1 46%; display: flex; flex-direction: column; justify-content: center; padding: 34px 34px 34px 6px; }
+  .pj-cubo__t { font-size: 36px; }
+  .pj-lista { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+}
+@media (min-width: 1100px) {
+  .pj-cubo__scena { min-height: 400px; }
+  .pj-lista { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .pj-r:hover { transform: translateY(-3px); }
+  .pj-r:hover .pj-r__go { color: var(--ink); transform: translate(2px, -2px); }
+  .pj-r__sito:hover { background: var(--fill-2); }
+}
+@media (hover: none) { .pj-cubo__dito { display: block; } }
+@media (hover: hover) and (pointer: fine) { .pj-cubo__dito { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .pj-r, .pj-r__go, .pj-r__sito, .pj-cubo__dito { transition: none; }
+  .pj-r:hover { transform: none; }
+  .pj-attesa { animation: none; opacity: .8; }
+}
+.is-shot .pj-attesa { animation: none; }

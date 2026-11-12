@@ -127,14 +127,32 @@ console.log("public/home pronta:", fs.readdirSync(out).join(", "), "| media:", f
     if (dir) wantDir(abs, pl.out); else want(abs, pl.out);
     return pl.url + (dir && !pl.url.endsWith("/") ? "/" : "") + tail;
   }
-  // le pagine
+  // Nel mondo: i testi di Imad (content/mondo/*.md, o la cartella in MONDO_DIR per le prove). Ogni testo diventa una pagina
+  // da casa/mondo/pagina.html (online BASE/mondo/<nome>); l'indice casa/mondo/index.html li elenca dal più recente e il
+  // riquadro della casa, al segno <!-- mondo:titoli -->, mostra i titoli e la data dell'ultimo. Senza testi non cambia niente.
+  const mondo = leggiMondo(process.env.MONDO_DIR ? path.resolve(process.env.MONDO_DIR) : path.join(root, "content/mondo"));
+  const MONDO_T = path.join(A, "casa/mondo/pagina.html");
+  for (const t of mondo) if (t.media) want(t.media.src, path.join(PUB, "mondo/media", t.media.name));
+  // le pagine (quelle dei testi di Imad si fanno dal modello: gli indirizzi si leggono rispetto al modello, che sta in casa/mondo/)
+  const jobs = pages.map((file) => ({ file, rel: posix(path.relative(A, file)), text: fs.readFileSync(file, "utf8"), own: false }));
+  if (mondo.length) {
+    const tpl = fs.readFileSync(MONDO_T, "utf8");
+    for (const t of mondo) jobs.push({ file: MONDO_T, rel: `casa/mondo/${t.slug}/index.html`, text: paginaMondo(tpl, t, DIR), own: true });
+  }
   const built = [];
-  for (const file of pages) {
-    const rel = posix(path.relative(A, file));
-    let h = fs.readFileSync(file, "utf8");
+  for (const job of jobs) {
+    const { file, rel } = job;
+    let h = job.text;
     h = h.replace(/<!-- solo anteprima -->[\s\S]*?<!-- \/solo anteprima -->\n?/g, "");
     if (BASE === "/") h = h.replace(/<meta name="robots" content="noindex[^"]*">\n?/, "");
     else if (!/<meta name="robots" content="noindex/.test(h)) throw new Error(`casa: ${rel}: manca <meta name="robots" content="noindex"> (le anteprime non si indicizzano)`);
+    // il controllo dei numeri d'esempio vale per le nostre pagine, prima che ci entrino le parole di Imad (quelle sono sue)
+    if (!job.own) {
+      const sample0 = h.replace(/<!--[\s\S]*?-->/g, "").match(/\b\d+\s+(?:saluti|contributi|commit|progetti|stelle|visite)\b/i);
+      if (sample0) throw new Error(`casa: ${rel}: un numero di esempio nella pagina: «${sample0[0]}»`);
+    }
+    if (mondo.length && rel === "casa/home/index.html") h = titoliMondo(h, mondo);
+    if (mondo.length && rel === "casa/mondo/index.html") h = indiceMondo(h, mondo, BASE);
     h = h.replace(/(\s)(src|href|poster|data-[a-z0-9-]+)="([^"]*)"/g, (all, sp, attr, v) => {
       if (attr.startsWith("data-") && !/^\.\.?\//.test(v)) return all;
       if (!isRel(v)) return all;
@@ -142,11 +160,10 @@ console.log("public/home pronta:", fs.readdirSync(out).join(", "), "| media:", f
     });
     const left = h.match(/\s(?:src|href|poster|srcset)="(?![a-z][a-z0-9+.-]*:|\/|#|\?)[^"]+"/gi);
     if (left) throw new Error(`casa: ${rel}: indirizzi ancora relativi: ${left.join(" ")}`);
-    const sample = h.replace(/<!--[\s\S]*?-->/g, "").match(/\b\d+\s+(?:saluti|contributi|commit|progetti|stelle|visite)\b/i);
-    if (sample) throw new Error(`casa: ${rel}: un numero di esempio nella pagina: «${sample[0]}»`);
+    if (/\{\{[a-z]+\}\}/.test(h.replace(/<!--[\s\S]*?-->/g, ""))) throw new Error(`casa: ${rel}: un segnaposto {{...}} non riempito`);
     const sub = rel.replace(/^casa\//, "").replace(/^home\//, "");
     const media = path.join(path.dirname(file), "media");
-    if (fs.existsSync(media)) wantDir(media, path.join(PUB, path.dirname(sub), "media"));
+    if (!job.own && fs.existsSync(media)) wantDir(media, path.join(PUB, path.dirname(sub), "media"));
     built.push({ out: path.join(PUB, sub), html: h, rel });
   }
   // i CSS: url(...) e @import relativi, per la stessa regola
@@ -174,6 +191,159 @@ console.log("public/home pronta:", fs.readdirSync(out).join(", "), "| media:", f
   for (const [out] of copies) if (out.endsWith(".js") && /"sampleStars":\s*[1-9]/.test(fs.readFileSync(out, "utf8"))) throw new Error(`casa: ${posix(path.relative(root, out))}: c'è ancora un numero di stelle di esempio`);
   for (const w of warns) console.log("  avviso:", w);
   console.log(`public/${DIR} pronta (${BASE}):`, built.map((b2) => pageUrl(b2.rel)).join(", "), `| ${copies.size} file`);
+  console.log(mondo.length ? `  Nel mondo: ${mondo.length} testi (${mondo.map((t) => t.slug).join(", ")})` : "  Nel mondo: nessun testo ancora («Presto, con le parole di Imad.»)");
+}
+
+// ------------------------------------------------------------------ Nel mondo: i testi di Imad in Markdown → HTML sicuro
+// Ogni file <nome>.md (non README.md) comincia con un'intestazione tra due righe «---»:
+//   titolo: (obbligatorio)   data: AAAA-MM-GG (obbligatoria)   luogo:   immagine: (un file in media/ o un indirizzo https)
+//   didascalia:   fonti: (poi una riga «- ...» per fonte: un indirizzo, [nome](indirizzo) o «nome: indirizzo»)   bozza: sì (resta fuori)
+// Poi il testo in Markdown semplice: paragrafi (una riga vuota tra l'uno e l'altro; un a capo resta un a capo), titoli (#, ##, ###),
+// elenchi (- oppure 1.), citazioni (>), una riga ---, **grassetto** e *enfasi* (tutte e due solo più pesanti: mai corsivo), `codice`,
+// link [testo](https://...) e indirizzi nudi. Tutto il testo è protetto (&, <, >, " diventano entità): l'HTML scritto non passa,
+// i link sono solo http e https. Un file sbagliato ferma la build con il nome del file e cosa manca.
+function escHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]); }
+function dataIt(iso) {
+  const MESI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+  const [y, m, d] = iso.split("-").map(Number); return `${d} ${MESI[m - 1]} ${y}`;
+}
+function corto(url) { return url.replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/$/, ""); }
+// in linea: si protegge tutto, poi si riconoscono link, indirizzi, grassetto, enfasi, codice
+function mdInline(src) {
+  const parts = String(src).split(/(`[^`\n]+`)/);
+  return parts.map((part) => {
+    if (/^`[^`\n]+`$/.test(part)) return `<code>${escHtml(part.slice(1, -1))}</code>`;
+    const keep = [];
+    const hold = (html) => { keep.push(html); return `\u0000${keep.length - 1}\u0000`; };
+    let s = escHtml(part);
+    const link = (url, text) => hold(`<a href="${url}" target="_blank" rel="noopener">${text}</a>`);
+    s = s.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/gi, (all, text, url) => link(url, enfasi(text)));
+    s = s.replace(/https?:\/\/[^\s<\u0000]+/gi, (url) => {
+      const m = url.match(/^(.*?)([.,;:!?)\]]*)$/), u = m[1], tail = m[2];
+      return u.length > 8 ? link(u, corto(u)) + tail : url;
+    });
+    s = enfasi(s);
+    return s.replace(/\u0000(\d+)\u0000/g, (all, i) => keep[+i]);
+  }).join("");
+}
+function enfasi(s) {
+  s = s.replace(/\*\*(?=\S)([\s\S]*?\S)\*\*/g, "<strong>$1</strong>").replace(/(^|[^\w])__(?=\S)([\s\S]*?\S)__(?![\w])/g, "$1<strong>$2</strong>");
+  s = s.replace(/(^|[^*\w])\*(?=[^\s*])([^*]*?[^\s*])\*(?![*\w])/g, "$1<b>$2</b>").replace(/(^|[^\w])_(?=[^\s_])([^_]*?[^\s_])_(?![\w])/g, "$1<b>$2</b>");
+  return s;
+}
+// a blocchi
+function mdBlocks(text) {
+  const lines = text.split("\n"), out = [];
+  let para = [];
+  const flush = () => { if (para.length) { out.push(`<p dir="auto">${para.map(mdInline).join("<br>")}</p>`); para = []; } };
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i], t = line.trim();
+    if (!t) { flush(); continue; }
+    let m;
+    if ((m = t.match(/^(#{1,6})\s+(.+?)\s*#*$/))) { flush(); const tag = m[1].length <= 2 ? "h2" : "h3"; out.push(`<${tag} dir="auto">${mdInline(m[2])}</${tag}>`); continue; }
+    if (/^(?:\*\s*){3,}$|^(?:-\s*){3,}$|^(?:_\s*){3,}$/.test(t)) { flush(); out.push("<hr>"); continue; }
+    if (/^>/.test(t)) {
+      flush(); const q = [];
+      while (i < lines.length && /^\s*>/.test(lines[i])) { q.push(lines[i].replace(/^\s*>\s?/, "")); i++; }
+      i--; out.push(`<blockquote>${mdBlocks(q.join("\n"))}</blockquote>`); continue;
+    }
+    const ul = /^\s*[-*+]\s+(.*)$/, ol = /^\s*(\d{1,9})[.)]\s+(.*)$/;
+    if (ul.test(line) || ol.test(line)) {
+      flush(); const ordered = !ul.test(line), re = ordered ? ol : ul, items = [];
+      const start = ordered ? +line.match(ol)[1] : 1;
+      while (i < lines.length) {
+        const l = lines[i];
+        if (re.test(l)) { items.push([l.match(re)[ordered ? 2 : 1]]); i++; continue; }
+        if (l.trim() && /^\s{2,}\S/.test(l) && items.length) { items[items.length - 1].push(l.trim()); i++; continue; }
+        break;
+      }
+      i--;
+      const lis = items.map((it) => `<li dir="auto">${it.map(mdInline).join("<br>")}</li>`).join("");
+      out.push(ordered ? `<ol${start !== 1 ? ` start="${start}"` : ""}>${lis}</ol>` : `<ul>${lis}</ul>`); continue;
+    }
+    para.push(t);
+  }
+  flush();
+  return out.join("\n");
+}
+function slugMondo(name) {
+  return name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+}
+function leggiMondo(dir) {
+  if (!fs.existsSync(dir)) return [];
+  const CHIAVI = ["titolo", "data", "luogo", "immagine", "didascalia", "fonti", "bozza"];
+  const out = [], visti = new Map();
+  for (const f of fs.readdirSync(dir).filter((n) => /\.md$/i.test(n) && n.toLowerCase() !== "readme.md").sort()) {
+    const where = `Nel mondo, ${f}`;
+    const raw = fs.readFileSync(path.join(dir, f), "utf8").replace(/^﻿/, "").replace(/\r\n?/g, "\n").replace(/\u0000/g, "");
+    const fm = raw.match(/^---[ \t]*\n([\s\S]*?)\n---[ \t]*(?:\n|$)/);
+    if (!fm) throw new Error(`${where}: il file deve cominciare con l'intestazione tra due righe «---» (vedi content/mondo/README.md)`);
+    const meta = { fonti: [] }; let lista = null;
+    fm[1].split("\n").forEach((l, n) => {
+      if (!l.trim() || /^\s*#/.test(l)) return;
+      const item = l.match(/^\s*-\s+(.+)$/);
+      if (item) { if (lista !== "fonti") throw new Error(`${where}, riga ${n + 2}: una riga «- ...» va solo sotto «fonti:»`); meta.fonti.push(item[1].trim()); return; }
+      const kv = l.match(/^\s*([A-Za-zÀ-ÿ]+)\s*:\s*(.*)$/);
+      if (!kv) throw new Error(`${where}, riga ${n + 2}: non capisco «${l.trim()}» (si scrive nome: valore)`);
+      const k = kv[1].toLowerCase(); let v = kv[2].trim().replace(/^(["'])(.*)\1$/, "$2");
+      if (!CHIAVI.includes(k)) throw new Error(`${where}, riga ${n + 2}: «${kv[1]}» non è tra i nomi possibili (${CHIAVI.join(", ")})`);
+      lista = k === "fonti" ? "fonti" : null;
+      if (k === "fonti") { if (v) meta.fonti.push(v); return; }
+      meta[k] = v;
+    });
+    if (/^(s[iì]|true|yes)$/i.test(meta.bozza || "")) continue;
+    if (!meta.titolo) throw new Error(`${where}: manca «titolo:»`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(meta.data || "")) throw new Error(`${where}: «data:» si scrive così: 2026-11-20 (anno-mese-giorno)`);
+    const dt = new Date(meta.data + "T12:00:00Z");
+    if (isNaN(dt.getTime()) || dt.toISOString().slice(0, 10) !== meta.data) throw new Error(`${where}: la data «${meta.data}» non esiste`);
+    const slug = slugMondo(f.replace(/\.md$/i, ""));
+    if (!slug || slug === "media") throw new Error(`${where}: il nome del file non va bene: usa lettere, numeri e trattini (es. sudan.md)`);
+    if (visti.has(slug)) throw new Error(`${where}: dà lo stesso indirizzo (${slug}) di ${visti.get(slug)}`);
+    visti.set(slug, f);
+    let media = null, img = null;
+    if (meta.immagine) {
+      if (/^https:\/\/[^\s"'<>]+$/i.test(meta.immagine)) img = meta.immagine;
+      else if (/^[A-Za-z0-9][A-Za-z0-9._-]*\.(?:jpe?g|png|webp|avif|gif)$/i.test(meta.immagine)) {
+        const src = path.join(dir, "media", meta.immagine);
+        if (!fs.existsSync(src)) throw new Error(`${where}: l'immagine «${meta.immagine}» non c'è in content/mondo/media/`);
+        media = { src, name: meta.immagine }; img = null;
+      } else throw new Error(`${where}: «immagine:» è il nome di un file in content/mondo/media/ (es. foto.jpg) o un indirizzo https://`);
+    }
+    const corpo = mdBlocks(raw.slice(fm[0].length).trim());
+    out.push({ file: f, slug, titolo: meta.titolo, data: meta.data, luogo: meta.luogo || "", didascalia: meta.didascalia || "", fonti: meta.fonti, img, media, corpo });
+  }
+  return out.sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : a.titolo.localeCompare(b.titolo, "it")));
+}
+function metaMondo(t) {
+  return (t.luogo ? `<span dir="auto">${escHtml(t.luogo)}</span><span aria-hidden="true"> · </span>` : "") + `<time datetime="${t.data}">${dataIt(t.data)}</time>`;
+}
+function urlMondo(base, slug) { return (base === "/" ? "" : base) + "/mondo/" + slug; }
+// dir: la cartella in public/ (i file si servono sempre da /<dir>/..., anche quando la casa sarà a "/")
+function paginaMondo(tpl, t, dir) {
+  const imgSrc = t.media ? `/${dir}/mondo/media/${encodeURIComponent(t.media.name)}` : t.img;
+  const fig = imgSrc ? `<figure class="mo-foto"><img src="${escHtml(imgSrc)}" alt="${escHtml(t.didascalia || "")}" loading="lazy" decoding="async">${t.didascalia ? `<figcaption dir="auto">${mdInline(t.didascalia)}</figcaption>` : ""}</figure>` : "";
+  const fonti = t.fonti.length ? `<section class="mo-fonti" aria-labelledby="moFonti"><h2 id="moFonti">Fonti</h2><ol>${t.fonti.map((f) => {
+    const md = f.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/i);
+    if (md) return `<li dir="auto"><a href="${escHtml(md[2])}" target="_blank" rel="noopener">${escHtml(md[1])}</a></li>`;
+    const u = f.match(/https?:\/\/[^\s<>"]+/i);
+    if (u) { const label = f.slice(0, u.index).replace(/[\s:–—-]+$/, "").trim(); return `<li dir="auto">${label ? escHtml(label) + ": " : ""}<a href="${escHtml(u[0])}" target="_blank" rel="noopener">${escHtml(corto(u[0]))}</a></li>`; }
+    return `<li dir="auto">${escHtml(f)}</li>`;
+  }).join("")}</ol></section>` : "";
+  const fill = { titolo: escHtml(t.titolo), meta: metaMondo(t), immagine: fig, corpo: t.corpo, fonti };
+  return tpl.replace(/\{\{([a-z]+)\}\}/g, (all, k) => (k in fill ? fill[k] : all));
+}
+function indiceMondo(h, list, base) {
+  const a = "<!-- mondo:indice -->", b = "<!-- /mondo:indice -->", i = h.indexOf(a), j = h.indexOf(b);
+  if (i < 0 || j < i) throw new Error("casa/mondo/index.html: non trovo <!-- mondo:indice --> ... <!-- /mondo:indice -->");
+  const voci = list.map((t) => `<li><a class="mo-voce" href="${urlMondo(base, t.slug)}"><span class="mo-voce__in"><span class="mo-voce__t" dir="auto">${escHtml(t.titolo)}</span><span class="mo-voce__m">${metaMondo(t)}</span></span><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg></a></li>`).join("\n    ");
+  return h.slice(0, i) + `<ol class="mo-indice" aria-label="I testi, dal più recente">\n    ${voci}\n  </ol>` + h.slice(j + b.length);
+}
+function titoliMondo(h, list) {
+  const mark = "<!-- mondo:titoli -->";
+  if (!h.includes(mark)) throw new Error("casa/home/index.html: non trovo <!-- mondo:titoli --> nel riquadro Nel mondo");
+  const titoli = list.map((t) => `<span dir="auto">${escHtml(t.titolo)}</span>`).join('<span aria-hidden="true"> · </span>');
+  const html = `<p class="mondo__p mondo__titoli" style="color: var(--t-ink); font-weight: 650; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;">${titoli}</p>\n        <p class="mondo__p mondo__data" style="margin-top: 6px;">Ultimo testo: <time datetime="${list[0].data}">${dataIt(list[0].data)}</time></p>`;
+  return h.replace(new RegExp(mark.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + `\\s*<p class="mondo__p">Presto, con le parole di Imad\\.</p>`), html).replace(mark, "");
 }
 
 // ------------------------------------------------------------------ l'anteprima di Dot, il gatto: /gatto (non indicizzata)

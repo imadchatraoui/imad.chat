@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Progetti — imad.chat</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="I progetti di Imad su GitHub.">
+<meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
+<!-- PROGETTI: in cima il cubo (vivo, come nel riquadro della casa), poi l'elenco dei repository pubblici da /api/github/progetti.
+     Le parole delle schede vengono solo da GitHub: senza descrizione, niente descrizione. Senza dati, una riga quieta e il profilo. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..600&family=Manrope:wght@400..800&display=swap">
+<link rel="stylesheet" href="/anteprima/comune/pagina.css">
+<link rel="stylesheet" href="/anteprima/progetti/progetti.css">
+</head>
+<body class="pg-corpo">
+<div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
+
+<header class="pg-testa">
+  <a class="pg-casa" href="/anteprima" aria-label="imad.chat, torna alla casa"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <p class="pg-titolo">Progetti</p>
+</header>
+
+<main class="pg pj">
+  <h1 class="pg-h1">Progetti</h1>
+  <p class="pg-lead">I repository pubblici di Imad su GitHub, dal più recente.</p>
+
+  <!-- in evidenza: il cubo -->
+  <section class="pg-card pj-cubo" aria-labelledby="pjCuboT">
+    <div class="pj-cubo__scena">
+      <canvas class="pj-cubo__cv" id="pjCubo" aria-hidden="true"></canvas>
+      <p class="pj-cubo__dito" aria-hidden="true">trascina di lato per girarlo</p>
+    </div>
+    <div class="pj-cubo__testo">
+      <p class="pj-cubo__k"><span class="pj-kukko" aria-hidden="true"><i style="background:#ffb6c1"></i><i style="background:#fdfd96"></i><i style="background:#ffb347"></i><i style="background:#77dd77"></i><i style="background:#aec6cf"></i><i style="background:#ff6961"></i></span>Kukko</p>
+      <h2 class="pj-cubo__t" id="pjCuboT">Il cubo</h2>
+      <p class="pj-cubo__p">Il suo fork di «The Cube» di Boris Šehovac, con il suo tema pastello Kukko.</p>
+      <a class="pg-pill pj-cubo__a" href="https://github.com/imadchatraoui/cube" target="_blank" rel="noopener">imadchatraoui/cube<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr">, su GitHub, in una nuova scheda</span></a>
+    </div>
+  </section>
+
+  <!-- l'elenco: lo scrive progetti.js con le risposte di GitHub -->
+  <section class="pj-elenco" id="pjElenco" aria-labelledby="pjSuoiT" aria-busy="true">
+    <h2 class="pg-h2" id="pjSuoiT">Su GitHub</h2>
+    <ul class="pj-lista" id="pjSuoi">
+      <li class="pj-attesa" aria-hidden="true"><i></i><i></i><i></i></li>
+      <li class="pj-attesa" aria-hidden="true"><i></i><i></i><i></i></li>
+      <li class="pj-attesa" aria-hidden="true"><i></i><i></i><i></i></li>
+    </ul>
+    <p class="pj-stato" id="pjStato" role="status"><span class="sr">Carico l'elenco da GitHub.</span></p>
+    <div class="pj-fork" id="pjFork" hidden>
+      <h2 class="pj-fork__t" id="pjForkT">Fork</h2>
+      <ul class="pj-lista" id="pjForkL" aria-labelledby="pjForkT"></ul>
+    </div>
+    <p class="pg-nota pj-agg" id="pjAgg" hidden></p>
+  </section>
+</main>
+
+<footer class="pg-piede"><a href="/anteprima">Torna alla casa</a><a href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<span class="sr">, in una nuova scheda</span></a><span>«The Cube» è di Boris Šehovac; i colori Kukko sono di Imad.</span></footer>
+
+<script src="/anteprima/dati/astro-lite.js"></script>
+<script src="/anteprima/comune/pagina.js"></script>
+<script src="/anteprima/progetti/cubo.js"></script>
+<script src="/anteprima/progetti/progetti.js"></script>
+</body>
+</html>

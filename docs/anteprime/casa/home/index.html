@@ -136,25 +136,48 @@
     <article class="tile imparando" data-tile="imparando" data-mat="ink">
       <a class="tile__hit" href="https://github.com/imadchatraoui/threejs-journey" target="_blank" rel="noopener" aria-label="Sto imparando: Three.js Journey. Apri il repository su GitHub, in una nuova scheda"></a>
       <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg>
+      <canvas class="ip__cv" id="imparaCv" aria-hidden="true"></canvas>
       <div class="tile__in">
         <header class="tile__head"><span class="label label--ink">Sto imparando</span></header>
-        <div class="vivo" id="impara"><p class="vivo__riposo">Three.js Journey</p></div>
+        <div class="vivo ip" id="impara">
+          <h2 class="title ip__t" lang="en">Three.js Journey</h2>
+          <ol class="ip__log" id="imparaLog"><li><span class="ip__msg ip__msg--vuoto">Si aggiorna tra poco</span><span class="ip__ago">&nbsp;</span></li></ol>
+        </div>
       </div>
     </article>
 
     <!-- TOOLS: il mini QR che funziona davvero (lo mette vivi.js con QRCore). Niente velo di tocco su tutto il riquadro: dentro ci sono comandi -->
     <article class="tile tools" data-tile="tools" data-mat="glass">
       <div class="tile__in">
-        <header class="tile__head"><span class="label label--ink">Tools</span></header>
-        <div class="vivo vivo--tocca" id="qrMini" data-jsqr="../tools/qr/vendor/jsQR.js"><p class="vivo__riposo">Un codice QR da un link, fatto qui sul telefono.</p></div>
+        <header class="tile__head"><span class="label label--ink">Tools</span><span class="label">Codice QR</span></header>
+        <div class="vivo vivo--tocca qr" id="qrMini" data-jsqr="../tools/qr/vendor/jsQR.js">
+          <div class="qr__campo">
+            <label class="sr" for="qrIn">Un link o un testo da trasformare in codice QR</label>
+            <input class="qr__in" id="qrIn" type="text" placeholder="Incolla un link" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+            <button class="qr__x" id="qrX" type="button" aria-label="Cancella il testo" hidden><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="9"/><path d="M7 7l6 6M13 7l-6 6"/></svg></button>
+          </div>
+          <div class="qr__riga">
+            <div class="qr__carta"><canvas class="qr__cv" id="qrCv" role="img" aria-label="Codice QR di prova: https://imad.chat"></canvas></div>
+            <div class="qr__info">
+              <p class="qr__tipo" id="qrTipo">prova: incolla un link</p>
+              <p class="qr__val" id="qrVal">Si crea qui: non viene inviato niente.</p>
+              <p class="qr__nota" id="qrNota" aria-live="polite"></p>
+              <button class="qr__salva" id="qrSalva" type="button" disabled><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg><span id="qrSalvaT">Salva</span></button>
+            </div>
+          </div>
+          <p class="qr__chips"><span class="sr">Presto anche: </span><span class="chip">QR Studio</span><span class="chip">Palette</span><span class="chip">Convertitore</span><span class="chip__presto" aria-hidden="true">presto</span></p>
+        </div>
       </div>
     </article>
 
     <!-- HEATMAP: l'anno di Imad su GitHub (lo mette vivi.js dai dati di /api/github/contributi; senza dati non si inventa niente) -->
     <article class="tile heatmap" data-tile="heatmap" data-mat="ink">
       <div class="tile__in">
-        <header class="tile__head"><span class="label label--ink">Un anno su GitHub</span></header>
-        <div class="vivo vivo--tocca" id="heat"><p class="vivo__riposo">Si aggiorna tra poco.</p></div>
+        <header class="tile__head"><span class="label label--ink">Heatmap</span><a class="hm__gh" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr"> (il profilo di Imad, si apre in una nuova scheda)</span></a></header>
+        <div class="vivo vivo--tocca hm" id="heat">
+          <p class="hm__riga" id="heatRiga" aria-live="polite"><span class="hm__a">Si aggiorna tra poco</span></p>
+          <div class="hm__g"><canvas class="hm__cv" id="heatCv" tabindex="0" aria-label="Contributi su GitHub nell'ultimo anno, giorno per giorno. Con le frecce scorri i giorni." aria-describedby="heatRiga"></canvas></div>
+        </div>
       </div>
     </article>
 

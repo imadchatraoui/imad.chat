@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{titolo}} — Nel mondo — imad.chat</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#fbf6ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16130f" media="(prefers-color-scheme: dark)">
+<!-- NEL MONDO, un testo di Imad. Il modello: scripts/home/build.mjs scrive una pagina così per ogni content/mondo/<nome>.md
+     (online: /anteprima/mondo/<nome>). I segnaposto {{...}} li riempie la build, già con l'HTML sicuro (tutto il testo è
+     protetto, i link solo http/https, niente HTML scritto a mano). Gli indirizzi qui sono relativi a casa/mondo/, come l'indice.
+     Niente di nostro: solo le sue parole, la data, il luogo, la foto e le fonti se le dà. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&display=swap">
+<link rel="stylesheet" href="../comune/pagina.css">
+<link rel="stylesheet" href="mondo.css">
+</head>
+<body class="pg-corpo mo-corpo">
+
+<header class="pg-testa">
+  <a class="pg-casa" href="../home/index.html" aria-label="imad.chat, torna alla casa"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <a class="pg-titolo mo-su" href="index.html">Nel mondo</a>
+</header>
+
+<main class="pg mo">
+  <article class="mo-art">
+    <p class="mo-meta">{{meta}}</p>
+    <h1 class="mo-h1 mo-h1--testo" dir="auto">{{titolo}}</h1>
+    {{immagine}}
+    <div class="mo-testo">
+{{corpo}}
+    </div>
+    {{fonti}}
+  </article>
+  <p class="mo-torna"><a class="pg-pill" href="index.html"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6.5L8.5 12l5.5 5.5"/></svg>Tutti i testi</a></p>
+</main>
+
+<footer class="pg-piede mo-piede"><a href="../home/index.html">Torna alla casa</a></footer>
+
+<script src="../comune/pagina.js"></script>
+</body>
+</html>
