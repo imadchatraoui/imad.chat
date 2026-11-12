@@ -1,19 +1,21 @@
 /* look-manifesto.js — l'aspetto «Manifesto» di Dot: un gatto da poster.
-   Sagome nere piatte e pulite, fessure sottili di luce che staccano le zampe vicine dal corpo, occhi verdi decisi
-   (disco verde, pupilla nera, un punto di luce), pochi dettagli (niente naso, due baffi per lato), coda lunga ed
-   elegante, zampe un filo più lunghe. Sul fondo scuro un filo di luce attorno alla sagoma, più forte in alto a sinistra.
+   Sagome nere pulite, fessure sottili di luce che staccano le zampe vicine dal corpo e tra loro, testa tonda, occhi
+   verdi con l'iride sfumata e un punto di luce grande, naso piccolo, interno delle orecchie malva spento, due baffi
+   per lato, coda a punto di domanda, zampe un filo più lunghe. Profondità senza 3D: zampe e orecchio lontani più
+   chiari, una luce morbida da in alto a sinistra; sul fondo scuro un filo di luce solo in alto a sinistra.
    Stesso contratto di look-base.js: draw(ctx, frame, env), drawFez(ctx, fez, env), drawProp(ctx, nome, p, env).
    Non muove nulla: disegna il fotogramma. Solo ES2017, niente canvas creati a ogni fotogramma, niente shadowBlur. */
 (function () {
   "use strict";
   var DOT = (window.DOT = window.DOT || {}); DOT.looks = DOT.looks || {};
   var TAU = Math.PI * 2, PI = Math.PI;
-  var INK = "#0a0a0d", FAR = "#1b1b23";
-  var GREEN = "#97e24f", GREEN_D = "#3c9a36", PUPIL = "#050507";
-  var RED = "#c8242e", RED_D = "#9b1824", RED_T = "#e04850", TASSEL = "#141016";
-  /* i due temi: luce = filo attorno alla sagoma (solo sul fondo scuro), fessura = linea tra le parti */
-  var DARK = { rim: "rgba(158,178,240,.55)", gap: "rgba(196,208,255,.5)", gap0: "rgba(196,208,255,0)", whisk: "rgba(234,240,255,.8)", pad: "rgba(214,222,255,.88)" };
-  var LIGHT = { rim: null, gap: "rgba(255,255,255,.97)", gap0: "rgba(255,255,255,0)", whisk: "rgba(14,14,20,.82)", pad: "rgba(255,255,255,.95)" };
+  var INK = "#0a0a0d", FAR = "#272732";
+  var GREEN = "#97e24f", GREEN_L = "#c4f27a", GREEN_D = "#2f8a30", PUPIL = "#050507", SHUT = "rgba(214,240,206,.9)";
+  var RED = "#c8242e", RED_L = "#e0444a", RED_D = "#8e1520", RED_T = "#e2525a", TASSEL = "#16090c";
+  var EAR_IN = "#4a3440", NOSE = "#c27a88", MOUTH_IN = "#4a0f1c", TONGUE = "#ff8a9c", FANG = "#f6f2ea";
+  /* i due temi: luce = filo in alto a sinistra della sagoma (solo sul fondo scuro), fessura = linea tra le parti */
+  var DARK = { rim: "rgba(158,178,240,.62)", rim0: "rgba(158,178,240,0)", sheen: "rgba(130,146,210,.11)", gap: "rgba(196,208,255,.5)", gap0: "rgba(196,208,255,0)", whisk: "rgba(234,240,255,.8)", pad: "rgba(214,222,255,.88)", claw: "#eef0f8" };
+  var LIGHT = { rim: null, sheen: "rgba(255,255,255,.055)", gap: "rgba(255,255,255,.97)", gap0: "rgba(255,255,255,0)", whisk: "rgba(14,14,20,.82)", pad: "rgba(255,255,255,.95)", claw: "#ffffff" };
   var GAP_W = 0.42;                                               /* metà spessore della fessura, in unità */
   var last = { f: null, m: null, env: null };                    /* l'ultimo gatto disegnato: serve agli oggetti tenuti */
   var cur = { hang: false, slide: false };                       /* la situazione del fotogramma in corso */
@@ -21,6 +23,17 @@
 
   function theme(env) { return env && env.dark === false ? LIGHT : DARK; }
   function nrm(x, y) { var d = Math.sqrt(x * x + y * y) || 1; return [x / d, y / d]; }
+  function smooth01(a, b, x) { var t = (x - a) / (b - a); t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t); }
+  /* il riquadro che contiene il gatto: serve alla sfumatura del filo di luce */
+  function bbox(f) {
+    var x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, i, p;
+    function add(x, y, r) { if (x - r < x0) x0 = x - r; if (x + r > x1) x1 = x + r; if (y - r < y0) y0 = y - r; if (y + r > y1) y1 = y + r; }
+    add(f.head.x, f.head.y, f.head.rx); add(f.body.hips.x, f.body.hips.y, f.body.hips.r); add(f.body.chest.x, f.body.chest.y, f.body.chest.r);
+    for (i = 0; i < 2; i++) add(f.ears[i].tx, f.ears[i].ty, 0);
+    for (i = 0; i < 4; i++) add(f.legs[i].fx, f.legs[i].fy, f.legs[i].paw);
+    p = f.tail.pts; for (i = 0; i < p.length; i += 3) add(p[i].x, p[i].y, p[i].r);
+    return [x0, y0, x1, y1];
+  }
 
   /* ------------------------------------------------------------------ forme di base */
   /* scafo tra due cerchi (tangenti esterne), lati appena incurvati: bow > 0 gonfia verso fuori.
@@ -41,31 +54,45 @@
   }
 
   /* il corpo: fianchi → petto, con la schiena un filo gonfia; se c'è la gobba (spaventato) passa per mid */
-  function bodyPath(c, f) {
+  function bodyPath(c, f, keep) {
     var b = f.body, h = b.hips, ch = b.chest, mx = (h.x + ch.x) / 2, hr = h.r, cr = ch.r;
     if (cur.hang) { hr *= 1.16; cr *= 0.86; }                     /* appeso: il peso scende in basso, una goccia morbida */
+    else if (cur.slide) { hr *= 1.14; cr *= 1.1; }                 /* sul vetro: tondo e premuto */
+    else if (ch.y - h.y > 4) cr *= 1.08;                          /* seduto: il petto un filo più pieno, niente collo a birillo */
     c.save(); c.translate(mx, 0); c.scale(b.sx, b.sy); c.translate(-mx, 0);
-    c.beginPath();
+    if (!keep) c.beginPath();
     var up = (ch.x - h.x) >= 0 ? 1 : -1, bowBack = 0.9, bowBelly = cur.hang ? 0.9 : 0.35;
     if (b.mid) { var my = (h.y + ch.y) / 2, top = b.mid.y + b.mid.r - (my + (h.r + ch.r) / 2); bowBack = Math.max(0.9, top * 1.6); }
     if (cur.hang) bowBack = 0.9;
     if (up > 0) hull(c, h.x, h.y, hr, ch.x, ch.y, cr, bowBack, bowBelly); else hull(c, h.x, h.y, hr, ch.x, ch.y, cr, bowBelly, bowBack);
     c.restore();
+    /* il collo: un raccordo pieno tra petto e testa (dentro la sagoma, si vede solo dove c'era una strozzatura) */
+    var hd = f.head, ul = Math.sqrt(hd.u[0] * hd.u[0] + hd.u[1] * hd.u[1]) || 1, nx2 = mx + (ch.x - mx) * b.sx, ny2 = ch.y * b.sy;
+    hull(c, nx2, ny2, cr * 0.9, hd.x - hd.u[0] / ul * hd.ry * 0.35, hd.y - hd.u[1] / ul * hd.ry * 0.35, Math.min(cr * 0.95, hd.ry * 0.62), 0, 0);
   }
 
-  /* la testa: larga più che alta, cranio pieno, guance con un piccolo ciuffo, mento morbido */
-  function headPath(c, f) {
+  /* la testa: tonda, larga più che alta, guance piene e morbide in basso, mento dolce */
+  function headPath(c, f, keep) {
     var h = f.head, ul = Math.sqrt(h.u[0] * h.u[0] + h.u[1] * h.u[1]) || 1, ux = h.u[0] / ul, uy = h.u[1] / ul;
     var W = h.depth + (h.rx - h.depth) * Math.abs(h.fz), H = h.ry;
     c.save(); c.translate(h.x, h.y); c.transform(uy, -ux, ux, uy, 0, 0);
-    c.beginPath(); c.moveTo(0, H);
-    c.bezierCurveTo(W * 0.58, H, W * 0.97, H * 0.74, W * 1.0, H * 0.1);
-    c.quadraticCurveTo(W * 1.03, -H * 0.18, W * 1.08, -H * 0.36);
-    c.bezierCurveTo(W * 0.9, -H * 0.78, W * 0.52, -H * 0.98, 0, -H * 0.98);
-    c.bezierCurveTo(-W * 0.52, -H * 0.98, -W * 0.9, -H * 0.78, -W * 1.08, -H * 0.36);
-    c.quadraticCurveTo(-W * 1.03, -H * 0.18, -W * 1.0, H * 0.1);
-    c.bezierCurveTo(-W * 0.97, H * 0.74, -W * 0.58, H, 0, H);
+    if (!keep) c.beginPath(); c.moveTo(0, H);
+    c.bezierCurveTo(W * 0.62, H, W * 0.97, H * 0.64, W * 0.99, H * 0.06);
+    c.bezierCurveTo(W * 1.02, -H * 0.34, W * 0.9, -H * 0.72, W * 0.6, -H * 0.88);
+    c.bezierCurveTo(W * 0.38, -H * 0.99, W * 0.16, -H * 0.99, 0, -H * 0.99);
+    c.bezierCurveTo(-W * 0.16, -H * 0.99, -W * 0.38, -H * 0.99, -W * 0.6, -H * 0.88);
+    c.bezierCurveTo(-W * 0.9, -H * 0.72, -W * 1.02, -H * 0.34, -W * 0.99, H * 0.06);
+    c.bezierCurveTo(-W * 0.97, H * 0.64, -W * 0.62, H, 0, H);
     c.closePath(); c.restore();
+  }
+  /* l'interno dell'orecchio: un triangolo più piccolo, color malva spento */
+  function earInPath(c, f, e) {
+    var ex = e.tx - e.bx, ey = e.ty - e.by, el = Math.sqrt(ex * ex + ey * ey) || 1, ax = ex / el, ay = ey / el, nx = -ay, ny = ax, w = e.w * 0.52;
+    var bx = e.bx + ax * 0.6 + (f.head.x - e.bx) * 0.04, by = e.by + ay * 0.6 + (f.head.y - e.by) * 0.04, tx = e.tx - ax * 2.1, ty = e.ty - ay * 2.1;
+    c.beginPath(); c.moveTo(bx + nx * w, by + ny * w);
+    c.quadraticCurveTo(bx + nx * w * 0.5 + ex * 0.45, by + ny * w * 0.5 + ey * 0.45, tx, ty);
+    c.quadraticCurveTo(bx - nx * w * 0.5 + ex * 0.45, by - ny * w * 0.5 + ey * 0.45, bx - nx * w, by - ny * w);
+    c.closePath();
   }
 
   /* l'orecchio: punta decisa, lati appena curvi, base affondata nella testa */
@@ -110,7 +137,7 @@
     if (mode === "ground") { g.ax = l.fx; g.ay = l.fy + l.paw * 0.78; g.px = l.fx + dirx * l.paw * 0.32 * side; g.py = l.fy + l.paw * 0.6; g.prx = l.paw * (0.92 + 0.18 * side); g.pry = l.paw * 0.64; g.pa = 0; }
     else if (mode === "edge") { g.ax = l.fx; g.ay = l.fy + 1.8; g.px = l.fx; g.py = l.fy + 0.35; g.prx = l.paw * 1.28; g.pry = l.paw * 0.9; g.pa = 0; }
     else {                                                          /* penzola, aggancia o preme sul vetro: la zampa segue la gamba */
-      var big = mode === "pad" ? 1.22 : mode === "hook" ? 1.12 : 0.98;
+      var big = mode === "pad" ? 1.22 : mode === "hook" || mode === "claw" ? 1.12 : 0.98;
       g.ax = l.fx - d[0] * l.paw * 0.4; g.ay = l.fy - d[1] * l.paw * 0.4; g.px = l.fx + d[0] * l.paw * 0.25; g.py = l.fy + d[1] * l.paw * 0.25;
       g.prx = l.paw * big * (mode === "dangle" ? 0.84 : 1); g.pry = l.paw * big * (mode === "dangle" ? 0.98 : 1.02); g.pa = Math.atan2(d[1], d[0]) - PI / 2;
     }
@@ -128,9 +155,18 @@
     var ang = Math.atan2(dy, dx), b = Math.asin(Math.max(-1, Math.min(1, (g.rk - g.ra) / d))), j, a;
     for (j = -1; j <= 1; j += 2) { a = ang + j * (PI / 2 + b); c.moveTo(g.kx + g.rk * Math.cos(a), g.ky + g.rk * Math.sin(a)); c.lineTo(g.ax + g.ra * Math.cos(a), g.ay + g.ra * Math.sin(a)); }
   }
+  /* i fianchi di tutta la zampa (spalla → ginocchio → caviglia), senza i cerchi delle giunture: la fessura tra due zampe */
+  function legEdges(c, g) {
+    var S = [[g.jx, g.jy, g.rj, g.kx, g.ky, g.rk], [g.kx, g.ky, g.rk, g.ax, g.ay, g.ra]], q, j, a;
+    for (q = 0; q < 2; q++) {
+      var s = S[q], dx = s[3] - s[0], dy = s[4] - s[1], d = Math.sqrt(dx * dx + dy * dy); if (d < 0.01) continue;
+      var ang = Math.atan2(dy, dx), b = Math.asin(Math.max(-1, Math.min(1, (s[2] - s[5]) / d)));
+      for (j = -1; j <= 1; j += 2) { a = ang + j * (PI / 2 + b); c.moveTo(s[0] + s[2] * Math.cos(a), s[1] + s[2] * Math.sin(a)); c.lineTo(s[3] + s[5] * Math.cos(a), s[4] + s[5] * Math.sin(a)); }
+    }
+  }
   function pawShape(c, g) {
     c.moveTo(g.px + g.prx * Math.cos(g.pa), g.py + g.prx * Math.sin(g.pa)); c.ellipse(g.px, g.py, g.prx, g.pry, g.pa, 0, TAU, true);
-    if (g.mode === "hook") {                                        /* tre dita che si piegano sopra il bordo */
+    if (g.mode === "hook" || g.mode === "claw") {                   /* tre dita: si piegano sopra il bordo, o premono sul vetro */
       var ca = Math.cos(g.pa), sa = Math.sin(g.pa), i;
       for (i = -1; i <= 1; i++) { var u = i * g.prx * 0.58, v = g.pry * (0.78 - Math.abs(i) * 0.12), x = g.px + u * ca - v * sa, y = g.py + u * sa + v * ca; c.moveTo(x + g.prx * 0.36, y); c.arc(x, y, g.prx * 0.36, 0, TAU, true); }
     }
@@ -150,6 +186,15 @@
       return;
     }
     c.strokeStyle = T.gap; c.lineWidth = 0.3;
+    if (g.mode === "claw") {                                        /* sul vetro: dita separate da tagli di luce, unghie fuori */
+      for (i = -1; i <= 1; i += 2) { var c0 = P(i * g.prx * 0.29, g.pry * 1.12), c1 = P(i * g.prx * 0.22, g.pry * 0.38); c.beginPath(); c.moveTo(c0[0], c0[1]); c.lineTo(c1[0], c1[1]); c.stroke(); }
+      c.fillStyle = T.claw;
+      for (i = -1; i <= 1; i++) {
+        var u0 = i * g.prx * 0.6, v0 = g.pry * (1.36 - Math.abs(i) * 0.14), k0 = P(u0 - 0.2, v0 - 0.15), k1 = P(u0 + 0.2, v0 - 0.15), k2 = P(u0 + i * 0.25, v0 + 0.95);
+        c.beginPath(); c.moveTo(k0[0], k0[1]); c.quadraticCurveTo(k2[0] - (k1[0] - k0[0]) * 0.4, k2[1] - (k1[1] - k0[1]) * 0.4, k2[0], k2[1]); c.lineTo(k1[0], k1[1]); c.closePath(); c.fill();
+      }
+      return;
+    }
     if (g.mode === "hook") { for (i = -1; i <= 1; i += 2) { var h0 = P(i * g.prx * 0.29, g.pry * 1.1), h1 = P(i * g.prx * 0.25, g.pry * 0.42); c.beginPath(); c.moveTo(h0[0], h0[1]); c.lineTo(h1[0], h1[1]); c.stroke(); } return; }
     if (g.mode === "edge") { for (i = -1; i <= 1; i += 2) { c.beginPath(); c.moveTo(g.px + i * g.prx * 0.3, g.py - g.pry * 0.95); c.lineTo(g.px + i * g.prx * 0.27, g.py - g.pry * 0.3); c.stroke(); } return; }
     if (g.mode === "ground" && g.prx * px > 12) { var cx = g.px + (g.px - g.ax) * 0.35; for (i = -1; i <= 1; i += 2) { c.beginPath(); c.moveTo(cx + i * g.prx * 0.26, g.py - g.pry * 0.98); c.lineTo(cx + i * g.prx * 0.24, g.py - g.pry * 0.45); c.stroke(); } }
@@ -176,7 +221,7 @@
   }
   function legMode(l, s, env) {
     if (env && env.pawsOnEdge && l.front) return "edge";
-    if (s.slide) return "pad";
+    if (s.slide) return "claw";
     if (s.hang && l.front) return "hook";
     if (l.fy < -2.5) return "dangle";
     return "ground";
@@ -187,29 +232,47 @@
     var ax = tx - x, ay = ty - y, len = Math.sqrt(ax * ax + ay * ay) || 1; ax /= len; ay /= len;
     c.save(); c.translate(x, y); c.transform(ay, -ax, ax, ay, 0, 0);
     var e0 = rB * ell, e1 = rT * ell;
-    c.beginPath(); c.moveTo(-rB, 0); c.bezierCurveTo(-rB * 0.98, len * 0.45, -rT * 1.03, len * 0.8, -rT, len);
+    /* fianchi dritti; il feltro: più chiaro a sinistra (da dove viene la luce), più scuro a destra */
+    c.beginPath(); c.moveTo(-rB, 0); c.lineTo(-rT, len);
     c.ellipse(0, len, rT, e1, 0, PI, 0, true);
-    c.bezierCurveTo(rT * 1.03, len * 0.8, rB * 0.98, len * 0.45, rB, 0);
+    c.lineTo(rB, 0);
     c.ellipse(0, 0, rB, e0, 0, 0, -PI, true); c.closePath();
-    c.fillStyle = RED; c.fill();
+    var fg = c.createLinearGradient(-rB, 0, rB, 0); fg.addColorStop(0, RED_L); fg.addColorStop(0.32, RED); fg.addColorStop(0.7, "#b01d29"); fg.addColorStop(1, RED_D);
+    c.fillStyle = fg; c.fill();
     c.save(); c.clip();
-    c.fillStyle = RED_D; c.beginPath(); c.moveTo(rB * 0.34, -e0 * 2); c.quadraticCurveTo(rT * 0.5, len * 0.5, rT * 0.26, len + e1 * 2); c.lineTo(rB + 1, len + e1 * 2); c.lineTo(rB + 1, -e0 * 2); c.closePath(); c.fill();
-    c.fillStyle = "rgba(0,0,0,.22)"; c.beginPath(); c.ellipse(0, 0, rB * 1.05, e0 + 0.55, 0, 0, TAU); c.fill();   /* la piega del feltro sulla testa */
+    c.fillStyle = "rgba(255,190,190,.16)"; c.beginPath(); c.moveTo(-rB * 0.62, 0); c.lineTo(-rT * 0.5, len); c.lineTo(-rT * 0.22, len); c.lineTo(-rB * 0.3, 0); c.closePath(); c.fill();   /* il lucido morbido del feltro */
+    c.fillStyle = "rgba(0,0,0,.2)"; c.beginPath(); c.ellipse(0, 0, rB * 1.05, e0 + 0.5, 0, 0, TAU); c.fill();   /* la piega del feltro sulla testa */
     c.restore();
-    if (top) { c.fillStyle = RED_T; c.beginPath(); c.ellipse(0, len, rT, e1, 0, 0, TAU); c.fill(); }
+    if (top) {
+      c.fillStyle = RED_T; c.beginPath(); c.ellipse(0, len, rT, e1, 0, 0, TAU); c.fill();
+      c.fillStyle = "#5a0d16"; c.beginPath(); c.ellipse(0, len, 0.62, Math.max(0.2, 0.62 * ell), 0, 0, TAU); c.fill();   /* il bottone del fiocco */
+    }
     c.restore();
   }
-  function tassel(c, t, top, T, rw) {
-    var dx = t.x1 - t.x0, dy = t.y1 - t.y0, d = nrm(dx, dy), ux = d[0], uy = d[1], nx = -uy, ny = ux;
+  /* il fiocco: dal bottone in cima, il cordone corre fino al bordo sinistro della cima e pende lungo il fianco;
+     finisce in un ciuffo di fili. ax, ay: asse del fez; a: angolo del pendolo (dal rig) */
+  function tassel(c, x, y, ax, ay, rT, len, ell, a, T) {
+    function W(lx, ly) { return [x + ay * lx + ax * ly, y - ax * lx + ay * ly]; }   /* dal fez al mondo */
+    var b = W(0, len), p = W(-rT * 0.97, len - rT * ell * 0.15), L = 5.8, sx = Math.sin(a), sy = -Math.cos(a);
+    var e = [p[0] + L * sx - 0.55, p[1] + L * sy], k = [p[0] + (e[0] - p[0]) * 0.42, p[1] + (e[1] - p[1]) * 0.42];
+    var tx = e[0] - k[0], ty = e[1] - k[1], tl = Math.sqrt(tx * tx + ty * ty) || 1, ux = tx / tl, uy = ty / tl, nx = -uy, ny = ux;
+    function tuft() { c.beginPath(); c.moveTo(k[0] + nx * 0.3, k[1] + ny * 0.3);
+      c.quadraticCurveTo(e[0] + nx * 1.0 - ux * 1.6, e[1] + ny * 1.0 - uy * 1.6, e[0] + nx * 1.0, e[1] + ny * 1.0);
+      c.quadraticCurveTo(e[0] + nx * 0.5 + ux * 0.45, e[1] + ny * 0.5 + uy * 0.45, e[0], e[1] + uy * 0.2);
+      c.quadraticCurveTo(e[0] - nx * 0.5 + ux * 0.45, e[1] - ny * 0.5 + uy * 0.45, e[0] - nx * 1.0, e[1] - ny * 1.0);
+      c.quadraticCurveTo(e[0] - nx * 1.0 - ux * 1.6, e[1] - ny * 1.0 - uy * 1.6, k[0] - nx * 0.3, k[1] - ny * 0.3); c.closePath(); }
+    function cord() { c.beginPath(); c.moveTo(b[0], b[1]); c.quadraticCurveTo((b[0] + p[0]) / 2, Math.max(b[1], p[1]) + 0.3, p[0], p[1]); c.lineTo(k[0], k[1]); }
     c.lineCap = "round"; c.lineJoin = "round";
-    function cord() { c.beginPath(); c.moveTo(top[0], top[1]); c.quadraticCurveTo(t.x0, t.y0 + 0.5, t.x0 + dx * 0.55, t.y0 + dy * 0.55); }
-    function drop() { var bx = t.x0 + dx * 0.55, by = t.y0 + dy * 0.55; c.beginPath(); c.moveTo(bx + nx * 0.35, by + ny * 0.35); c.quadraticCurveTo(t.x1 + nx * 1.05, t.y1 + ny * 1.05, t.x1 + ux * 0.3, t.y1 + uy * 0.3); c.quadraticCurveTo(t.x1 - nx * 1.05, t.y1 - ny * 1.05, bx - nx * 0.35, by - ny * 0.35); c.closePath(); }
-    if (T.rim) { c.strokeStyle = T.rim; c.lineWidth = (rw || 0.3) * 2; drop(); c.stroke(); }
-    c.strokeStyle = TASSEL; c.lineWidth = 0.5; cord(); c.stroke();
-    c.fillStyle = TASSEL; drop(); c.fill();
+    if (T.rim) { c.save(); c.translate(-0.22, 0.16); c.strokeStyle = T.rim; c.lineWidth = 0.34; tuft(); c.stroke(); c.lineWidth = 0.7; cord(); c.stroke(); c.restore(); }   /* un filo di luce: si legge anche sul nero */
+    c.strokeStyle = TASSEL; c.lineWidth = 0.44; cord(); c.stroke();
+    c.fillStyle = TASSEL; tuft(); c.fill();
+    c.strokeStyle = "rgba(255,130,130,.32)"; c.lineWidth = 0.15;   /* due fili che prendono luce */
+    c.beginPath(); c.moveTo(k[0] + nx * 0.14 + ux * 0.4, k[1] + ny * 0.14 + uy * 0.4); c.lineTo(e[0] + nx * 0.55 - ux * 0.25, e[1] + ny * 0.55 - uy * 0.25); c.stroke();
+    c.fillStyle = "#3a1218"; c.beginPath(); c.arc(k[0], k[1], 0.52, 0, TAU); c.fill();   /* il nodo */
   }
-  function fezOnHead(c, f, T, rw) {
-    var z = f.fez; fezShape(c, z.x, z.y, z.tx, z.ty, z.rBase, z.rTop, z.ell, z.top, T); tassel(c, z.tassel, [z.tx, z.ty + z.rTop * z.ell * 0.3], T, rw);
+  function fezOnHead(c, f, T) {
+    var z = f.fez, ax = z.tx - z.x, ay = z.ty - z.y, len = Math.sqrt(ax * ax + ay * ay) || 1;
+    fezShape(c, z.x, z.y, z.tx, z.ty, z.rBase, z.rTop, z.ell, z.top, T); tassel(c, z.x, z.y, ax / len, ay / len, z.rTop, len, z.ell, z.tassel.ang, T);
   }
 
   /* ------------------------------------------------------------------ il muso */
@@ -218,33 +281,58 @@
     var ss = (h.s[0] * uy - h.s[1] * ux) >= 0 ? 1 : -1;
     c.save(); headPath(c, f); c.clip();                          /* occhi e bocca restano dentro la testa */
     for (i = 0; i < 2; i++) {
-      var e = f.eyes[i]; if (e.vis < 0.03) continue;
+      var e = f.eyes[i], ev = smooth01(0.42, 0.58, e.vis); if (ev < 0.02) continue;   /* l'occhio lontano: c'è o non c'è, niente fantasmi */
       var open = Math.min(1.4, e.open), wide = Math.max(0, open - 1), r = e.r * (1 + 0.22 * wide), o1 = Math.min(1, open);
-      c.save(); c.globalAlpha = e.vis; c.translate(e.x, e.y); c.transform(uy, -ux, ux, uy, 0, 0); c.scale(e.sx, 1);
-      if (o1 < 0.14) {                                              /* chiuso: un arco verde, morbido */
-        c.strokeStyle = GREEN; c.lineWidth = 0.72; c.lineCap = "round";
-        c.beginPath(); c.moveTo(-r * 0.86, r * 0.02); c.quadraticCurveTo(0, -r * 0.62, r * 0.86, r * 0.02); c.stroke();
+      c.save(); c.globalAlpha = ev; c.translate(e.x, e.y); c.transform(uy, -ux, ux, uy, 0, 0); c.scale(e.sx, 1);
+      if (o1 < 0.14) {                                              /* chiuso: un arco chiaro; felice in su, addormentato in giù */
+        var cm = f.mood && f.mood.closed, bend = cm === "happy" ? 0.7 : cm === "blink" ? -0.25 : -0.62, yb = cm === "happy" ? -r * 0.18 : r * 0.04;
+        c.strokeStyle = SHUT; c.lineWidth = 0.62; c.lineCap = "round";
+        c.beginPath(); c.moveTo(-r * 0.84, yb); c.quadraticCurveTo(0, yb + r * bend, r * 0.84, yb); c.stroke();
+        if (cm === "sleep" && r * ((last.env && last.env.scale) || 3) > 9) {   /* due ciglia piccole sull'angolo esterno */
+          var ox = -e.side * ss; c.lineWidth = 0.34; c.beginPath(); c.moveTo(ox * r * 0.78, yb - r * 0.06); c.lineTo(ox * r * 1.02, yb - r * 0.32); c.stroke();
+        }
       } else {
         /* palpebre: un taglio netto, inclinato quando è seccato; si disegna solo la parte aperta (niente bordi sporchi) */
         var lidY = r - 2 * r * (1 - o1) * 0.92 - r * e.lid * 0.92, inner = -e.side * ss, sl = e.brow * r * 0.55, low = -r - 0.1 + (1 - o1) * r * 0.4;
         c.beginPath(); c.arc(0, 0, r, 0, TAU); c.save(); c.clip();
         c.beginPath(); c.moveTo(-r * 1.3, lidY + (inner < 0 ? -sl : sl)); c.lineTo(r * 1.3, lidY + (inner < 0 ? sl : -sl)); c.lineTo(r * 1.3, low); c.lineTo(-r * 1.3, low); c.closePath(); c.clip();
-        c.fillStyle = GREEN; c.fillRect(-r, -r, 2 * r, 2 * r);
-        c.strokeStyle = GREEN_D; c.lineWidth = r * 0.22; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.stroke();   /* bordo dell'iride */
-        var pw = e.pupil.w, pr = r * (0.62 - 0.12 * wide), px = e.pupil.dx * r * 0.36, py = e.pupil.dy * r * 0.3;
-        c.fillStyle = PUPIL; c.beginPath(); c.ellipse(px, py, r * (0.13 + 0.42 * pw) * (1 - 0.25 * wide), pr, 0, 0, TAU); c.fill();
-        c.fillStyle = "#ffffff"; c.beginPath(); c.arc(px - r * 0.3, py + r * 0.3, r * 0.17, 0, TAU); c.fill();
+        /* l'iride: chiara in basso (la luce entra e si accende), più scura in alto sotto la palpebra */
+        var ig = c.createRadialGradient(0, -r * 0.38, r * 0.1, 0, -r * 0.1, r * 1.05); ig.addColorStop(0, GREEN_L); ig.addColorStop(0.55, GREEN); ig.addColorStop(1, GREEN_D);
+        c.fillStyle = ig; c.fillRect(-r, -r, 2 * r, 2 * r);
+        c.fillStyle = "rgba(10,40,10,.32)"; c.beginPath(); c.ellipse(0, r * 0.55, r * 1.1, r * 0.62, 0, 0, TAU); c.fill();   /* l'ombra della palpebra sopra */
+        c.strokeStyle = GREEN_D; c.lineWidth = r * 0.16; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.stroke();   /* bordo dell'iride */
+        var pw = e.pupil.w, pr = r * (0.62 - 0.12 * wide), px = e.pupil.dx * r * 0.36, py = e.pupil.dy * r * 0.3, dot = e.pupil.dot || 0;
+        var pwx = r * (0.13 + 0.42 * pw) * (1 - 0.25 * wide), pry = pr * (1 - dot) + pwx * 1.05 * dot;
+        c.fillStyle = "rgba(20,70,20,.55)"; c.beginPath(); c.ellipse(px, py, pwx + r * 0.16, pry + r * 0.12, 0, 0, TAU); c.fill();   /* l'anello scuro attorno alla pupilla */
+        c.fillStyle = PUPIL; c.beginPath(); c.ellipse(px, py, pwx, pry, 0, 0, TAU); c.fill();
+        c.fillStyle = "#ffffff"; c.beginPath(); c.ellipse(px - r * 0.32, py + r * 0.34, r * 0.25, r * 0.22, 0, 0, TAU); c.fill();   /* il punto di luce, grande */
+        c.fillStyle = "rgba(255,255,255,.7)"; c.beginPath(); c.arc(px + r * 0.3, py - r * 0.34, r * 0.09, 0, TAU); c.fill();
         if (o1 < 0.98 || e.lid > 0.02) { c.strokeStyle = "rgba(0,0,0,.35)"; c.lineWidth = r * 0.16; c.beginPath(); c.moveTo(-r * 1.3, lidY + (inner < 0 ? -sl : sl)); c.lineTo(r * 1.3, lidY + (inner < 0 ? sl : -sl)); c.stroke(); }   /* l'ombra della palpebra */
         c.restore();
       }
       c.restore();
     }
-    /* la bocca: solo quando miagola o sbadiglia */
+    /* il naso: un piccolo triangolo morbido, rosa spento */
+    if (f.nose.vis > 0.25) {
+      c.save(); c.globalAlpha = smooth01(0.25, 0.55, f.nose.vis); c.translate(f.nose.x, f.nose.y); c.transform(uy, -ux, ux, uy, 0, 0);
+      c.fillStyle = NOSE; c.beginPath(); c.moveTo(-0.95, 0.42); c.quadraticCurveTo(0, 0.72, 0.95, 0.42); c.quadraticCurveTo(0.55, -0.3, 0, -0.62); c.quadraticCurveTo(-0.55, -0.3, -0.95, 0.42); c.fill();
+      c.restore();
+    }
+    /* la bocca: solo quando miagola o sbadiglia; aperta davvero, con i canini e la lingua */
     if (f.mouth.vis > 0.3 && f.mouth.open > 0.06) {
       var mo = f.mouth.open; c.save(); c.globalAlpha = f.mouth.vis; c.translate(f.mouth.x, f.mouth.y); c.transform(uy, -ux, ux, uy, 0, 0);
-      var mw = 1.25 + 0.75 * mo, mh = 0.6 + 2.7 * mo;
-      c.fillStyle = "#d9475f"; c.beginPath(); c.moveTo(-mw, 0); c.quadraticCurveTo(0, 0.5, mw, 0); c.bezierCurveTo(mw * 0.9, -mh * 0.8, mw * 0.4, -mh, 0, -mh); c.bezierCurveTo(-mw * 0.4, -mh, -mw * 0.9, -mh * 0.8, -mw, 0); c.fill();
-      if (mo > 0.35) { c.fillStyle = "#ff8fa0"; c.beginPath(); c.ellipse(0, -mh * 0.78, mw * 0.55, mh * 0.24, 0, 0, TAU); c.fill(); }
+      var mw = 1.3 + 0.85 * mo, mh = 0.7 + 2.9 * mo;
+      c.beginPath(); c.moveTo(-mw, 0.1); c.quadraticCurveTo(-mw * 0.5, 0.42, 0, 0.02); c.quadraticCurveTo(mw * 0.5, 0.42, mw, 0.1);
+      c.bezierCurveTo(mw * 0.98, -mh * 0.72, mw * 0.5, -mh, 0, -mh); c.bezierCurveTo(-mw * 0.5, -mh, -mw * 0.98, -mh * 0.72, -mw, 0.1); c.closePath();
+      c.fillStyle = MOUTH_IN; c.fill();
+      c.save(); c.clip();
+      c.fillStyle = TONGUE; c.beginPath(); c.ellipse(0, -mh * 0.98, mw * 0.66, mh * 0.42, 0, 0, TAU); c.fill();
+      c.strokeStyle = "rgba(170,50,70,.6)"; c.lineWidth = 0.16; c.beginPath(); c.moveTo(0, -mh * 0.62); c.lineTo(0, -mh * 0.9); c.stroke();
+      c.restore();
+      if (mo > 0.2) {                                               /* i due canini, piccoli */
+        var fl = Math.min(1.05, 0.3 + mh * 0.26); c.fillStyle = FANG;
+        for (var j = -1; j <= 1; j += 2) { var fx = j * mw * 0.52; c.beginPath(); c.moveTo(fx - j * 0.34, 0.2); c.lineTo(fx + j * 0.3, 0.16); c.quadraticCurveTo(fx + j * 0.12, -fl * 0.6, fx + j * 0.04, -fl); c.closePath(); c.fill(); }
+      }
       c.restore();
     }
     c.restore();
@@ -280,10 +368,15 @@
     }
     c.save();
     if (env.clipY != null) { c.beginPath(); c.rect(-500, env.clipY, 1000, 1000); c.clip(); }
+    else if (env.shadow && Math.cos(f.roll || 0) < -0.3) { c.beginPath(); c.rect(-500, -0.5, 1000, 1000); c.clip(); }   /* a pancia in su: le orecchie si schiacciano a terra, non la bucano */
+    var BB = bbox(f);
 
-    /* 1. il filo di luce attorno a tutta la sagoma (solo sul fondo scuro): tratto spostato in alto a sinistra */
+    /* 1. il filo di luce (solo sul fondo scuro): tratto spostato in alto a sinistra e sfumato verso il basso a destra,
+       così c'è solo dove arriva la luce e non diventa un contorno */
     if (T.rim) {
-      c.save(); c.translate(-RW * 0.35, RW * 0.42); c.strokeStyle = T.rim; c.lineWidth = RW * 2; c.lineJoin = "round";
+      c.save(); c.translate(-RW * 0.62, RW * 0.62);
+      var rg = c.createLinearGradient(BB[0], BB[3], BB[2], BB[1]); rg.addColorStop(0, T.rim); rg.addColorStop(0.38, T.rim); rg.addColorStop(0.78, T.rim0); rg.addColorStop(1, T.rim0);
+      c.strokeStyle = rg; c.lineWidth = RW * 1.7; c.lineJoin = "round";
       c.beginPath(); tailPath(c, f); c.stroke();
       for (i = 0; i < 4; i++) if (shown(i)) { c.beginPath(); legPath(c, G[i]); c.stroke(); }
       bodyPath(c, f); c.stroke();
@@ -292,15 +385,18 @@
       c.restore();
     }
 
-    /* 2. le parti, da dietro in avanti */
+    /* 2. le parti, da dietro in avanti; ogni zampa vicina ha la sua fessura contro tutto ciò che sta già sotto */
+    var under = [];                                                 /* le zampe già disegnate */
+    function legsPath() { c.beginPath(); for (var j = 0; j < under.length; j++) legPath(c, under[j]); }
     c.fillStyle = INK; if (!f.tail.front) { c.beginPath(); tailPath(c, f); c.fill(); }
-    c.fillStyle = FAR; for (i = 0; i < 4; i++) if (!f.legs[i].near && !upFront(f.legs[i]) && shown(i)) { c.beginPath(); legPath(c, G[i]); c.fill(); }
+    c.fillStyle = FAR; for (i = 0; i < 4; i++) if (!f.legs[i].near && !upFront(f.legs[i]) && shown(i)) { c.beginPath(); legPath(c, G[i]); c.fill(); under.push(G[i]); }
     c.fillStyle = INK; bodyPath(c, f); c.fill();
     for (i = 0; i < 4; i++) {
       l = f.legs[i]; if (!l.near || upFront(l) || !shown(i)) continue; g = G[i];
       if (l.front) gap(c, T, foreEdges.bind(null, c, g), bodyPath.bind(null, c, f), g.kx, g.ky, g.kx + (g.ax - g.kx) * 0.5, g.ky + (g.ay - g.ky) * 0.5);
       else if (!s.hang) gap(c, T, legPath.bind(null, c, g, true), bodyPath.bind(null, c, f), g.jx, g.jy, g.jx + (g.kx - g.jx) * 0.7, g.jy + (g.ky - g.jy) * 0.7);
-      c.fillStyle = INK; c.beginPath(); legPath(c, g); c.fill(); toes(c, g, T, env);
+      if (under.length) gap(c, T, legEdges.bind(null, c, g), legsPath, g.jx, g.jy, (g.jx + g.kx) / 2, (g.jy + g.ky) / 2);   /* le due zampe davanti restano due */
+      c.fillStyle = INK; c.beginPath(); legPath(c, g); c.fill(); toes(c, g, T, env); under.push(g);
     }
     if (f.tail.front) {
       var tp = f.tail.pts, t0 = tp[0], t1 = tp[Math.min(4, tp.length - 1)];
@@ -308,14 +404,23 @@
       gap(c, T, tailPath.bind(null, c, f), function () { c.beginPath(); for (var j = 0; j < 4; j++) if (f.legs[j].near && shown(j)) legPath(c, G[j]); }, null);
       c.fillStyle = INK; c.beginPath(); tailPath(c, f); c.fill();
     }
-    c.fillStyle = ears[1].depth - ears[0].depth > 1.2 ? FAR : INK; c.beginPath(); earPath(c, f, ears[0]); c.fill();
+    /* la luce morbida sul corpo, da in alto a sinistra: dà volume senza diventare plastica */
+    var shR = Math.max(BB[2] - BB[0], BB[3] - BB[1]) * 0.75;
+    function sheen(pathFn, x, y, r) { c.save(); pathFn(); c.clip(); var sg2 = c.createRadialGradient(x, y, 0, x, y, r); sg2.addColorStop(0, T.sheen); sg2.addColorStop(1, "rgba(0,0,0,0)"); c.fillStyle = sg2; c.fillRect(x - r, y - r, 2 * r, 2 * r); c.restore(); }
+    sheen(function () { bodyPath(c, f); }, BB[0] + (BB[2] - BB[0]) * 0.25, BB[3] - (BB[3] - BB[1]) * 0.3, shR);
+    var farEar = ears[1].depth - ears[0].depth > 1.2;
+    c.fillStyle = farEar ? FAR : INK; c.beginPath(); earPath(c, f, ears[0]); c.fill();
     c.fillStyle = INK; c.beginPath(); earPath(c, f, ears[1]); c.fill();
+    if (f.head.fz > 0.15) for (i = 0; i < 2; i++) {                 /* l'interno delle orecchie, quando le vediamo davanti */
+      c.save(); c.globalAlpha = smooth01(0.15, 0.5, f.head.fz) * (i === 0 && farEar ? 0.75 : 1); c.fillStyle = EAR_IN; earInPath(c, f, ears[i]); c.fill(); c.restore();
+    }
     headPath(c, f); c.fill();
+    sheen(function () { headPath(c, f); }, f.head.x - f.head.rx * 0.5, f.head.y + f.head.ry * 0.55, f.head.rx * 1.25);
     face(c, f, T);
-    if (f.fez) fezOnHead(c, f, T, RW);
+    if (f.fez) fezOnHead(c, f, T);
     if (s.hang || s.slide) for (i = 0; i < 2; i++) {                /* appeso o sul vetro: le braccia dietro la testa, le zampe davanti a tutto */
       g = G[i]; if (!shown(i)) continue;
-      if (T.rim) { c.save(); c.translate(-RW * 0.35, RW * 0.42); c.strokeStyle = T.rim; c.lineWidth = RW * 2; c.beginPath(); pawShape(c, g); c.stroke(); c.restore(); }
+      if (T.rim) { c.save(); c.translate(-RW * 0.62, RW * 0.62); c.strokeStyle = T.rim; c.lineWidth = RW * 1.7; c.beginPath(); pawShape(c, g); c.stroke(); c.restore(); }
       gap(c, T, pawShape.bind(null, c, g), headPath.bind(null, c, f), null);
       c.fillStyle = INK; c.beginPath(); pawShape(c, g); c.fill(); toes(c, g, T, env);
     }
@@ -330,7 +435,7 @@
     /* 3. sul bordo: le due zampe davanti appoggiate, sopra tutto e senza ritaglio */
     if (env.pawsOnEdge) for (i = 0; i < 2; i++) {
       g = G[i];
-      if (T.rim) { c.save(); c.translate(-RW * 0.35, RW * 0.42); c.strokeStyle = T.rim; c.lineWidth = RW * 2; c.beginPath(); c.ellipse(g.px, g.py, g.prx, g.pry, 0, 0, TAU); c.stroke(); c.restore(); }
+      if (T.rim) { c.save(); c.translate(-RW * 0.62, RW * 0.62); c.strokeStyle = T.rim; c.lineWidth = RW * 1.7; c.beginPath(); c.ellipse(g.px, g.py, g.prx, g.pry, 0, 0, TAU); c.stroke(); c.restore(); }
       gap(c, T, function () { c.ellipse(g.px, g.py, g.prx, g.pry, 0, 0, TAU); }, function () { if (env.clipY != null) { c.beginPath(); c.rect(-500, env.clipY, 1000, 1000); c.clip(); } headPath(c, f); }, null);
       c.fillStyle = INK; c.beginPath(); c.ellipse(g.px, g.py, g.prx, g.pry, 0, 0, TAU); c.fill(); toes(c, g, T, env);
     }
@@ -338,9 +443,9 @@
 
   /* il fez quando non è in testa: origine al centro della base, dritto */
   function drawFez(c, fz, env) {
-    var T = theme(env), a = fz.tasselAng || 0, h = fz.h, rT = fz.rTop, ell = fz.ell == null ? 0.22 : fz.ell, L = 6.6;
+    var T = theme(env), a = fz.tasselAng || 0, h = fz.h, rT = fz.rTop, ell = fz.ell == null ? 0.22 : fz.ell;
     fezShape(c, 0, 0, 0, h, fz.rBase, rT, ell, fz.top !== false, T);
-    var x0 = -rT * 0.72, y0 = h; tassel(c, { x0: x0, y0: y0, x1: x0 + L * Math.sin(a), y1: y0 - L * Math.cos(a) }, [0, h + rT * ell * 0.3], T, rimW(env));
+    tassel(c, 0, 0, 0, 1, rT, h, ell, a, T);
   }
 
   /* ------------------------------------------------------------------ gli oggetti di Dot */
@@ -375,7 +480,7 @@
       if (!fore) { g.prx *= 0.82; g.pry *= 0.92; g.pa = Math.atan2(g.dy, g.dx) - PI / 2; }   /* chi tiene: la zampa si chiude attorno */
       var sx = g.kx + (g.ax - g.kx) * (fore ? 0.35 : 0.7), sy = g.ky + (g.ay - g.ky) * (fore ? 0.35 : 0.7), sr = g.rk + (g.ra - g.rk) * (fore ? 0.35 : 0.7);
       function tr() { hull(c, sx, sy, sr, g.ax, g.ay, g.ra, 0, 0); pawShape(c, g); }
-      if (T.rim) { c.strokeStyle = T.rim; c.lineWidth = rimW(last.env) * 2; c.beginPath(); tr(); c.stroke(); }
+      if (T.rim) { var rw2 = rimW(last.env); c.save(); c.translate(-rw2 * 0.62, rw2 * 0.62); c.strokeStyle = T.rim; c.lineWidth = rw2 * 1.7; c.beginPath(); tr(); c.stroke(); c.restore(); }
       c.fillStyle = L.near ? INK : FAR; c.beginPath(); tr(); c.fill(); toes(c, g, T, last.env);
     }
     c.restore();
@@ -449,32 +554,41 @@
   }
 
   /* ------------------------------------------------------------------ proporzioni e pose del manifesto */
-  var SITX = { hy: 8.8, cy: 16, dy: 10.4, tw: 1.3, te: -0.25, tc: 0.5 };
+  var SITX = { hy: 8.8, cy: 16, dy: 10.4, tw: 1.3, te: -0.25, tc: 0.5, fs: 0.7 };
   function withSit(o) { var k, r = {}; for (k in SITX) r[k] = SITX[k]; for (k in o) r[k] = o[k]; return r; }
   var preset = {
     props: {
-      headRx: 11.4, headRy: 9.3, headDepth: 9.4,
-      eye: { fwd: 8.2, up: -0.3, side: 4.9, r: 3.85 },
-      ear: { fwd: -1.2, up: 6.0, side: 5.8, tipFwd: -1.8, tipUp: 16.4, tipSide: 8.9, w: 4.6 },
-      mouth: { fwd: 9.4, up: -4.3 },
-      whisk: { fwd: 8.0, up: -2.8, side: 6.8, len: 7.2 },
-      fez: { fwd: -1.4, up: 8.3, h: 7.8, rBase: 4.8, rTop: 3.5, lean: -0.14, tassel: 6.6 },
+      headRx: 12.4, headRy: 9.5, headDepth: 9.8,
+      eye: { fwd: 8.2, up: -0.4, side: 5.0, r: 3.85 },
+      ear: { fwd: -1.2, up: 6.0, side: 6.0, tipFwd: -1.8, tipUp: 14.6, tipSide: 9.2, w: 4.7 },
+      nose: { fwd: 9.8, up: -3.0 }, mouth: { fwd: 9.4, up: -4.2 },
+      whisk: { fwd: 8.0, up: -2.9, side: 7.0, len: 7.2 },
+      fez: { fwd: -1.4, up: 8.3, h: 7.8, rBase: 4.8, rTop: 3.6, lean: -0.14, tassel: 6.6 },
       chestR: 7.0, hipR: 8.6,
       leg: { len: 12.2, r0: 3.15, r1: 2.25, paw: 2.8 },
-      tail: { len: 31, r0: 2.5, r1: 1.95, n: 15 }
+      tail: { len: 27, r0: 2.5, r1: 1.95, n: 15 }
     },
     poses: {
-      stand: { hy: 15.4, cy: 15.8, te: 0.16, tc: 1.0 },
+      /* la coda sale e si piega a punto di domanda: resta dentro il riquadro invece di uscire di lato */
+      stand: { hy: 15.4, cy: 15.8, te: 0.5, tc: 1.05 },
+      crouch: { te: 0.22, tc: 0.95 },
+      wiggle: { te: 0.55, tc: 0.7 },
+      stretch: { te: 0.72, tc: 0.95 },
+      startle: { te: 0.9, tc: 0.85 },
+      air: { tc: 0.65 },
+      puddle: { te: 0.1, tc: 0.85 },
       sit: withSit({}),
       yawn: withSit({}), annoyed: withSit({}), groom: withSit({}), bat: withSit({}),
       hold: withSit({ fs: 1.6, f0x: 7.6, f1x: 6.8 }), sip: withSit({ fs: 1.3 }),
       type: withSit({ f0y: 2.2, f1y: 2.8 }),
       peek: { fs: 10.2 },
-      drape: { f0x: 10.6, f0y: -10.6, f2x: -2.6, f2y: -9.6, te: -1.42, tc: -0.42 },
-      /* appeso: le braccia su ai lati della testa, la testa tra le braccia, il corpo che pende come una goccia */
-      hang: { hx: 0, hy: -26.5, cx: 0, cy: -8.4, dx: 0.4, dy: -1.6, f0x: 0.6, f0y: 0.9, f1x: 0.6, f1y: 0.9, fs: 2.6, fo: 5.4, f2x: 0.6, f2y: -39.5, f3x: 0.6, f3y: -39.5, hs: -1.2, ho: 0.6, tby: -4, te: -1.3, tc: 0.9, tw: 0.5, eye: 1.15, hp: 0.12, ear: 0.3, sqx: 1, sqy: 1 },
-      /* scivola: braccia in alto a V, zampe dietro aperte, tutto premuto sul vetro */
-      slide: { hx: 0, hy: -9, cx: 0, cy: 6, dx: 0.5, dy: -3, f0x: 0.8, f0y: 14.6, f1x: 0.8, f1y: 12.4, fs: 2, fo: 6, f2x: 0.8, f2y: -19, f3x: 0.8, f3y: -19, hs: 1.5, ho: 7 }
+      drape: { f0x: 10.6, f0y: -10.6, f2x: -2.6, f2y: -9.6, te: -1.42, tc: 0.55 },
+      /* appeso: le braccia tese in su, larghe, fuori dalla testa; la testa tra le braccia, sotto il bordo;
+         il corpo che pende come una goccia, le zampe dietro a penzoloni */
+      hang: { hx: 0, hy: -24, cx: 0, cy: -5, dx: 0.3, dy: -4.6, f0x: 0.6, f0y: 0.9, f1x: 0.6, f1y: 0.9, fs: 4, fo: 7.4, f2x: 0.6, f2y: -36.5, f3x: 0.6, f3y: -36, hs: -1.2, ho: 0.8, tby: -4, te: -1.3, tc: 0.95, tw: 0.5, eye: 1.15, hp: 0.12, ear: 0.3, sqx: 1, sqy: 1 },
+      /* scivola (come il disegno 06): braccia su, larghe e a quote diverse, unghie fuori; la testa un filo storta,
+         il corpo tondo premuto sul vetro, le zampe dietro piegate e aperte, la coda che esce sotto */
+      slide: { hx: 0, hy: -11, cx: 0, cy: 5.5, dx: 0.4, dy: 1.6, f0x: 0.8, f0y: 12.2, f1x: 0.8, f1y: 8.9, fs: 4, fo: 6.6, f2x: 0.8, f2y: -18.5, f3x: 0.8, f3y: -17.6, hs: 1.2, ho: 4.6, tby: -5, te: -1.2, tc: 0.9, tw: -0.6, hr: -0.14, sqx: 1.08 }
     }
   };
 

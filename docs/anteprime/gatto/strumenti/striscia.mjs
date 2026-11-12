@@ -1,7 +1,7 @@
 // Strisce di movimento di Dot: apre prova.html con l'orologio fermo, esegue un'azione e mette N fotogrammi in fila in un PNG,
 // con il tempo sotto ogni fotogramma. Serve a giudicare tempi, archi, piedi che non scivolano, niente scatti.
 // Uso:  node docs/anteprime/gatto/strumenti/striscia.mjs <uscita.png> <scena> [n=14] [aspetto] [k=1.5]
-//   scene: opening walk turn jump tap-meow tap-fez wake-annoyed drag-drop-edge drag-drop-face hang peek-climb drape idle-bubble hop tea star cube cube-knock yarn laptop pet pounce hide
+//   scene: opening opening-keys walk turn jump tap-meow tap-fez wake-annoyed drag-drop-edge drag-drop-face hang peek-climb drape idle-bubble hop tea star cube cube-knock yarn laptop pet pounce hide
 //   es. node .../striscia.mjs /tmp/walk.png walk 14 adesivo
 // Due passate identiche (seme fisso): la prima trova il riquadro che il gatto occupa, la seconda fotografa.
 import http from "node:http"; import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url"; import { createRequire } from "node:module";
@@ -15,7 +15,8 @@ await new Promise((r) => server.listen(0, "127.0.0.1", r)); const base = `http:/
 
 /* le scene: setup (nella pagina, con D = DOT.debug e P = i bordi) restituisce { pre, T } (secondi: prima di cominciare, durata) */
 const SCENES = {
-  opening: { primo: 1, js: `return { pre: 3.3, T: 4.2 };` },
+  opening: { primo: 1, js: `return { pre: 3.45, T: 5.2 };` },
+  "opening-keys": { primo: 1, js: `return { pre: 0.05, T: 3.4 };` },
   walk: { js: `D.place(P[0].a + 30, 0); D.tick(0.5); D.walkTo(P[0].a + 190); return { pre: 0.1, T: 2.6 };` },
   turn: { js: `D.place(P[0].a + 120, 0); D.set("pause", { pose: "stand", dur: 99, face: "side" }); D.cat.dir = 1; D.tick(0.8); D.at(0.15, function () { D.cat.dir = -1; }); return { pre: 0, T: 1.1 };` },
   jump: { js: `var i = P.findIndex(function (p) { return p.y > P[0].y + 20; }); D.place(P[i].a + 40, i); D.tick(0.6); D.jumpTo(0, P[0].a + 110); return { pre: 0, T: 1.3 };` },

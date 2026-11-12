@@ -18,8 +18,9 @@
   function eBack(u, s) { return 1 + (s + 1) * Math.pow(u - 1, 3) + s * Math.pow(u - 1, 2); }
   function hash(n) { var s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
 
-  /* i tempi dell'apertura (secondi): il cervello li legge */
-  var TS = { fl: 0.70, fr: 0.98, ft: 1.52, fb: 1.76, fd: 0.42, drop: 2.30, box: 2.72, wob: 3.00, lid: 3.50, peek: 3.80, lookL: 4.35, lookR: 4.85, lookC: 5.30, crouch: 5.45, jump: 5.62, land: 6.12, bubble: 6.45, end: 6.90 };
+  /* i tempi dell'apertura (secondi): il cervello li legge. Il coperchio finisce di aprirsi a lid + 0.42;
+     eyes: due occhi verdi si aprono nel buio; blink: battono; peek: la testa sale; poi guarda, salta, atterra, saluta */
+  var TS = { fl: 0.70, fr: 0.98, ft: 1.52, fb: 1.76, fd: 0.42, drop: 2.30, box: 2.72, wob: 3.00, lid: 3.50, eyes: 4.02, blink: 4.52, peek: 4.92, lookL: 5.46, lookR: 5.96, lookC: 6.42, crouch: 6.56, jump: 6.80, land: 7.28, bubble: 7.86, end: 8.10 };
 
   /* misure (px CSS) */
   var CW = 280, CH = 250, OX = 140, OY = 222;            /* tela e punto d'appoggio dentro la tela */
@@ -366,7 +367,7 @@
       var cv = document.createElement("canvas"), dpr = DOT.stageDpr || Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);   /* DOT.stageDpr: solo per le foto di prova */
       cv.width = Math.round(CW * dpr); cv.height = Math.round(CH * dpr);
       cv.setAttribute("aria-hidden", "true");
-      var st = cv.style; st.position = "absolute"; st.width = CW + "px"; st.height = CH + "px"; st.pointerEvents = "none"; st.left = "0px"; st.top = "0px";
+      var st = cv.style; st.position = "absolute"; st.width = CW + "px"; st.height = CH + "px"; st.pointerEvents = "none"; st.left = "0px"; st.top = "0px"; st.zIndex = "0";   /* sotto il gatto (3), i graffi e gli oggetti (1), il fez (2) */
       layer.appendChild(cv);
       S = { cv: cv, c: cv.getContext("2d"), dpr: dpr, layer: layer, ax: p ? p.x : 0, ay: p ? p.y : 0, lastTs: null, lastT: 0, lidOv: null, geo: null };
       buildSprites(); setPos();
@@ -381,7 +382,8 @@
     rim: function () {
       if (!S) return null; ensureGeo();
       var b = S.geo.b, yR = -b.H - RIMF, p = toPage(0, yR), f = toPage(0, -b.T * 0.5);
-      return { x: p.x, y: p.y, w: (b.W - WALL * 2) * b.sx, floor: f.y };
+      var bk = toPage(0, -b.H - b.T + 1.1);                 /* back: il bordo di dietro dell'apertura (sopra c'è il coperchio) */
+      return { x: p.x, y: p.y, w: (b.W - WALL * 2) * b.sx, floor: f.y, back: bk.y, ow: b.W * b.sx, bottom: toPage(0, 0).y };
     },
     lid: function (open) { if (!S) return; S.lidOv = open == null ? null : sat(+open); if (S.lastTs == null || S.lastTs < TS.end) S.lastTs = TS.end; render(S.lastTs, S.lastT); },
     hit: function (x, y) {

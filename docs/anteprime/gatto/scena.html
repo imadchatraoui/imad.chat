@@ -53,9 +53,9 @@
   /* ?check=1: prova il contratto; gli errori finiscono nella console (lo strumento delle foto li stampa) */
   function check() {
     var bad = [], st = DOT.stage, T = st.TS, r, a0 = anchor();
-    ["fl", "fr", "ft", "fb", "fd", "drop", "box", "wob", "lid", "peek", "lookL", "lookR", "lookC", "crouch", "jump", "land", "bubble", "end"].forEach(function (k) { if (typeof T[k] !== "number") bad.push("TS." + k); });
+    ["fl", "fr", "ft", "fb", "fd", "drop", "box", "wob", "lid", "eyes", "blink", "peek", "lookL", "lookR", "lookC", "crouch", "jump", "land", "bubble", "end"].forEach(function (k) { if (typeof T[k] !== "number") bad.push("TS." + k); });
     st.draw(T.end + 1, 3); r = st.rim();
-    if (!r || Math.abs(r.x - a0.x) > 0.01 || !(r.y < a0.y - 25 && r.y > a0.y - 34) || !(r.w > 38 && r.w < 46) || !(r.floor > r.y && r.floor < a0.y)) bad.push("rim " + JSON.stringify(r));
+    if (!r || Math.abs(r.x - a0.x) > 0.01 || !(r.y < a0.y - 25 && r.y > a0.y - 34) || !(r.w > 38 && r.w < 46) || !(r.floor > r.y && r.floor < a0.y) || !(r.back < r.y && r.back > r.y - 16) || !(r.bottom > a0.y - 1 && r.bottom < a0.y + 1)) bad.push("rim " + JSON.stringify(r));
     if (!st.hit(a0.x, a0.y - 15)) bad.push("hit al centro"); if (st.hit(a0.x + 60, a0.y - 15) || st.hit(a0.x, a0.y - 90)) bad.push("hit fuori");
     st.place(a0.x + 10, a0.y + 5); var r2 = st.rim(); if (Math.abs(r2.x - r.x - 10) > 0.01 || Math.abs(r2.y - r.y - 5) > 0.01) bad.push("place"); st.place(a0.x, a0.y);
     st.lid(0); if (!st.hit(a0.x, a0.y - 15)) bad.push("lid 0"); st.lid(1); st.lid(null);
