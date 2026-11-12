@@ -14,6 +14,8 @@ a.pg-titolo { display: inline-flex; align-items: center; min-height: 44px; paddi
 .mo-corpo .pg-pill { color: var(--mo-ink); background: transparent; box-shadow: inset 0 0 0 1px var(--mo-hair); -webkit-backdrop-filter: none; backdrop-filter: none; transition: none; }
 .mo-corpo .pg-pill svg { flex: none; opacity: .62; }
 .mo-corpo .pg-piede { color: var(--mo-ink-3); }
+/* il fondo pagina sulla stessa colonna del testo (la pagina è più stretta del guscio comune) */
+.mo-corpo .pg-piede { max-width: 720px; margin-left: auto; margin-right: auto; }
 .mo-corpo .pg-piede a { color: var(--mo-ink-2); }
 
 .mo { max-width: 720px; padding-top: 28px; }

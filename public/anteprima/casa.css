@@ -102,9 +102,14 @@
 .grid > [data-tile="heatmap"] { grid-area: heatmap; }
 .grid > [data-tile="saluti"] { grid-area: saluti; }
 
+/* un filtro cambia il posto dei riquadri: il browser non deve «ancorare» lo scorrimento a un riquadro che si sposta (Chrome lo fa,
+   Safari no) e far saltare la pagina sotto il dito; lo scorrimento verso il gruppo lo decide casa.js */
+html, body { overflow-anchor: none; }
 /* un filtro scelto: i suoi riquadri davanti, gli altri si abbassano ma restano da toccare */
 .tile.is-dim { opacity: .38; }
 .grid.is-moving > .tile { will-change: transform; }
+/* mentre viaggia, un riquadro di vetro ha un fondo pieno: passa sopra gli altri come un riquadro solo, non come una doppia esposizione */
+.grid.is-moving > .tile[data-mat="glass"]:not(.is-dim) { background-color: var(--tile-solid); }
 
 /* ------------------------------------------------------------------ dentro i riquadri */
 /* una piccola freccia: questo riquadro apre una pagina (›) o un altro sito (↗); le pagine aperte qui sopra non ce l'hanno */
@@ -144,7 +149,7 @@
 .citta__now i { margin-left: 9px; font-size: 13px; color: rgba(255, 255, 255, .74); }
 
 /* Nel mondo: fermo e sobrio; le parole sono sue */
-.mondo .tile__in { padding: 20px var(--p) 18px; }
+.mondo .tile__in { padding: 20px var(--p) 18px; justify-content: flex-end; }   /* titolo e riga in basso, come una copertina */
 .mondo__t { font: 700 calc(var(--cell) * .4)/1 var(--font-sans); letter-spacing: -.045em; margin-left: -.02em; }
 .mondo__p { margin-top: 10px; font: 500 15px/21px var(--font-sans); letter-spacing: -.012em; color: var(--t-ink-2); }
 
@@ -170,6 +175,12 @@
 .saluti__mine { display: flex; align-items: center; gap: 8px; margin-top: 12px; font: 600 13px/18px var(--font-sans); letter-spacing: -.006em; color: var(--t-ink-2); white-space: nowrap; }
 .saluti__mine b { color: var(--t-ink); }
 .saluti .stardot { background: var(--gold-ink); box-shadow: 0 0 0 2.5px rgba(232, 180, 88, .22), 0 0 8px 0 rgba(232, 180, 88, .55); }
+/* nel tema scuro i saluti stanno nel cielo di notte (diventano stelle): sotto, dopo il vetro degli Strumenti e l'inchiostro
+   della Heatmap, un materiale diverso; di giorno restano vetro */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .saluti { --mat: var(--night-mat); --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .72); --fill: rgba(255, 255, 255, .1); --hair: rgba(255, 255, 255, .16); --sh: 22 28 84; --e1: rgba(255, 255, 255, .3); --e2: rgba(255, 255, 255, .09); --e3: rgba(255, 255, 255, .04); }
+}
+:root[data-theme="dark"] .saluti { --mat: var(--night-mat); --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .72); --fill: rgba(255, 255, 255, .1); --hair: rgba(255, 255, 255, .16); --sh: 22 28 84; --e1: rgba(255, 255, 255, .3); --e2: rgba(255, 255, 255, .09); --e3: rgba(255, 255, 255, .04); }
 
 /* ------------------------------------------------------------------ la riga dei saluti, sotto imad.chat_ */
 .riga { display: flex; align-items: center; min-height: 18px; margin-top: 3px; font: 500 13px/18px var(--font-mono); letter-spacing: -.01em; color: rgba(255, 255, 255, .95); white-space: nowrap; text-shadow: 0 1px 10px rgba(6, 10, 44, .3); }
@@ -347,5 +358,7 @@
 @media (prefers-reduced-motion: reduce) {
   .win__img { animation: none; }
   .pill, .dock, .dock__b, .dock__pill, .ciao { transition: none; }
+  /* il cursore resta acceso, fermo; il punto non pulsa (html davanti: questo file viene prima di intro.css) */
+  html.ni-done .hero__word .cur, html.ni-done[data-ni] .hero__word .dot { animation: none; }
 }
 .is-shot .win__img { animation: none; }

@@ -107,6 +107,11 @@ console.log("public/home pronta:", fs.readdirSync(out).join(", "), "| media:", f
     if (!fs.existsSync(src)) throw new Error(`casa: il file non c'è: ${posix(path.relative(root, src))}`);
     const was = copies.get(out); if (was && was !== src) throw new Error(`casa: due file nello stesso posto: ${posix(path.relative(root, out))}`);
     copies.set(out, src);
+    // una libreria presa da fuori viaggia con la sua licenza (l'intestazione del file la indica): vendor/<nome>.js → vendor/<nome>.LICENSE
+    if (path.basename(path.dirname(src)) === "vendor") {
+      const lic = src.replace(/\.[^./\\]+$/, "") + ".LICENSE";
+      if (lic !== src && fs.existsSync(lic)) want(lic, out.replace(/\.[^./\\]+$/, "") + ".LICENSE");
+    }
   }
   function wantDir(src, out) {
     if (!fs.existsSync(src) || !fs.statSync(src).isDirectory()) throw new Error(`casa: la cartella non c'è: ${posix(path.relative(root, src))}`);

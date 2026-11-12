@@ -7,7 +7,7 @@
                            «Salva»: un PNG di 1024 px, moduli scuri su bianco in tutti e due i temi; sul telefono il foglio di
                            condivisione se accetta un file, altrimenti si scarica. Niente viene mandato da nessuna parte.
      Heatmap (#heat)       53 settimane × 7 giorni (lunedì in alto) su una tela a pixel interi; i dati da /api/github/contributi
-                           (IMAD.api, dopo l'intro). La prima volta che il riquadro si vede per metà i quadrati si accendono a onda;
+                           (IMAD.api, dopo l'intro). La prima volta che i quadrati si vedono quasi tutti, sopra il dock, si accendono a onda;
                            un dito o il mouse che passa sopra dice il giorno e il conto; le frecce fanno lo stesso da tastiera.
                            Senza dati: quadrati vuoti e «Si aggiorna tra poco», nessun numero. Con n: null, i livelli e niente conti.
      Sto imparando (#impara)  Three.js Journey, gli ultimi commit di learning.commits (da /api/github/progetti) con «3 giorni fa»,
@@ -106,13 +106,23 @@
     var size = 0, dpr = 1, hasOld = false, R = 1;
     var cur = null, anim = null, raf = 0, settle = 0, seen = false, troppo = false;
 
-    /* cosa diventa il testo: un link (QRCore.payload.url aggiunge https:// se serve) o un testo semplice */
+    /* cosa diventa il testo: un link (QRCore.payload.url aggiunge https:// se serve) o un testo semplice, scritto com'è.
+       È un link solo se lo dice: uno schema (https:, mailto:, tel:...), «www.», un nome seguito da «/», o un dominio di quelli
+       comuni (imad.chat, gmitorino.org). «nome.cognome» resta testo. A_CAPO: il segno che nel campo tiene il posto di un a capo
+       incollato (un campo di una riga li toglierebbe); nel codice torna un a capo vero. */
+    var A_CAPO = "\u21b5";
+    var TLD = /\.(com|it|org|net|io|dev|app|ai|co|me|eu|info|edu|gov|ma|ps|fr|de|es|uk|ch|be|nl|at|pt|us|ca|tv|xyz|site|online|store|shop|tech|blog|page|chat|link|news|art|design|studio|cloud|live|world)$/i;
+    function sembraLink(t) {
+      if (/\s/.test(t)) return false;
+      if (/^(https?|mailto|tel|sms|geo|ftp):/i.test(t) || /^\/\/\S/.test(t)) return true;
+      var m = /^([a-z0-9\u00a1-\uffff-]+(?:\.[a-z0-9\u00a1-\uffff-]+)+)(:\d{1,5})?([\/?#].*)?$/i.exec(t);
+      if (!m) return false;
+      return /^www\./i.test(m[1]) || /^\//.test(m[3] || "") || TLD.test(m[1]) || /^(\d{1,3}\.){3}\d{1,3}$/.test(m[1]);
+    }
     function leggi(raw) {
-      var t = Q.payload.text(raw).replace(/^\s+|\s+$/g, "");
+      var t = Q.payload.text(String(raw).split(A_CAPO).join("\n")).replace(/^\s+|\s+$/g, "");
       if (!t) return { kind: "vuoto", text: PROVA };
-      var u = Q.payload.url(t);
-      var link = !/\s/.test(t) && (u !== t || /^(https?|mailto|tel|sms|geo|ftp):/i.test(t));
-      return link ? { kind: "link", text: u } : { kind: "testo", text: t };
+      return sembraLink(t) ? { kind: "link", text: Q.payload.url(t) } : { kind: "testo", text: t };
     }
     function etichetta(u) {
       if (/^mailto:/i.test(u)) return "E-mail";
@@ -171,6 +181,7 @@
       if (t < 1) raf = requestAnimationFrame(passo); else { anim = null; hasOld = false; dopo(); }
     }
     function vai(st, onda) {
+      if (onda && anim && seen && !I.still()) { cur = st; return; }   /* si scrive mentre l'onda corre: prosegue con il codice nuovo */
       if (onda && seen && !I.still()) { istantanea(); cur = st; anim = { t0: performance.now(), dur: 560 }; if (!raf) raf = requestAnimationFrame(passo); return; }
       cur = st; anim = null; hasOld = false;
       if (seen) quadro(1);
@@ -207,11 +218,20 @@
       }, 450);
     }
 
+    /* il codice com'è disegnato qui, alla sua misura: moduli troppo piccoli per un'altra fotocamera che guarda lo schermo?
+       (il margine stretto dello schermo è voluto: la carta bianca intorno fa il resto, quindi conta solo la misura dei moduli) */
+    function fittoQui(qr) {
+      if (!size || !qr) return false;
+      try {
+        var c = Q.scannable({ size: size, dpr: dpr, quiet: margine(qr.n), shape: LOOK.shape, eye: LOOK.eye, fg: INK, bg: "#ffffff" }, qr);
+        return c.problems.some(function (p) { return p.code === "MODULI_PICCOLI"; });
+      } catch (e) { return false; }
+    }
     function dici(t) { nota.textContent = t || ""; box.classList.toggle("has-nota", !!t); }
     function testi(st) {
       dici("");
       if (st.kind === "vuoto") {
-        tipo.textContent = "prova: incolla un link"; val.textContent = "Si crea qui: non viene inviato niente."; val.classList.remove("is-link");
+        tipo.textContent = "Esempio"; val.textContent = "Resta sul tuo telefono."; val.classList.remove("is-link");
         salva.disabled = true; cv.setAttribute("aria-label", "Codice QR di prova: " + PROVA); return;
       }
       if (st.kind === "link") { tipo.textContent = etichetta(st.text); val.textContent = st.text; val.classList.add("is-link"); }
@@ -222,6 +242,7 @@
       var chk = null; try { chk = Q.scannable(SALVA, st.qr); } catch (e) { chk = null; }
       salva.disabled = !!(chk && chk.level === "errore");
       if (chk && chk.level !== "ok" && chk.why) dici(chk.why);
+      else if (fittoQui(st.qr)) dici("Da qui è troppo fitto: salva il PNG per scansionarlo.");
       cv.setAttribute("aria-label", "Codice QR di: " + st.text);
     }
     function aggiorna() {
@@ -286,6 +307,20 @@
     });
 
     input.addEventListener("input", aggiorna);
+    input.addEventListener("paste", function (e) {
+      var cd = e.clipboardData || window.clipboardData, t = "";
+      try { t = cd && cd.getData ? cd.getData("text") : ""; } catch (x) { t = ""; }
+      if (!t || !/[\r\n]/.test(t)) return;                /* una riga sola: ci pensa il campo */
+      e.preventDefault();
+      var v = t.replace(/\r\n?/g, "\n").replace(/^\n+|\n+$/g, "").split("\n").join(A_CAPO);
+      var fatto = false;
+      try { fatto = !!(doc.execCommand && doc.execCommand("insertText", false, v)); } catch (x) { fatto = false; }
+      if (!fatto) {
+        var a = input.selectionStart, b = input.selectionEnd;
+        if (typeof a === "number" && input.setRangeText) input.setRangeText(v, a, b, "end"); else input.value += v;
+        aggiorna();
+      }
+    });
     input.addEventListener("focus", function () { root.classList.add("is-scrivo"); conJsQR(null); });
     input.addEventListener("blur", function () { root.classList.remove("is-scrivo"); });
     input.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); input.blur(); } });
@@ -298,7 +333,11 @@
     if (input.value) aggiorna();                       /* il browser può aver rimesso il testo di prima */
     misura();
     snaps.push(function () { if (size) snap(cv, dpr); });
-    onResize(box, function () { if (misura() && seen) { anim = null; hasOld = false; quadro(1); snap(cv, dpr); } });
+    onResize(box, function () {
+      if (!misura()) return;
+      if (cur && cur.kind !== "vuoto" && !troppo) testi(cur);          /* la misura nuova può rendere il codice troppo fitto, o non più */
+      if (seen) { anim = null; hasOld = false; quadro(1); snap(cv, dpr); }
+    });
     I.whenFree(function () {
       misura();
       if (I.still()) { seen = true; quadro(1); return; }
@@ -562,8 +601,15 @@
     if (fit()) draw(0);
     onResize(wrap, function () { if (fit()) draw(performance.now()); });
     if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); var re = function () { colori(); draw(performance.now()); }; if (mq.addEventListener) mq.addEventListener("change", re); else if (mq.addListener) mq.addListener(re); }
+    /* l'onda parte quando i quadrati si vedono quasi tutti, sopra il dock (che copre il fondo dello schermo): non mentre
+       scorrono ancora dietro di lui. offsetTop di un elemento fisso non conta la sua traslazione d'ingresso durante l'intro. */
+    function sottoDock() {
+      var d = doc.getElementById("dock"); if (!d || !d.offsetHeight) return 0;
+      return Math.max(0, Math.round(window.innerHeight - d.offsetTop + 12));
+    }
     if ("IntersectionObserver" in window) {
-      new IntersectionObserver(function (es) { half = es[es.length - 1].intersectionRatio >= 0.5; if (half && !root.classList.contains("ni-on")) onda(); }, { threshold: [0, 0.5, 1] }).observe(tile);
+      new IntersectionObserver(function (es) { half = es[es.length - 1].intersectionRatio >= 0.9; if (half && !root.classList.contains("ni-on")) onda(); },
+        { threshold: [0, 0.9, 1], rootMargin: "0px 0px -" + sottoDock() + "px 0px" }).observe(cv);
     } else half = true;
     I.whenFree(function () {
       colori(); if (fit()) draw(performance.now());
@@ -601,9 +647,10 @@
       var f = I.fit(cv, 3); if (!f) { G = null; return; }
       var tr = tile.getBoundingClientRect(), hr = head.getBoundingClientRect(), xr = titolo.getBoundingClientRect();
       var topY = hr.bottom - tr.top, botY = xr.top - tr.top;
-      /* il solido sta tra l'etichetta e il titolo, un po' più grande dello spazio: la parte bassa sfuma dietro il testo */
-      var Rr = Math.max(18, Math.min(f.W * 0.36, (botY - topY) * 0.62 + 12));
-      G = { W: f.W, H: f.H, dpr: f.dpr, cx: f.W * 0.5, cy: topY + (botY - topY) * 0.5 + Rr * 0.14, R: Rr, fade0: botY - 6, fade1: botY + 22 };
+      /* il solido sta tutto tra l'etichetta e il titolo (la proiezione non lo fa mai più largo di R): nessuna linea tocca
+         una lettera; in basso sfuma appena, prima del titolo */
+      var Rr = Math.max(16, Math.min(f.W * 0.2, (botY - topY) * 0.5 - 3));
+      G = { W: f.W, H: f.H, dpr: f.dpr, cx: f.W * 0.5, cy: topY + (botY - topY) * 0.5, R: Rr, fade0: botY - 14, fade1: botY - 3 };
       dueRighe = tile.clientHeight >= 230;
     }
     function draw(t) {
@@ -658,18 +705,23 @@
       if (!righe.length) return;
       log.innerHTML = ""; righe.forEach(function (li) { log.appendChild(li); });
       if (!I.still()) { log.classList.remove("is-nuovo"); void log.offsetWidth; log.classList.add("is-nuovo"); }
+      fit(); still();                                    /* le righe nuove alzano il titolo: il solido si rimette nello spazio che resta */
       var aria = "Sto imparando: Three.js Journey. Ultimo: " + righe[0].firstChild.textContent + ", " + righe[0].lastChild.textContent + ". Apri il repository su GitHub, in una nuova scheda";
       if (hit) hit.setAttribute("aria-label", aria);
     }
 
     fit();
-    var t0 = performance.now();
-    function still() { draw(0); }
+    /* il suo orologio avanza solo quando si disegna (al più 50 ms per volta): dopo una pausa (una pagina aperta, il riquadro
+       fuori dallo schermo) il solido riprende da dove era, non salta avanti del tempo passato */
+    var clock = 0, ultimo = -1;
+    function still() { draw(clock); }
     onResize(tile, function () { fit(); still(); });
     still();
     /* gira piano: trenta disegni al secondo bastano (un quarto di grado ciascuno) e costano la metà */
-    var ultimo = -1e9;
-    var giro = I.loop(cv, function (t) { if (t - ultimo < 30) return; ultimo = t; draw(t - t0); });
+    var giro = I.loop(cv, function (t) {
+      if (ultimo >= 0 && t - ultimo < 30 && t >= ultimo) return;
+      clock += ultimo < 0 ? 0 : clamp(t - ultimo, 0, 50); ultimo = t; draw(clock);
+    });
     I.whenFree(function () { fit(); still(); I.api("progetti").then(dati, function () { }); });
     return giro;
   }

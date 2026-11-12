@@ -201,9 +201,12 @@
     $(".js-tortime").textContent = tor.time; $(".js-torpart").textContent = tor.label; setSky($(".js-tordot"), tor.sky, tor.gx, 0.6);
   }
 
+  /* due file di saluti che scorrono in versi opposti; la seconda comincia da metà elenco, così le due file non si somigliano */
   function buildMarquee() {
-    var one = D.greetings.map(function (g) { return '<span lang="' + esc(g.lang) + '">' + esc(g.text) + "</span>"; }).join("");
-    $("#marq").innerHTML = one + one;
+    var G = D.greetings, h = Math.floor(G.length / 2);
+    function row(list) { var one = list.map(function (g) { return '<span lang="' + esc(g.lang) + '">' + esc(g.text) + "</span>"; }).join(""); return one + one; }
+    $("#marq").innerHTML = row(G);
+    var r2 = $("#marq2"); if (r2) r2.innerHTML = row(G.slice(h).concat(G.slice(0, h)));
   }
 
   /* ---------------------------------------------------------------- suoni: rispondono solo a un tocco; un solo interruttore, anche per Dot */
@@ -292,6 +295,8 @@
       "<span>Qibla a " + Math.round(q.bearing) + "° " + wind(q.bearing) + "</span><span>" + fmtInt.format(Math.round(q.distanceKm)) + " km dalla Kaʿba</span></div>";
   }
 
+  /* «al 40%», ma «all’11%», «all’8%», «all’80%»: l’articolo segue il suono del numero (uno, otto, undici, diciotto, ottanta…) */
+  function alPct(n) { return (/^(1|8|11|18|8\d)$/.test(String(n)) ? "all’" : "al ") + n; }
   var PAGES = {
     citta: {
       mat: "page",
@@ -300,7 +305,7 @@
         var h = '<div class="s-wrap"><h2 class="s-title" id="sheetTitle" tabindex="-1">Le città, adesso</h2>' +
           '<p class="s-sub">Cinque città. Un solo cielo.</p>' + panoHTML(d) +
           '<p class="s-cap">' + esc(cap(A.localDate(d, "Europe/Rome"))) + ". Ogni riquadro ha il colore del cielo che c’è lì adesso. Le ore di differenza sono rispetto a Torino.</p>" +
-          '<div class="moon lit">' + moonSVG(mp, 44) + "<div><b>" + esc(cap(mp.name)) + ", illuminata al " + (pct < 1 ? "meno dell’1" : pct) + "%</b><span>È la stessa in ogni città: cambia solo l’inclinazione.</span></div></div>" +
+          '<div class="moon lit">' + moonSVG(mp, 44) + "<div><b>" + esc(cap(mp.name)) + ", illuminata " + (pct < 1 ? "a meno dell’1" : alPct(pct)) + "%</b><span>È la stessa in ogni città: cambia solo l’inclinazione.</span></div></div>" +
           '<ul class="cl">';
         CITIES.forEach(function (c) {
           var st = cityState(c, d), arc = arcSVG(c, d), off = offText(c, d);

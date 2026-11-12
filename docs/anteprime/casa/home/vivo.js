@@ -166,21 +166,23 @@
       todo[todo.length - 1].gap = 1300;
       for (i = seq.length - 1; i >= 0; i--) todo.push({ a: seq[i].a, l: seq[i].l, s: -seq[i].s, gap: i ? 150 : 2600 });
     }
-    var DUR = 400, tPrev = 0;
+    var DUR = 400, tPrev = 0, clock = 0;
     function size() { var f = I.fit(cv); if (f) { W = f.W; H = f.H; dpr = f.dpr; } }
     function draw(t) {
       if (!W) return;
       var live = !I.still();
+      /* un orologio suo, che avanza solo mentre si disegna (al più 64 ms per volta): dopo una pausa il cubo riprende la mossa
+         e il giro da dove li aveva lasciati, senza scatti */
       if (live) {
-        var dt = Math.min(64, t - tPrev); tPrev = t;
-        if (cur) { if (t - cur.t0 >= DUR) { apply(cur); wait = cur.gap; cur = null; } }
-        else { wait -= dt; if (wait <= 0) { if (!todo.length) plan(); cur = todo.shift(); cur.t0 = t; } }
+        var dt = Math.min(64, Math.max(0, t - tPrev)); tPrev = t; clock += dt;
+        if (cur) { if (clock - cur.t0 >= DUR) { apply(cur); wait = cur.gap; cur = null; } }
+        else { wait -= dt; if (wait <= 0) { if (!todo.length) plan(); cur = todo.shift(); cur.t0 = clock; } }
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-      var s = Math.min(W, H * 1.08) / 5.7, cx = W / 2, cy = H * 0.53, yaw = live ? t * 0.00042 + 0.62 : 0.62, pitch = 0.5;
+      var s = Math.min(W, H * 1.08) / 5.7, cx = W / 2, cy = H * 0.53, yaw = live ? clock * 0.00042 + 0.62 : 0.62, pitch = 0.5;
       var cw = Math.cos(yaw), sw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
       function G(v) { var X = v[0] * cw + v[2] * sw, Z = -v[0] * sw + v[2] * cw; return [X, v[1] * cp - Z * sp, v[1] * sp + Z * cp]; }
-      var ang = cur ? cur.s * Math.PI / 2 * eIO(clamp((t - cur.t0) / DUR, 0, 1)) : 0, quads = [];
+      var ang = cur ? cur.s * Math.PI / 2 * eIO(clamp((clock - cur.t0) / DUR, 0, 1)) : 0, quads = [];
       cub.forEach(function (q) {
         var mov = !!cur && q.p[cur.a] === cur.l, mid = !!cur && q.p[cur.a] === 0;
         for (var k = 0; k < 6; k++) {

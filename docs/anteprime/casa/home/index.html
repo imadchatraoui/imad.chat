@@ -42,7 +42,7 @@
   <header class="bar" id="bar">
     <a class="logo" href="#" id="logo" aria-label="imad.chat, torna in cima"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
     <button class="iconbtn" id="sound" type="button" aria-pressed="true" aria-label="Suoni accesi. Tocca per spegnerli">
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4.5 9.75h2.75L11.5 6.2v11.6l-4.25-3.55H4.5z"/>
         <g class="snd-on"><path d="M15 9.4a3.7 3.7 0 0 1 0 5.2"/><path d="M17.6 6.9a7.2 7.2 0 0 1 0 10.2"/></g>
         <g class="snd-off"><path d="M15.4 9.6l4.8 4.8"/><path d="M20.2 9.6l-4.8 4.8"/></g>
@@ -66,7 +66,7 @@
       <h2 class="ciao__t">Ciao, sono Imad.</h2>
       <p class="ciao__p">La frase qui la scrive Imad.</p>
       <p class="ciao__b">
-        <a class="pill" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr"> (si apre in una nuova scheda)</span></a>
+        <a class="pill" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr"> (si apre in una nuova scheda)</span></a>
         <button class="pill pill--clay" type="button" data-open="saluti"><i class="stardot" aria-hidden="true"></i>Lascia un saluto</button>
       </p>
     </div>
@@ -111,14 +111,14 @@
 
     <!-- SU DI ME: una finestra; la foto è provvisoria, la metterà Imad -->
     <article class="tile win me" data-tile="sudime" data-mat="night">
-      <img class="win__img" src="media/torino.jpg" alt="" aria-hidden="true">
+      <img class="win__img" src="../../intro/media/torino.jpg" alt="" aria-hidden="true">
       <i class="win__scrim" aria-hidden="true"></i>
       <a class="tile__hit" href="../su-di-me/index.html" aria-label="Su di me. Apri la pagina"></a>
       <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg>
       <div class="tile__in">
         <span class="label label--ink">Su di me</span>
         <h2 class="me__name">Imad</h2>
-        <p class="me__line">La foto e le parole, presto: le sue.</p>
+        <p class="me__line">Presto, con le parole di Imad.</p>
       </div>
     </article>
 
@@ -159,13 +159,13 @@
           <div class="qr__riga">
             <div class="qr__carta"><canvas class="qr__cv" id="qrCv" role="img" aria-label="Codice QR di prova: https://imad.chat"></canvas></div>
             <div class="qr__info">
-              <p class="qr__tipo" id="qrTipo">prova: incolla un link</p>
-              <p class="qr__val" id="qrVal">Si crea qui: non viene inviato niente.</p>
+              <p class="qr__tipo" id="qrTipo">Esempio</p>
+              <p class="qr__val" id="qrVal">Resta sul tuo telefono.</p>
               <p class="qr__nota" id="qrNota" aria-live="polite"></p>
-              <button class="qr__salva" id="qrSalva" type="button" disabled><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg><span id="qrSalvaT">Salva</span></button>
+              <button class="qr__salva" id="qrSalva" type="button" disabled><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg><span id="qrSalvaT">Salva</span></button>
             </div>
           </div>
-          <p class="qr__chips"><span class="sr">Presto anche: </span><span class="chip">QR Studio</span><span class="chip">Palette</span><span class="chip">Convertitore</span><span class="chip__presto" aria-hidden="true">presto</span></p>
+          <p class="qr__presto">Presto: QR Studio · Palette · Convertitore</p>
         </div>
       </div>
     </article>
@@ -173,7 +173,7 @@
     <!-- HEATMAP: l'anno di Imad su GitHub (lo mette vivi.js dai dati di /api/github/contributi; senza dati non si inventa niente) -->
     <article class="tile heatmap" data-tile="heatmap" data-mat="ink">
       <div class="tile__in">
-        <header class="tile__head"><span class="label label--ink">Heatmap</span><a class="hm__gh" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr"> (il profilo di Imad, si apre in una nuova scheda)</span></a></header>
+        <header class="tile__head"><span class="label label--ink">Heatmap</span><a class="hm__gh" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr"> (il profilo di Imad, si apre in una nuova scheda)</span></a></header>
         <div class="vivo vivo--tocca hm" id="heat">
           <p class="hm__riga" id="heatRiga" aria-live="polite"><span class="hm__a">Si aggiorna tra poco</span></p>
           <div class="hm__g"><canvas class="hm__cv" id="heatCv" tabindex="0" aria-label="Contributi su GitHub nell'ultimo anno, giorno per giorno. Con le frecce scorri i giorni." aria-describedby="heatRiga"></canvas></div>
@@ -187,7 +187,7 @@
       <div class="tile__in">
         <h2 class="title">Lascia un saluto</h2>
         <p class="sub">Diventa una stella nel cielo di Imad.</p>
-        <div class="marq" aria-hidden="true"><div class="marq__row" id="marq"></div></div>
+        <div class="marq" aria-hidden="true"><div class="marq__row" id="marq"></div><div class="marq__row marq__row--2" id="marq2"></div></div>
         <p class="saluti__mine" id="salMine" hidden><i class="stardot" aria-hidden="true"></i><span>La tua stella: <b id="salMineW"></b></span></p>
       </div>
     </article>
@@ -197,7 +197,7 @@
   <footer class="foot">
     <div class="l9 l9--big" role="img" aria-label="imad.chat"><i>i</i><i>m</i><i>a</i><i>d</i><i class="s"></i><i>c</i><i>h</i><i>a</i><i>t</i></div>
     <p class="foot__sky"><i class="skydot js-tordot" aria-hidden="true"></i><span>Il cielo e la luce di questa pagina sono quelli di Torino, adesso: <time class="js-tortime"></time>, <span class="js-torpart"></span>.</span></p>
-    <p class="foot__cred">Il cubo ha i colori Kukko del gioco di Imad, un fork di «The Cube» di Boris Šehovac. Le terre del globo vengono da Natural Earth. Foto provvisoria di Torino: Konstantin Dacosta, CC BY 3.0. Il Corano: testo di quran.com, traduzione di Hamza Roberto Piccardo.</p>
+    <p class="foot__cred">Il cubo ha i colori Kukko del gioco di Imad, un fork di «The Cube» di Boris Šehovac. Le terre del globo vengono da Natural Earth. Foto provvisoria di Torino: Konstantin&nbsp;Dacosta, CC&nbsp;BY&nbsp;3.0. Il Corano: testo di quran.com, traduzione di Hamza Roberto Piccardo.</p>
   </footer>
 </main>
 
@@ -223,7 +223,7 @@
     <div class="sheet__body" id="sheetBody"></div>
     <i class="sheet__grab" aria-hidden="true"></i>
     <button class="iconbtn sheet__close" id="sheetClose" type="button" aria-label="Chiudi">
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"><path d="M7 7l10 10"/><path d="M17 7L7 17"/></svg>
     </button>
   </div>
 </div>
@@ -236,6 +236,10 @@
 <script src="app.js"></script>
 <script src="terra.js"></script>
 <script src="vivo.js"></script>
+<script>
+/* dove stanno i suoni di Dot, prima dei suoi script: un tocco durante l'intro sveglia già l'audio e li chiede */
+window.DOT = window.DOT || {}; window.DOT.mediaBase = document.getElementById("dotclip").getAttribute("data-media");
+</script>
 <script src="../../gatto/dot-rig.js"></script>
 <script src="../../gatto/look-manifesto.js"></script>
 <script src="../../gatto/dot-stage.js"></script>

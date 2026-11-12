@@ -19,7 +19,7 @@ const require = createRequire(join(repo, "package.json"));
 const ts = require("typescript");
 
 const out = mkdtempSync(join(tmpdir(), "check-github-"));
-for (const m of ["types", "contributi", "progetti", "rete", "carica"]) {
+for (const m of ["types", "contributi", "progetti", "rete", "carica", "debug"]) {
   const src = readFileSync(join(repo, "lib/github", m + ".ts"), "utf8");
   let js = ts.transpileModule(src, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -32,6 +32,7 @@ const C = await imp("contributi");
 const P = await imp("progetti");
 const R = await imp("rete");
 const L = await imp("carica");
+const D = await imp("debug");
 
 let passed = 0;
 let failed = 0;
@@ -426,6 +427,67 @@ const nessunSegreto = (x) => !JSON.stringify(x).includes(TOKEN) && !/authorizati
   ok(r.data && r.data.repos.length === 7 && r.data.learning && r.data.learning.commits.length === 1, "progetti: token 401 → riprova senza", r.why);
   eq(f.chiamate.length, 4, "progetti: due richieste per fonte, non di più");
   ok(nessunSegreto(r.why), "progetti 401: nessun token in why");
+}
+
+// ------------------------------------------------------------------ dopo la revisione: scadenza unica, token mai in why, null nel GraphQL, ?debug
+{
+  // un fetch che non risponde mai (ma rispetta il segnale): tutta la risposta sta dentro la scadenza
+  const mai = (url, init) =>
+    new Promise((_, rej) => init.signal.addEventListener("abort", () => rej(Object.assign(new Error("aborted"), { name: "AbortError" }))));
+  let t0 = Date.now();
+  const r = await L.caricaContributi({ fetchImpl: mai, token: TOKEN, adesso: ADESSO, scadenzaMs: 600 });
+  let ms = Date.now() - t0;
+  ok(r.data === null && ms < 900, "scadenza: contributi con token e GitHub appeso stanno nella scadenza", { ms, why: r.why });
+  ok(r.why.some((p) => p.source === "html"), "scadenza: GraphQL lento lascia tempo all'HTML", r.why);
+  eq(L.caricaContributi.length >= 0 && R.SCADENZA_MS, 6500, "scadenza: 6,5 s in tutto");
+  // repos subito, commit appesi: i repos restano, learning null, entro la scadenza
+  const f = (url, init) => (/\/commits/.test(url) ? mai(url, init) : Promise.resolve(new Response(JSON.stringify(LISTA), { status: 200 })));
+  t0 = Date.now();
+  const r2 = await L.caricaProgetti({ fetchImpl: f, token: TOKEN, adesso: ADESSO, scadenzaMs: 500 });
+  ms = Date.now() - t0;
+  ok(r2.data && r2.data.repos.length === 7 && r2.data.learning === null && ms < 800, "scadenza: commit appesi → repos sì, learning null, in tempo", { ms, why: r2.why });
+  // nessun tempo rimasto: il passo non parte nemmeno
+  const why = [];
+  const t = await R.scarica(mai, { source: "x", url: "https://example.invalid/", deadline: Date.now() + 50 }, why);
+  ok(t === null && why[0].step === "deadline", "scadenza: senza tempo il passo si salta", why);
+}
+{
+  // un'eccezione che riporta il token nel messaggio: in why diventa ***
+  const f = () => Promise.reject(new Error("boom " + TOKEN + " boom"));
+  const r = await L.caricaContributi({ fetchImpl: f, token: TOKEN, adesso: ADESSO });
+  ok(nessunSegreto(r.why) && JSON.stringify(r.why).includes("***"), "token: tolto anche dai messaggi d'errore", r.why);
+  const r2 = await L.caricaProgetti({ fetchImpl: f, token: TOKEN, adesso: ADESSO });
+  ok(nessunSegreto(r2.why), "token: tolto anche nei progetti", r2.why);
+  eq(R.censura("a" + TOKEN + "b", [TOKEN, null]), "a***b", "censura");
+}
+{
+  // GraphQL con voci null (errors, weeks, days): niente eccezioni, e il ripiego sull'HTML funziona
+  const gq = (j) => [["https://api.github.com/graphql", { body: j }], ["https://github.com/users/", { body: htmlFinto() }]];
+  const cal = (weeks) => ({ data: { user: { contributionsCollection: { contributionCalendar: { totalContributions: 3, weeks } } } } });
+  const casi = {
+    "errors [null]": { errors: [null] },
+    "errors [3]": { errors: [3] },
+    "weeks con null": cal([null, { contributionDays: null }, 7]),
+    "days con null": cal([{ contributionDays: [null, 5, { date: "2026-01-01", contributionCount: 1, contributionLevel: "FIRST_QUARTILE" }] }]),
+    "data null": { data: null },
+  };
+  for (const [nome, j] of Object.entries(casi)) {
+    let p;
+    try { p = C.parseGraphql(j); } catch (e) { p = "THROWS " + e.message; }
+    ok(p && typeof p === "object" && p.ok === false, "graphql " + nome + ": nessuna eccezione, ok:false", p);
+    const r = await L.caricaContributi({ fetchImpl: finto(gq(j)), token: TOKEN, adesso: ADESSO });
+    ok(r.data && r.data.days.length > 300, "graphql " + nome + ": ripiega sull'HTML", r.why);
+  }
+}
+{
+  // ?debug: in locale =1; su Vercel solo con la chiave
+  ok(D.debugPermesso("1", {}) === true, "debug: in locale ?debug=1");
+  ok(D.debugPermesso(null, {}) === false && D.debugPermesso("", {}) === false, "debug: senza parametro no");
+  ok(D.debugPermesso("1", { VERCEL: "1", VERCEL_ENV: "production" }) === false, "debug: su Vercel ?debug=1 no");
+  ok(D.debugPermesso("1", { VERCEL: "1", VERCEL_ENV: "preview" }) === false, "debug: nelle anteprime di Vercel ?debug=1 no");
+  ok(D.debugPermesso("chiave-lunga-1", { VERCEL: "1", GITHUB_DEBUG_KEY: "chiave-lunga-1" }) === true, "debug: su Vercel con la chiave sì");
+  ok(D.debugPermesso("corta", { VERCEL: "1", GITHUB_DEBUG_KEY: "corta" }) === false, "debug: una chiave troppo corta non vale");
+  ok(D.debugPermesso("x", { VERCEL: "1", GITHUB_DEBUG_KEY: "chiave-lunga-1" }) === false, "debug: chiave sbagliata no");
 }
 
 rmSync(out, { recursive: true, force: true });

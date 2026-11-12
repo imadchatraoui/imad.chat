@@ -3,7 +3,8 @@
    Web Audio: un solo AudioContext, creato o ripreso al primo gesto (iOS lo vuole).
    I file si scaricano e si decodificano solo quando servono.
    Non lancia mai errori: senza audio, con un file mancante o un decode rifiutato, tace.
-   Percorso dei file: DOT.mediaBase se c'e', altrimenti "media/". ES2017, niente librerie. */
+   Percorso dei file: DOT.mediaBase se c'e', altrimenti data-media (o data-dot-media) dello strato .dot-clip, altrimenti "media/".
+   Un file che non arriva si riprova se il percorso cambia o dopo 30 s. ES2017, niente librerie. */
 (function () {
   'use strict';
   var DOT = (window.DOT = window.DOT || {});
@@ -17,7 +18,8 @@
   var master = null;
   var buffers = {};           // nome -> AudioBuffer
   var loading = {};           // nome -> true mentre si scarica
-  var failed = {};            // nome -> true se il file non va
+  var failed = {};            // nome -> { base, t } se il file non e' arrivato: si riprova se cambia DOT.mediaBase o dopo 30 s
+  var RETRY_MS = 30000;
   var last = -1;              // ultimo miao scelto
   var purrNode = null;        // { src, gain } finche' le fusa girano
   var wantPurr = false;
@@ -31,8 +33,13 @@
   DOT.sound = sound;
 
   // base dei file
+  // DOT.mediaBase, oppure l'attributo data-media dello strato di Dot (.dot-clip), letto al momento: cosi' anche un
+  // tocco che arriva prima di DOT.start (durante l'intro) cerca i file nel posto giusto
   function base() {
     var b = DOT.mediaBase;
+    if (typeof b !== 'string' || !b) {
+      try { var el = document.querySelector('.dot-clip[data-media], [data-dot-media]'); if (el) b = el.getAttribute('data-dot-media') || el.getAttribute('data-media'); } catch (e) {}
+    }
     if (typeof b !== 'string' || !b) b = 'media/';
     if (b.charAt(b.length - 1) !== '/') b += '/';
     return b;
@@ -95,18 +102,27 @@
   }
 
   // carica un file (prima m4a o mp3 a seconda del browser, poi l'altro)
+  // un file che non e' arrivato non si richiede di continuo, ma nemmeno si abbandona per sempre: se la pagina
+  // imposta DOT.mediaBase dopo il primo gesto (il primo tentativo cercava nella cartella sbagliata) o dopo 30 s, si riprova
+  function gaveUp(name) {
+    var f = failed[name];
+    if (!f) return false;
+    if (f.base !== base() || Date.now() - f.t > RETRY_MS) { delete failed[name]; return false; }
+    return true;
+  }
   function load(name, then) {
-    if (buffers[name] || failed[name] || loading[name] || !ctx) return;
+    if (buffers[name] || loading[name] || !ctx || gaveUp(name)) return;
     loading[name] = true;
+    var b0 = base();
     var first = pickExt();
     var second = first === 'm4a' ? 'mp3' : 'm4a';
     var fin = function (b) {
       loading[name] = false;
-      if (b) buffers[name] = b; else failed[name] = true;
+      if (b) buffers[name] = b; else failed[name] = { base: b0, t: Date.now() };
       if (b && then) then(b);
     };
     var tryExt = function (ext, next) {
-      fetchBuf(base() + name + '.' + ext, function (data) {
+      fetchBuf(b0 + name + '.' + ext, function (data) {
         decode(data, function (b) { fin(b); }, function () { next(); });
       }, function () { next(); });
     };

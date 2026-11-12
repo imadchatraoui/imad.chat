@@ -44,7 +44,7 @@ export type ProgettiOk = {
 export type Fallito = { ok: false };
 
 /**
- * Un passo di `why` (solo con ?debug=1): che fonte, che stato HTTP, quanti byte, che passo è fallito.
+ * Un passo di `why` (solo con ?debug, vedi servizio.ts): che fonte, che stato HTTP, quanti byte, che passo è fallito.
  * Mai un token, mai le intestazioni.
  */
 export type Passo = {
@@ -53,7 +53,7 @@ export type Passo = {
   status?: number | null;
   bytes?: number | null;
   ms?: number;
-  step: "fetch" | "http" | "size" | "json" | "parse" | "shape" | "ok" | "skipped";
+  step: "fetch" | "http" | "size" | "json" | "parse" | "shape" | "ok" | "skipped" | "deadline";
   error?: string;
   /** il resto del limite di richieste, se GitHub lo dice (aiuta a capire un 403) */
   rateRemaining?: string | null;

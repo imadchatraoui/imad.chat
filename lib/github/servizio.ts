@@ -1,4 +1,4 @@
-// La parte "Next" delle due route: cache, risposta, ?debug=1.
+// La parte "Next" delle due route: cache, risposta, ?debug (vedi sotto).
 //
 // Come funziona la cache (Next 16, senza Cache Components, quindi il modello "previous" di
 // node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md):
@@ -9,11 +9,18 @@
 //   value on error"), e riprova alla richiesta dopo;
 // - un fallimento non entra mai in cache (si lancia, non si restituisce): senza una risposta buona si risponde
 //   { ok: false } e si aspetta un minuto prima di riprovare (per istanza), con una cache CDN corta;
-// - la route legge request.url (per ?debug=1), quindi è dinamica: niente `dynamic = "force-dynamic"`, che
+// - la route legge request.url (per ?debug), quindi è dinamica: niente `dynamic = "force-dynamic"`, che
 //   imporrebbe fetchCache "force-no-store" e spegnerebbe unstable_cache.
 // Sopra, l'intestazione Cache-Control lascia alla CDN di Vercel la risposta per un'ora.
+//
+// ?debug: una prova fresca fuori dalla cache, con `why`. Non è per il pubblico (consuma il limite di richieste
+// e dice se c'è un token): su Vercel risponde solo con ?debug=<GITHUB_DEBUG_KEY> (variabile d'ambiente; senza
+// chiave, niente debug); fuori da Vercel (next dev / next start sul proprio computer) basta ?debug=1.
+// Al massimo una prova fresca ogni 10 s per istanza. In `why` il token non compare mai (diventa "***").
 
 import { unstable_cache } from "next/cache";
+import { debugPermesso } from "./debug";
+import { censura } from "./rete";
 import type { Passo } from "./types";
 
 type Carica<T> = () => Promise<{ data: T | null; why: Passo[] }>;
@@ -21,6 +28,7 @@ type Carica<T> = () => Promise<{ data: T | null; why: Passo[] }>;
 const CC_BUONA = "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400";
 const CC_FALLITA = "public, max-age=60, s-maxage=120";
 const ATTESA_DOPO_FALLIMENTO_MS = 60_000;
+const ATTESA_TRA_DEBUG_MS = 10_000;
 
 class GithubNonRisponde extends Error {
   why: Passo[];
@@ -41,11 +49,12 @@ function risposta(body: unknown, cacheControl: string): Response {
   });
 }
 
-/** Una route GET con cache di qualche ora, ultima risposta buona in caso di guasto, e ?debug=1. */
+/** Una route GET con cache di qualche ora, ultima risposta buona in caso di guasto, e ?debug. */
 export function routeGithub<T>(chiave: string, revalidate: number, carica: Carica<T>) {
   // Ultima risposta buona di questa istanza: serve solo se la cache dei dati non ne ha una.
   let ultimaBuona: T | null = null;
   let ultimoFallimento = 0;
+  let ultimoDebug = 0;
 
   const inCache = unstable_cache(
     async () => {
@@ -60,10 +69,14 @@ export function routeGithub<T>(chiave: string, revalidate: number, carica: Caric
   return async function GET(request: Request): Promise<Response> {
     let debug = false;
     try {
-      debug = new URL(request.url).searchParams.get("debug") === "1";
+      debug = debugPermesso(new URL(request.url).searchParams.get("debug"));
     } catch {}
+    if (debug && Date.now() - ultimoDebug < ATTESA_TRA_DEBUG_MS) {
+      return risposta({ ok: false, debug: { cache: "saltata", attesa: "una prova fresca ogni 10 s: riprova tra poco" } }, "no-store");
+    }
 
     if (debug) {
+      ultimoDebug = Date.now();
       // Sempre una prova fresca, fuori dalla cache, con il racconto di cosa è successo.
       const t0 = Date.now();
       let data: T | null = null;
@@ -73,10 +86,17 @@ export function routeGithub<T>(chiave: string, revalidate: number, carica: Caric
         data = r.data;
         why = r.why;
       } catch (e) {
-        why.push({ source: "route", step: "fetch", error: String((e as Error)?.message || e).slice(0, 160) });
+        why.push({ source: "route", step: "fetch", error: censura(String((e as Error)?.message || e), [process.env.GITHUB_TOKEN]).slice(0, 160) });
       }
       const corpo = data ? { ...(data as object) } : { ok: false };
-      return risposta({ ...corpo, why, debug: { cache: "saltata", ms: Date.now() - t0 } }, "no-store");
+      // Ultima difesa: il token non esce mai, nemmeno dentro un messaggio d'errore che lo riportasse.
+      let whyPulito: unknown = why;
+      try {
+        whyPulito = JSON.parse(censura(JSON.stringify(why), [process.env.GITHUB_TOKEN, process.env.GITHUB_TOKEN?.trim()]));
+      } catch {
+        whyPulito = [];
+      }
+      return risposta({ ...corpo, why: whyPulito, debug: { cache: "saltata", ms: Date.now() - t0 } }, "no-store");
     }
 
     if (!ultimaBuona && Date.now() - ultimoFallimento < ATTESA_DOPO_FALLIMENTO_MS) {

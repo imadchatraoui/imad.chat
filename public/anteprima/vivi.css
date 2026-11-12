@@ -22,7 +22,7 @@
 .qr__in:focus, .qr__in:focus-visible { outline: none; background: var(--btn-glass); box-shadow: inset 0 0 0 1.5px var(--t-ink-2), 0 0 0 4px var(--fill); }
 .qr__x { position: absolute; top: 0; right: 0; width: 44px; height: 44px; display: grid; place-items: center; color: var(--t-ink-2); border-radius: 14px; }
 .qr__x circle { fill: var(--fill-2); }
-.qr__x path { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+.qr__x path { fill: none; stroke: currentColor; stroke-width: 1.45; stroke-linecap: round; }
 .qr__x:focus-visible { outline-offset: -4px; }
 .qr__x:active svg { transform: scale(.88); }
 .qr__x svg { transition: transform var(--d-press) var(--ease-out); }
@@ -41,7 +41,7 @@
 .qr.has-nota .qr__val { display: none; }
 .qr__tipo { font: 700 15px/20px var(--font-sans); letter-spacing: -.02em; color: var(--t-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qr__val {
-  margin-top: 3px; font: 500 13px/18px var(--font-sans); letter-spacing: -.006em; color: var(--t-ink-2);
+  margin-top: 3px; font: 500 13px/18px var(--font-sans); letter-spacing: -.006em; color: var(--t-ink-2); text-wrap: pretty;
   overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; word-break: break-word;
 }
 .qr__val.is-link { font: 500 12.5px/18px var(--font-mono); letter-spacing: -.02em; }
@@ -62,13 +62,10 @@
 .qr__salva span { display: inline-block; transition: opacity 180ms ease, transform 260ms var(--ease-out); }
 .qr__salva.is-cambia span { opacity: 0; transform: translateY(4px); }
 
-/* gli strumenti che arrivano: piccole etichette ferme, non sono ancora link */
-.qr__chips { flex: none; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
-.chip { flex: none; height: 26px; padding: 0 10px; border-radius: 13px; font: 600 12px/26px var(--font-sans); letter-spacing: -.004em; color: var(--t-ink-2); background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); }
-.chip__presto { flex: none; margin-left: 2px; font: 500 12px/26px var(--font-sans); color: var(--ink-3); }
+/* gli strumenti che arrivano: una riga quieta, niente che sembri da toccare */
+.qr__presto { flex: none; font: 500 12px/18px var(--font-sans); letter-spacing: -.004em; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 374px) {
   .tools .vivo { margin-top: 10px; } .qr { gap: 8px; } .qr__riga { gap: 12px; }
-  .chip { padding: 0 8px; font-size: 11.5px; } .qr__chips { gap: 5px; }
   .qr__salva { height: 32px; line-height: 32px; padding: 0 13px 0 11px; } .qr__salva::before { top: -6px; bottom: -6px; }
 }
 
@@ -96,8 +93,8 @@
 .hm__a.is-via { opacity: 0; transform: translateY(5px); }
 .hm__a .hm__d { color: var(--t-ink); font-weight: 700; }
 .hm__a .hm__s { opacity: .5; margin: 0 .3em; }
-/* la tela sporge di 4 px nel margine: 53 settimane ci stanno a quadrati interi anche sullo schermo più stretto */
-.hm__g { flex: 1 1 auto; min-height: 0; display: flex; align-items: flex-end; justify-content: center; margin: 0 -4px; }
+/* l'anno comincia sotto l'etichetta «Heatmap»: quadrati a pixel interi, quel che avanza resta a destra */
+.hm__g { flex: 1 1 auto; min-height: 0; display: flex; align-items: flex-end; justify-content: flex-start; }
 .hm__cv { display: block; flex: none; touch-action: pan-y; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; border-radius: 3px; }
 .hm__cv:focus-visible { outline: 2px solid var(--t-ink); outline-offset: 5px; }
 

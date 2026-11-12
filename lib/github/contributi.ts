@@ -55,7 +55,8 @@ export function parseGraphql(json: unknown): Esito<{ days: Giorno[]; total: numb
   if (!json || typeof json !== "object") return { ok: false, error: "graphql: risposta non è un oggetto" };
   const j = json as { data?: unknown; errors?: unknown };
   if (Array.isArray(j.errors) && j.errors.length) {
-    const e = j.errors[0] as { type?: unknown; message?: unknown };
+    const e0 = j.errors[0];
+    const e = (e0 && typeof e0 === "object" ? e0 : {}) as { type?: unknown; message?: unknown };
     const msg = [typeof e.type === "string" ? e.type : "", typeof e.message === "string" ? e.message : ""]
       .filter(Boolean)
       .join(": ")
@@ -71,9 +72,14 @@ export function parseGraphql(json: unknown): Esito<{ days: Giorno[]; total: numb
   const giorni: Giorno[] = [];
   let scartati = 0;
   for (const w of cal.weeks) {
+    if (!w || typeof w !== "object") continue;
     const days = (w as { contributionDays?: unknown }).contributionDays;
     if (!Array.isArray(days)) continue;
     for (const raw of days) {
+      if (!raw || typeof raw !== "object") {
+        scartati++;
+        continue;
+      }
       const day = raw as { date?: unknown; contributionCount?: unknown; contributionLevel?: unknown };
       const n = intero(day.contributionCount);
       let l = typeof day.contributionLevel === "string" ? LIVELLI[day.contributionLevel] : undefined;

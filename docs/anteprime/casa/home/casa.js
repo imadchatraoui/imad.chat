@@ -44,49 +44,83 @@
     said.textContent = ""; setTimeout(function () { said.textContent = txt; }, 60);
   }
 
+  /* dove sta un riquadro nella mappa di adesso, sullo schermo, senza le traslazioni di un viaggio in corso */
+  function layoutRect(t) {
+    var g = grid.getBoundingClientRect(), top = g.top + t.offsetTop - grid.offsetTop, left = g.left + t.offsetLeft - grid.offsetLeft;
+    return { top: top, left: left, width: t.offsetWidth, height: t.offsetHeight, bottom: top + t.offsetHeight };
+  }
+  /* aspetta che lo scorrimento sia finito: nessun evento di scorrimento per 80 ms (al più 450 ms) */
+  function dopoScroll(fn) {
+    var t0 = performance.now(), ultimo = t0, fatto = false, iv = 0;
+    function su() { ultimo = performance.now(); }
+    function fine() { if (fatto) return; fatto = true; clearInterval(iv); window.removeEventListener("scroll", su); fn(); }
+    window.addEventListener("scroll", su, { passive: true });
+    iv = setInterval(function () { var n = performance.now(); if (n - ultimo >= 80 || n - t0 >= 450) fine(); }, 20);
+  }
+
+  var turno = 0;
   function setFiltro(f, how) {
     how = how || {};
     if (!GROUPS.hasOwnProperty(f) || (f === cur && !how.force)) return;
-    var still = how.instant || I.still();
-    /* prima: dove si vedono adesso (anche a metà di un viaggio) */
-    var first = tiles.map(function (t) { return t.getBoundingClientRect(); });
-    stopAnims();
-    cur = f; grid.setAttribute("data-filtro", f); marks(); paintDock(how.instant);
-    /* dopo: i posti nuovi */
-    var last = tiles.map(function (t) { return t.getBoundingClientRect(); });
+    var still = how.instant || I.still(), my = ++turno;
+    cur = f; paintDock(how.instant);
     if (!how.quiet) announce(f);
-    var lead = null;
-    if (GROUPS[f]) tiles.forEach(function (t, i) { if (inGroup(f, idOf(t)) && (!lead || last[i].top < lead.r.top - 1 || (Math.abs(last[i].top - lead.r.top) <= 1 && last[i].left < lead.r.left))) lead = { t: t, r: last[i] }; });
-    var longest = 0;
-    if (!still) {
-      /* il viaggio, come le mosse di un cubo: prima lungo la riga, poi lungo la colonna; si parte riga per riga, dall'alto */
-      var rows = last.map(function (r) { return Math.round(r.top); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).sort(function (a, b) { return a - b; });
-      tiles.forEach(function (t, i) {
-        var dx = first[i].left - last[i].left, dy = first[i].top - last[i].top;
-        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
-        var dist = Math.abs(dx) + Math.abs(dy), dur = Math.round(I.clamp(440 + dist * 0.16, 500, 780)), delay = rows.indexOf(Math.round(last[i].top)) * 26;
-        var kf;
-        if (Math.abs(dx) >= 1 && Math.abs(dy) >= 1) {
-          var k = I.clamp(Math.abs(dx) / dist, 0.28, 0.6);
-          kf = [{ transform: "translate(" + dx + "px," + dy + "px)", easing: I.ease.inOut }, { transform: "translate(0px," + dy + "px)", offset: k, easing: I.ease.spring }, { transform: "translate(0px,0px)" }];
-        } else kf = [{ transform: "translate(" + dx + "px," + dy + "px)", easing: I.ease.spring }, { transform: "translate(0px,0px)" }];
-        t.style.zIndex = inGroup(f, idOf(t)) || idOf(t) === "corano" ? "3" : "2";
-        anims.push(t.animate(kf, { duration: dur, delay: delay, easing: "linear", fill: "backwards" }));
-        longest = Math.max(longest, dur + delay);
+    /* il primo riquadro del gruppo deve entrare nello schermo, se non c'è già abbastanza: si prova la mappa nuova senza
+       disegnarla (le misure dei riquadri non cambiano con il filtro, cambia solo il posto). Se serve scorrere, prima si scorre
+       e poi i riquadri viaggiano: l'occhio li vede muoversi, invece della pagina che scorre sotto di loro. */
+    var y = null;
+    if (GROUPS[f] && !how.noScroll) {
+      var was = grid.getAttribute("data-filtro"), lead = null;
+      grid.setAttribute("data-filtro", f);
+      tiles.forEach(function (t) {
+        if (!inGroup(f, idOf(t))) return;
+        var r = layoutRect(t);
+        if (!lead || r.top < lead.top - 1 || (Math.abs(r.top - lead.top) <= 1 && r.left < lead.left)) lead = r;
       });
-      if (anims.length) {
-        grid.classList.add("is-moving"); var my = ++moving;
-        setTimeout(function () { if (my === moving) { tiles.forEach(function (t) { t.style.zIndex = ""; }); grid.classList.remove("is-moving"); anims = []; I.relayout(0); } }, longest + 40);
+      grid.setAttribute("data-filtro", was);
+      if (lead) {
+        /* si scorre solo se la sua cima non si vede o se se ne vede troppo poco (meno di metà, o meno di 200 px) */
+        var band = visibleBand(), seen = Math.min(lead.bottom, band.bottom) - Math.max(lead.top, band.top);
+        if (lead.top < band.top || seen < Math.min(lead.height * 0.5, 200)) y = Math.max(0, window.pageYOffset + lead.top - band.top - 4);
+        if (y !== null && Math.abs(y - window.pageYOffset) < 2) y = null;
       }
     }
-    I.relayout(longest ? longest / 1000 + 0.15 : 0);       /* Dot resta sul suo riquadro mentre viaggia; se finisce sotto il Corano se ne va */
-    /* il primo riquadro del gruppo entra nello schermo, se non c'è già tutto */
-    if (lead && !how.noScroll) {
-      /* si scorre solo se la sua cima non si vede o se se ne vede troppo poco (meno di metà, o meno di 200 px) */
-      var band = visibleBand(), r = lead.r, y = null, seen = Math.min(r.bottom, band.bottom) - Math.max(r.top, band.top);
-      if (r.top < band.top || seen < Math.min(r.height * 0.5, 200)) y = window.pageYOffset + r.top - band.top - 4;
-      if (y != null) window.scrollTo({ top: Math.max(0, y), behavior: still ? "auto" : "smooth" });
+    function viaggio() {
+      if (my !== turno) return;                         /* nel frattempo è stato scelto un altro filtro */
+      /* prima: dove si vedono adesso (anche a metà di un viaggio) */
+      var first = tiles.map(function (t) { return t.getBoundingClientRect(); });
+      stopAnims();
+      grid.setAttribute("data-filtro", f); marks();
+      /* dopo: i posti nuovi */
+      var last = tiles.map(function (t) { return t.getBoundingClientRect(); });
+      var longest = 0;
+      if (!still) {
+        /* il viaggio, come le mosse di un cubo: prima lungo la riga, poi lungo la colonna; si parte riga per riga, dall'alto */
+        var rows = last.map(function (r) { return Math.round(r.top); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).sort(function (a, b) { return a - b; });
+        tiles.forEach(function (t, i) {
+          var dx = first[i].left - last[i].left, dy = first[i].top - last[i].top;
+          if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+          var dist = Math.abs(dx) + Math.abs(dy), dur = Math.round(I.clamp(440 + dist * 0.16, 500, 780)), delay = rows.indexOf(Math.round(last[i].top)) * 26;
+          var kf;
+          if (Math.abs(dx) >= 1 && Math.abs(dy) >= 1) {
+            var k = I.clamp(Math.abs(dx) / dist, 0.28, 0.6);
+            kf = [{ transform: "translate(" + dx + "px," + dy + "px)", easing: I.ease.inOut }, { transform: "translate(0px," + dy + "px)", offset: k, easing: I.ease.spring }, { transform: "translate(0px,0px)" }];
+          } else kf = [{ transform: "translate(" + dx + "px," + dy + "px)", easing: I.ease.spring }, { transform: "translate(0px,0px)" }];
+          t.style.zIndex = inGroup(f, idOf(t)) || idOf(t) === "corano" ? "3" : "2";
+          anims.push(t.animate(kf, { duration: dur, delay: delay, easing: "linear", fill: "backwards" }));
+          longest = Math.max(longest, dur + delay);
+        });
+        if (anims.length) {
+          grid.classList.add("is-moving"); var mv = ++moving;
+          setTimeout(function () { if (mv === moving) { tiles.forEach(function (t) { t.style.zIndex = ""; }); grid.classList.remove("is-moving"); anims = []; I.relayout(0); } }, longest + 40);
+        }
+      }
+      I.relayout(longest ? longest / 1000 + 0.15 : 0);     /* Dot resta sul suo riquadro mentre viaggia; se finisce sotto il Corano se ne va */
     }
+    if (y === null) { viaggio(); return; }
+    if (still) { window.scrollTo(0, y); viaggio(); return; }
+    window.scrollTo({ top: y, behavior: "smooth" });
+    dopoScroll(viaggio);
   }
   dock.addEventListener("click", function (e) { var b = e.target.closest ? e.target.closest(".dock__b") : null; if (b) setFiltro(b.getAttribute("data-filtro")); });
   /* frecce sinistra e destra tra i filtri, come una fila di pulsanti */
@@ -103,6 +137,10 @@
   var start = Q.get("filtro"); if (start && GROUPS.hasOwnProperty(start) && start !== "tutto") setFiltro(start, { instant: true, quiet: true, noScroll: true });
 
   /* ------------------------------------------------------------------ l'intro: «Ciao» e il dock arrivano con i riquadri */
+  /* finché l'intro copre la pagina, la pagina sotto non si raggiunge da tastiera (né con un lettore di schermo): un filtro o
+     una pagina aperta adesso sposterebbero i riquadri su cui i nove quadrati stanno volando */
+  function chiusa(on) { [$("#home"), dock].forEach(function (n) { if (!n) return; if (on) { n.setAttribute("inert", ""); n.setAttribute("aria-hidden", "true"); } else { n.removeAttribute("inert"); n.removeAttribute("aria-hidden"); } }); }
+  if (root.classList.contains("ni-on")) { chiusa(true); I.whenFree(function () { chiusa(false); }); }
   /* l'intro accende l'hero scrivendogli l'opacità: appena comincia, «Ciao» e il dock entrano (casa.css, .ni-ciao), un passo dopo */
   var hero = $("#hero");
   if (hero && root.classList.contains("ni-on") && "MutationObserver" in window) {
