@@ -1,0 +1,137 @@
+/* Bento nuova. Si carica dopo style.css e cambia: la disposizione, le finestre grandi (Mondo, Palestina, Su di me),
+   il logo a nove caratteri, la riga dei saluti sotto la scritta, la luce che arriva dal sole vero su Torino.
+   Scritto anche per Safari non recente: niente :has(), posizioni scritte per esteso. */
+
+/* ------------------------------------------------------------------ la luce (i valori li scrive vivo.js ogni minuto) */
+:root { --sun-ang: 180deg; --sun-a: .05; --sun-rgb: 255 246 232; --shx: 0px; --shy: 12px; }
+.tile {
+  box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgb(var(--sh) / calc(var(--s1) * .35)),
+    var(--shx) var(--shy) 28px -12px rgb(var(--sh) / var(--s1)), calc(var(--shx) * 2.4) calc(var(--shy) * 2.6) 64px -36px rgb(var(--sh) / var(--s2));
+}
+@supports ((-webkit-mask-composite: xor) or (mask-composite: exclude)) {
+  .tile::after { background: linear-gradient(var(--sun-ang), var(--e1) 0%, var(--e2) 34%, var(--e3) 100%); }
+}
+/* un velo di luce sulla superficie, dal lato del sole: sta sotto i testi, sopra il fondo */
+.luce { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 1; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(var(--sun-ang), rgb(var(--sun-rgb) / var(--sun-a)) 0%, rgb(var(--sun-rgb) / 0) 50%); }
+
+/* ------------------------------------------------------------------ disposizione: telefono */
+.grid {
+  grid-template-rows: calc(var(--cell) * 2.06) calc(var(--cell) * 2.82) repeat(4, var(--cell)) calc(var(--cell) * 2.36) repeat(16, calc((var(--cell) - var(--gap)) / 2));
+  grid-template-areas:
+    "hero hero hero hero"
+    "corano corano corano corano"
+    "mondo mondo mondo mondo"
+    "mondo mondo mondo mondo"
+    "mondo mondo mondo mondo"
+    "mondo mondo mondo mondo"
+    "pal pal pal pal"
+    "sudime sudime cubo cubo"
+    "sudime sudime cubo cubo"
+    "sudime sudime cubo cubo"
+    "sudime sudime cubo cubo"
+    "sudime sudime saluti saluti"
+    "sudime sudime saluti saluti"
+    "sudime sudime saluti saluti"
+    "sudime sudime saluti saluti"
+    "codice codice cielo cielo"
+    "codice codice cielo cielo"
+    "codice codice cielo cielo"
+    "codice codice cielo cielo"
+    "curio curio curio curio"
+    "curio curio curio curio"
+    "curio curio curio curio"
+    "curio curio curio curio";
+}
+.mondo { grid-area: mondo; }
+
+/* ------------------------------------------------------------------ finestre: il contenuto arriva fino al bordo */
+.win { --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .8); color: #fff; }
+.win__cv, .win__img { position: absolute; top: 0; left: 0; z-index: 0; display: block; width: 100%; height: 100%; }
+.win__img { object-fit: cover; animation: win-kb 36s ease-in-out infinite alternate; }
+@keyframes win-kb { from { transform: scale(1.03); } to { transform: scale(1.13) translate(-1.5%, -2%); } }
+.is-shot .win__img { animation: none; }
+@media (prefers-reduced-motion: reduce) { .win__img { animation: none; } }
+.win__scrim { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 1; pointer-events: none; }
+.win .tile__hit { z-index: 2; }
+.win .tile__in { z-index: 3; }
+.win .label, .win .pal__line, .win .me__line, .win .pal__gaza { text-shadow: 0 1px 10px rgba(4, 6, 18, .5); }
+
+/* Mondo */
+.mondo .tile__in { padding: 16px 18px 15px; justify-content: space-between; }
+.mondo .tile__hit { touch-action: pan-y; cursor: grab; }
+.mondo .tile__hit:active { cursor: grabbing; }
+.mondo__now { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-height: 24px; font: 600 15px/22px var(--font-sans); letter-spacing: -.012em; transition: opacity 260ms ease; }
+.mondo__now.is-out { opacity: 0; }
+.mondo__now b { font-weight: 700; font-size: 17px; letter-spacing: -.025em; }
+.mondo__now time { font-weight: 700; font-size: 20px; letter-spacing: -.03em; }
+.mondo__now i { margin-left: 9px; font-size: 13px; color: rgba(255, 255, 255, .74); }
+
+/* Palestina */
+.pal .win__scrim { background: linear-gradient(90deg, rgba(8, 10, 12, .52) 0%, rgba(8, 10, 12, .28) 58%, rgba(8, 10, 12, .18) 100%), linear-gradient(180deg, rgba(8, 10, 12, 0) 38%, rgba(8, 10, 12, .44) 100%); }
+.pal .pal__title { text-shadow: 0 2px 18px rgba(0, 0, 0, .42); }
+.pal .pal__line { color: rgba(255, 255, 255, .92); }
+
+/* Su di me */
+.me .win__scrim { background: linear-gradient(180deg, rgba(6, 8, 20, .46) 0%, rgba(6, 8, 20, 0) 30%, rgba(6, 8, 20, .1) 46%, rgba(6, 8, 20, .82) 100%); }
+.me .tile__in { padding: 15px 17px 17px; }
+.me .me__name { margin-top: auto; font: 800 clamp(26px, calc(var(--cell) * .4), 34px)/1 var(--font-sans); letter-spacing: -.045em; text-shadow: 0 2px 18px rgba(4, 6, 18, .5); }
+.me .me__line { margin-top: 8px; color: rgba(255, 255, 255, .88); }
+
+/* Cubo: una tela, il cubo gira e si risolve */
+.cubo .tile__in { padding: 6px var(--ps) 14px; }
+.cubo__cv { flex: 1 1 0; min-height: 0; width: 100%; display: block; }
+
+/* ------------------------------------------------------------------ la riga dei saluti, sotto imad.chat_ */
+.hero__text { bottom: 11px; }
+.riga { display: flex; align-items: center; min-height: 18px; margin-top: 3px; font: 500 13px/18px var(--font-mono); letter-spacing: -.01em; color: rgba(255, 255, 255, .95); white-space: nowrap; text-shadow: 0 1px 10px rgba(6, 10, 44, .3); }
+.riga .rg-p { margin-right: .55em; opacity: .62; }
+.riga .rg-c { display: inline-block; width: .55em; height: 1.04em; margin-left: .14em; background: currentColor; opacity: .9; }
+.rg-fly { position: fixed; z-index: 60; left: 0; top: 0; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #fff6dc; box-shadow: 0 0 0 3px rgba(255, 226, 160, .28), 0 0 14px 3px rgba(255, 214, 140, .8); pointer-events: none; }
+
+/* ------------------------------------------------------------------ il logo a nove caratteri: una faccia del cubo, il punto al centro */
+.logo { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; gap: 0; }
+.l9 { display: grid; grid-template-columns: repeat(3, 8px); grid-auto-rows: 8px; gap: 3px; color: var(--ink); }
+.l9 i { display: block; border-radius: 2.4px; background: currentColor; opacity: .88; }
+.l9 i:nth-child(2n) { opacity: .6; }
+.l9 .s { border-radius: 50%; background: var(--gold-ink, #d9a441); opacity: 1; transform: scale(.8); box-shadow: 0 0 7px 1.5px rgba(232, 180, 88, .7); }
+.foot { display: flex; flex-direction: column; align-items: center; }
+.l9--big { grid-template-columns: repeat(3, 38px); grid-auto-rows: 38px; gap: 5px; margin-bottom: 20px; }
+.l9--big i, .l9--big i:nth-child(2n) { display: grid; place-items: center; border-radius: 11px; background: var(--fill); opacity: 1; box-shadow: inset 0 0 0 1px var(--hair); font: 800 18px/1 var(--font-sans); letter-spacing: -.03em; color: var(--ink); }
+.l9--big .s { position: relative; transform: none; border-radius: 11px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); }
+.l9--big .s::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--gold-ink, #d9a441); box-shadow: 0 0 8px 2px rgba(232, 180, 88, .62); }
+
+/* ------------------------------------------------------------------ tablet */
+@media (min-width: 700px) {
+  :root { --word: calc(var(--cell) * .74); }      /* l'hero è largo quattro colonne: la scritta con il cursore deve starci */
+  .grid {
+    grid-template-rows: none;
+    grid-template-areas:
+      "hero hero hero hero mondo mondo mondo mondo"
+      "hero hero hero hero mondo mondo mondo mondo"
+      "corano corano corano corano mondo mondo mondo mondo"
+      "corano corano corano corano mondo mondo mondo mondo"
+      "corano corano corano corano pal pal pal pal"
+      "sudime sudime cubo cubo pal pal pal pal"
+      "sudime sudime cubo cubo codice codice cielo cielo"
+      "sudime sudime saluti saluti codice codice cielo cielo"
+      "sudime sudime saluti saluti curio curio curio curio"
+      "sudime sudime saluti saluti curio curio curio curio";
+  }
+}
+/* ------------------------------------------------------------------ computer: tutto in uno schermo */
+@media (min-width: 1100px) {
+  .grid {
+    grid-template-areas:
+      "hero hero hero hero corano corano corano corano mondo mondo mondo mondo"
+      "hero hero hero hero corano corano corano corano mondo mondo mondo mondo"
+      "pal pal pal pal corano corano corano corano mondo mondo mondo mondo"
+      "pal pal pal pal corano corano corano corano mondo mondo mondo mondo"
+      "sudime sudime cubo cubo codice codice cielo cielo saluti saluti curio curio"
+      "sudime sudime cubo cubo codice codice cielo cielo saluti saluti curio curio";
+  }
+  :root { --word: calc(var(--cell) * .72); }
+  .home { padding-top: max(0px, calc((100vh - 800px) / 2)); }
+  .me .me__name { font-size: 26px; }
+  .hero__text { bottom: 16px; }
+}

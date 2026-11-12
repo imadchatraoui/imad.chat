@@ -1,0 +1,40 @@
+/* Nuova apertura (anteprima). Una tela sta sopra la pagina; la pagina sotto resta ferma finché l'intro non la apre.
+   Per ora non si può saltare: la tela prende i tocchi finché non ha finito. */
+.ni { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 90; display: none; width: 100%; height: 100%; background: #05060a; touch-action: none; -webkit-tap-highlight-color: transparent; }
+.ni-on .ni { display: block; }
+.ni-on .bar, .ni-on .tile, .ni-on .foot { opacity: 0; transition: none !important; }
+
+/* la scritta nell'hero: battuta a macchina, con il cursore da terminale che resta a lampeggiare */
+.hero__word .ch { display: inline-block; }
+.hero__word .cur { display: inline-block; width: .44em; height: .088em; margin-left: .075em; border-radius: .02em; background: currentColor; transform: translateY(.035em); box-shadow: 0 4px 30px rgba(6, 10, 44, .32); }
+.ni-done .hero__word .cur { animation: ni-blink 1.06s steps(1, end) infinite; }
+@keyframes ni-blink { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+/* versione «stella»: il punto è una stella, e resta accesa */
+.ni-done[data-ni="stella"] .hero__word .dot { animation: ni-star 900ms cubic-bezier(.2, .7, .2, 1) 1 both; }
+@keyframes ni-star { 0% { transform: scale(1); filter: brightness(1); } 30% { transform: scale(1.5); filter: brightness(1.5); } 100% { transform: scale(1); filter: brightness(1); } }
+[data-ni="stella"] .hero__word .dot { color: #fff5dc; text-shadow: 0 0 .14em rgba(255, 232, 178, .95), 0 0 .42em rgba(255, 214, 146, .62), 0 0 1em rgba(255, 200, 128, .34); }
+
+/* come sul sito online: niente numeri di esempio, niente parole di esempio sulle stelle, niente pulsante senza indirizzo */
+.me__link, .btn[data-nolink], .saluti .count, .hero .gw:not(.gw--me) { display: none !important; }
+.legend span:has(> i.g) { display: none !important; }   /* da sola: i browser che non conoscono :has() saltano solo questa */
+.sal__top { visibility: hidden !important; }
+
+/* barra di questa anteprima (fuori dal design) */
+.pv { display: none !important; }
+.nbar {
+  position: fixed; z-index: 95; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 10px); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 4px; height: 52px; padding: 4px; width: max-content; max-width: calc(100vw - 12px);
+  border-radius: 26px; border: 1px dashed rgba(255, 255, 255, .45); background: rgba(22, 22, 28, .92); color: #fff;
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 12px 32px -8px rgba(0, 0, 0, .45);
+  font: 600 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; letter-spacing: 0;
+  transition: opacity 200ms ease, transform 260ms ease;
+}
+.ni-on .nbar, .is-sheet .nbar { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(16px); }
+.is-shot .nbar { display: none; }
+.nbar__tag { padding: 0 8px 0 12px; font-weight: 500; font-size: 12px; color: rgba(255, 255, 255, .66); }
+.nbar__seg { display: flex; height: 44px; padding: 3px; border-radius: 22px; background: rgba(255, 255, 255, .1); }
+.nbar__seg button { min-width: 72px; height: 38px; padding: 0 12px; border: 0; border-radius: 19px; background: none; color: rgba(255, 255, 255, .82); font: inherit; cursor: pointer; }
+.nbar__seg button[aria-pressed="true"] { background: #fff; color: #111; }
+.nbar__b { height: 44px; padding: 0 15px; border: 0; border-radius: 22px; background: rgba(255, 255, 255, .14); color: #fff; font: inherit; cursor: pointer; }
+.nbar button:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }

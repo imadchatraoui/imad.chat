@@ -3,8 +3,8 @@ import { SITE_URL } from "@/lib/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    // i banchi di prova (/lab) servono solo a chi sviluppa
-    rules: { userAgent: "*", allow: "/", disallow: "/lab/" },
+    // i banchi di prova (/lab) e l'anteprima della home nuova (/anteprima) non vanno nei motori di ricerca
+    rules: { userAgent: "*", allow: "/", disallow: ["/lab/", "/anteprima"] },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

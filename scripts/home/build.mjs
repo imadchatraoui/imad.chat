@@ -51,3 +51,40 @@ for (const f of ["style.css", "astro-lite.js"]) fs.copyFileSync(path.join(home, 
 for (const f of ["intro.css", "intro.js"]) fs.copyFileSync(path.join(intro, f), path.join(out, f));
 for (const f of fs.readdirSync(path.join(intro, "media"))) fs.copyFileSync(path.join(intro, "media", f), path.join(out, "media", f));
 console.log("public/home pronta:", fs.readdirSync(out).join(", "), "| media:", fs.readdirSync(path.join(out, "media")).length, "immagini");
+
+// ------------------------------------------------------------------ l'anteprima della bento nuova: /anteprima (non indicizzata)
+// Stessa intro, ma atterra sui riquadri nuovi (docs/anteprime/bento). Qui l'intro si innesta a programma nella pagina.
+{
+  const bento = path.join(root, "docs/anteprime/bento");
+  const dst = path.join(root, "public/anteprima");
+  const B = "/anteprima/";
+  let h = fs.readFileSync(path.join(bento, "index.html"), "utf8");
+  // lo script che decide, prima del primo disegno, se l'intro parte: è quello dell'anteprima dell'intro
+  const introPage = fs.readFileSync(path.join(intro, "index.html"), "utf8");
+  const pre = introPage.slice(introPage.indexOf("<script>"), introPage.indexOf("</script>") + "</script>".length);
+  const s0 = h.indexOf("<script>"), s1 = h.indexOf("</script>") + "</script>".length;
+  h = h.slice(0, s0) + pre + h.slice(s1);
+  h = swap(h, "<title>imad.chat — anteprima della bento</title>", "<title>imad.chat — anteprima</title>", "bento");
+  for (const f of ["style.css", "vivo.css"]) h = swap(h, `<link rel="stylesheet" href="${f}">`, `<link rel="stylesheet" href="${B}${f}">`, "bento");
+  h = swap(h, `<link rel="stylesheet" href="${B}vivo.css">`, `<link rel="stylesheet" href="${B}vivo.css">\n<link rel="stylesheet" href="${B}intro.css">`, "bento");
+  for (const f of ["data.js", "astro-lite.js", "app.js", "terra.js", "vivo.js"]) h = swap(h, `<script src="${f}"></script>`, `<script src="${B}${f}"></script>`, "bento");
+  h = swap(h, `<script src="${B}vivo.js"></script>`, `<script src="${B}vivo.js"></script>\n<script>window.__niMedia = "${B}media/";</script>\n<script src="${B}intro.js"></script>`, "bento");
+  h = swap(h, 'src="media/torino.jpg"', `src="${B}media/torino.jpg"`, "bento");
+  h = swap(h, "<!-- barra dell'anteprima: non fa parte del design -->", '<!-- la nuova apertura: una tela sopra la pagina -->\n<canvas class="ni" id="ni" aria-hidden="true"></canvas>\n\n<!-- barra della vecchia anteprima: resta nel codice, è nascosta -->', "bento");
+  h = swap(h, '<span><b class="js-count num">128</b> saluti nel cielo</span>', '<span><b class="js-count num"></b></span>', "bento");
+  if (/128/.test(h)) throw new Error("bento: c'è ancora un numero di saluti di esempio");
+  let a2 = fs.readFileSync(path.join(bento, "app.js"), "utf8");
+  a2 = swap(a2, "function wordStars() {", 'function wordStars() { return ""; }\n  function wordStarsEsempio() {', "bento app.js");
+  a2 = swap(a2, "Il tuo saluto resta su questo telefono, in questa anteprima.", "Il tuo saluto resta su questo telefono, per ora.", "bento app.js");
+  a2 = swap(a2, "Scegli un saluto: la tua stella si accende tra le altre.", "Scegli un saluto: la tua stella si accende nel cielo.", "bento app.js");
+  let d2 = swap(fs.readFileSync(path.join(bento, "data.js"), "utf8"), '"sampleStars": 128', '"sampleStars": 0', "bento data.js");
+  fs.rmSync(dst, { recursive: true, force: true });
+  fs.mkdirSync(path.join(dst, "media"), { recursive: true });
+  fs.writeFileSync(path.join(dst, "index.html"), h);
+  fs.writeFileSync(path.join(dst, "app.js"), a2);
+  fs.writeFileSync(path.join(dst, "data.js"), d2);
+  for (const f of ["style.css", "vivo.css", "vivo.js", "terra.js", "astro-lite.js"]) fs.copyFileSync(path.join(bento, f), path.join(dst, f));
+  for (const f of ["intro.css", "intro.js"]) fs.copyFileSync(path.join(intro, f), path.join(dst, f));
+  for (const dir of [path.join(intro, "media"), path.join(bento, "media")]) for (const f of fs.readdirSync(dir)) fs.copyFileSync(path.join(dir, f), path.join(dst, "media", f));
+  console.log("public/anteprima pronta:", fs.readdirSync(dst).join(", "));
+}

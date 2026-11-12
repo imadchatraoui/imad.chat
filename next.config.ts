@@ -11,7 +11,15 @@ const config: NextConfig = {
   poweredByHeader: false,
   // La home online è la pagina statica in public/home (scripts/home/build.mjs la genera dal disegno scelto).
   async rewrites() {
-    return { beforeFiles: [{ source: "/", destination: "/home/index.html" }], afterFiles: [], fallback: [] };
+    return {
+      beforeFiles: [
+        { source: "/", destination: "/home/index.html" },
+        // l'anteprima della bento nuova: stessa cosa, a un indirizzo a parte (non indicizzato)
+        { source: "/anteprima", destination: "/anteprima/index.html" },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
   },
   // Le pagine del vecchio sito non si mostrano più: tornano alla home.
   async redirects() {
