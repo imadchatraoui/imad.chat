@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Dot — la scena d'apertura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; }
+  body { min-height: 100vh; font: 600 12px/1.4 Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: rgba(255,255,255,.5);
+    background: linear-gradient(180deg, #060818 0%, #0d1236 45%, #1b1f55 100%); background-color: #0d1236; overflow-x: hidden; }
+  body.light { background: #eceef4; color: rgba(20,24,50,.55); }
+  #wrap { position: absolute; top: 0; left: 0; width: 360px; height: 560px; transform-origin: 0 0; -webkit-transform-origin: 0 0; }
+  .tile { position: absolute; left: 20px; top: 290px; width: 320px; height: 210px; border-radius: 32px; box-sizing: border-box;
+    background: rgba(255,255,255,.075); border: 1px solid rgba(255,255,255,.11); }
+  body.light .tile { background: #fff; border-color: rgba(20,24,60,.06); box-shadow: 0 10px 30px rgba(20,24,60,.08); }
+  .tile span { position: absolute; left: 20px; bottom: 16px; }
+  #layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; pointer-events: none; }
+  #dbg { position: absolute; top: 0; left: 0; pointer-events: none; }
+  #lab { position: absolute; left: 20px; top: 18px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="lab"></div>
+  <div class="tile" id="tile"><span>riquadro finto</span></div>
+  <div id="layer"></div>
+  <canvas id="dbg" width="360" height="560"></canvas>
+</div>
+<script src="dot-stage.js"></script>
+<script>
+/* Pagina di prova della scena: un riquadro finto, i tasti e la scatola sul suo bordo alto.
+   ?ts=1.2 ferma la scena a quel tempo (senza: la scena gira in tondo)   ?bg=light pagina chiara
+   ?k=4 tutto ingrandito 4 volte (per le foto da vicino)   ?lid=0.4 dopo la fine chiama lid(0.4)
+   ?rim=1 segna in rosso il bordo davanti (rim) e in verde il fondo (floor)   ?label=0 niente scritta */
+(function () {
+  "use strict";
+  var q = new URLSearchParams(location.search), K = +(q.get("k") || 1), tsq = q.get("ts"), light = q.get("bg") === "light";
+  if (light) document.body.className = "light";
+  var wrap = document.getElementById("wrap"), tile = document.getElementById("tile"), lab = document.getElementById("lab");
+  if (K !== 1) { wrap.style.transform = "scale(" + K + ")"; document.body.style.width = 360 * K + "px"; document.body.style.height = 560 * K + "px"; DOT.stageDpr = Math.min(16, (window.devicePixelRatio || 1) * K); }
+  if (q.get("label") === "0") lab.style.display = "none";
+  function anchor() { return { x: tile.offsetLeft + 118, y: tile.offsetTop }; }
+  var a = anchor();
+  DOT.stage.mount(document.getElementById("layer"), a);
+  function mark() {
+    if (!q.get("rim")) return; var d = document.getElementById("dbg"), c = d.getContext("2d"), r = DOT.stage.rim(); c.clearRect(0, 0, 360, 560);
+    c.fillStyle = "rgba(255,40,40,.9)"; c.fillRect(r.x - r.w / 2, r.y - 0.25, r.w, 0.5); c.fillStyle = "rgba(40,255,90,.9)"; c.fillRect(r.x - 4, r.floor - 0.25, 8, 0.5);
+  }
+  /* ?check=1: prova il contratto; gli errori finiscono nella console (lo strumento delle foto li stampa) */
+  function check() {
+    var bad = [], st = DOT.stage, T = st.TS, r, a0 = anchor();
+    ["fl", "fr", "ft", "fb", "fd", "drop", "box", "wob", "lid", "peek", "lookL", "lookR", "lookC", "crouch", "jump", "land", "bubble", "end"].forEach(function (k) { if (typeof T[k] !== "number") bad.push("TS." + k); });
+    st.draw(T.end + 1, 3); r = st.rim();
+    if (!r || Math.abs(r.x - a0.x) > 0.01 || !(r.y < a0.y - 25 && r.y > a0.y - 34) || !(r.w > 38 && r.w < 46) || !(r.floor > r.y && r.floor < a0.y)) bad.push("rim " + JSON.stringify(r));
+    if (!st.hit(a0.x, a0.y - 15)) bad.push("hit al centro"); if (st.hit(a0.x + 60, a0.y - 15) || st.hit(a0.x, a0.y - 90)) bad.push("hit fuori");
+    st.place(a0.x + 10, a0.y + 5); var r2 = st.rim(); if (Math.abs(r2.x - r.x - 10) > 0.01 || Math.abs(r2.y - r.y - 5) > 0.01) bad.push("place"); st.place(a0.x, a0.y);
+    st.lid(0); if (!st.hit(a0.x, a0.y - 15)) bad.push("lid 0"); st.lid(1); st.lid(null);
+    st.draw(0.6, 0.6); if (!st.hit(a0.x, a0.y - 80)) bad.push("hit sui tasti");
+    st.unmount(); st.mount(document.getElementById("layer"), a0); st.draw(+tsq, +tsq);
+    if (document.querySelectorAll("#layer canvas").length !== 1) bad.push("unmount");
+    if (bad.length) console.error("verifica: " + bad.join(", ")); else console.log("verifica: tutto bene");
+    if (q.get("lid") != null) st.lid(+q.get("lid"));
+  }
+  function show(ts, t) { DOT.stage.draw(ts, t); lab.textContent = "ts " + ts.toFixed(2); }
+  var fontWait = document.fonts && document.fonts.load ? Promise.race([document.fonts.load('800 17px Manrope'), new Promise(function (r) { setTimeout(r, 2500); })]) : Promise.resolve();
+  fontWait.catch(function () {}).then(function () {
+    if (tsq != null) {
+      var ts = +tsq; show(ts, ts);
+      if (q.get("lid") != null) DOT.stage.lid(+q.get("lid"));
+      mark();
+      requestAnimationFrame(function () { requestAnimationFrame(function () { show(ts, ts); if (q.get("lid") != null) DOT.stage.lid(+q.get("lid")); mark(); if (q.get("check")) check(); window.__ready = true; }); });
+    } else {
+      var t0 = performance.now();
+      (function loop(now) { var t = (now - t0) / 1000, ts = t % 9.5; show(ts, t); requestAnimationFrame(loop); })(t0);
+      window.__ready = true;
+    }
+  });
+  window.addEventListener("resize", function () { a = anchor(); DOT.stage.place(a.x, a.y); });
+})();
+</script>
+</body>
+</html>

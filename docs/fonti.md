@@ -238,3 +238,14 @@ Ogni voce ha almeno una fonte aperta durante il lavoro. Al massimo 60 parole cia
 - Wikipedia (testo sorgente delle voci): `https://{en,it,ar}.wikipedia.org/w/index.php?title=…&action=raw`; Wikidata: `https://www.wikidata.org/w/api.php?action=wbgetentities`
 - The Met Collection API: `https://collectionapi.metmuseum.org/public/collection/v1/objects/{444408,451699,446297}`
 - astronomy-engine 2.1.19, la libreria installata nel progetto (`node_modules/astronomy-engine`, sito: https://github.com/cosinekitty/astronomy)
+
+## Suoni di Dot
+
+Il gatto Dot suona solo quando lo si tocca. Quattro registrazioni da Wikimedia Commons; la licenza è stata letta sulla pagina di ogni file (non sull'anteprima della ricerca). Tutte e quattro sono pubblico dominio o CC0: nessuna richiede attribuzione, ma i nomi restano qui per correttezza. File in `docs/anteprime/gatto/media/`, in due formati (`.m4a` AAC per Safari, `.mp3` di riserva).
+
+- `miao-1` (.m4a, .mp3): «Meow of a pleading cat», di Heismark (registrazione propria, 2010-10-08). Licenza: pubblico dominio (`PD-self`). Pagina: https://commons.wikimedia.org/wiki/File:Meow_of_a_pleading_cat.oga . Modifiche: dal file di 11,8 s (4 miagolii, 8 kHz) è preso il terzo miagolio, da 6,66 s per 0,9 s; mono a 44,1 kHz, filtro passa-alto a 120 Hz, dissolvenze di 10 ms in entrata e 40 ms in uscita, volume portato a circa -18 LUFS, limitatore.
+- `miao-2` (.m4a, .mp3): «Meow of a Siamese cat - freemaster2», di freemaster2 (Freesound, https://www.freesound.org/people/freemaster2/sounds/66518/). Licenza: CC0 (`Cc-zero`, verificata su Commons da Storkk il 2014-03-31). Pagina: https://commons.wikimedia.org/wiki/File:Meow_of_a_Siamese_cat_-_freemaster2.wav . Modifiche: tagliato da 0,12 s per 0,9 s (la coda è accorciata, con dissolvenza di 70 ms); mono, passa-alto a 120 Hz, dissolvenza di 10 ms in entrata, volume abbassato di 7 dB (l'originale arrivava a 0 dBFS) fino a circa -18 LUFS, limitatore.
+- `miao-3` (.m4a, .mp3): «Maullido de gata hembra joven», di George Miquilena (registrazione propria, 2012-07-17). Licenza: CC0 (`Cc-zero`). Pagina: https://commons.wikimedia.org/wiki/File:Maullido_de_gata_hembra_joven.ogg . Modifiche: tagliato da 0,04 s per 0,78 s (si toglie il fruscio di coda); mono, passa-alto a 120 Hz, dissolvenze di 10 ms in entrata e 40 ms in uscita, volume a circa -18 LUFS, limitatore.
+- `fusa` (.m4a, .mp3): «Purr (10 sec loopable)», di Insanejeff (en.wikipedia, trasferita su Commons). Licenza: pubblico dominio (`PD-user-en`). Pagina: https://commons.wikimedia.org/wiki/File:Purr_(10_sec_loopable).ogg . Modifiche: preso il tratto da 2,0 s a 3,9 s; mono, passa-alto a 40 Hz; ricavato un ciclo di 1,5 s senza scatti con una sfumatura incrociata di 0,2 s tra la fine e l'inizio; volume a circa -19 LUFS, limitatore.
+
+Tutti i file sono stati codificati con ffmpeg (AAC 56 kbit/s e MP3 56 kbit/s), ognuno sotto i 12 kB.
