@@ -33,6 +33,49 @@ Above the tiles: the hero with `imad.chat_`, the line where greetings are typed,
 
 Dot on the home: its box stands on the top edge of the first tile under the hero. First visit: after the intro has typed the wordmark, the nine keys drop there and the opening plays. Later visits: no opening; Dot is already around (asleep on a tile, or peeking). Dot keeps off the Corano (`data-dot="no"`) and is quiet on Nel mondo (`data-dot="quiet"`).
 
+## 2b. The home, decided in detail (2026-11-12, by us: Imad said "continua a lavorare")
+
+Source folder: `docs/anteprime/casa/home/` (a copy of `docs/anteprime/bento/`, then trimmed and extended; `bento/` stays as the record of round 1). `scripts/home/build.mjs` builds `/anteprima` from it. The live home at `/` (built from `c-widget`) must not change.
+
+**Phone, top to bottom (4 columns, 12 px gaps, the bento's own tokens, materials and radii):**
+
+1. **The top row**, not sticky: the 3x3 logo at the left, the sound button at the right, as today. The row is taller than today (about 104 px to the hero's edge): it is **Dot's ledge**. Dot's box stands on the hero tile's top edge, right of the middle; the nine keys of the opening appear there. Nothing is drawn above the phone's safe area.
+2. **Hero tile** (4 wide): Torino's sky, the first star, the wordmark `imad.chat_` typed by the intro, the line where greetings are typed. As today.
+3. **A block on the wallpaper, not a tile**: "Ciao, sono Imad." in large type; under it one muted line that waits for his sentence (it must read as a placeholder of ours, never as his words: `La frase qui la scrive Imad.`); two pill buttons: `GitHub` (github.com/imadchatraoui, new tab) and `Lascia un saluto` (opens the greetings sheet). Instagram only when he gives the handle.
+4. **Corano** 4 wide, about 3 rows. Paper, still. `data-dot="no"`.
+5. **Le città** 4x4: the dotted globe (as built).
+6. **Nel mondo** 4 wide, about 2 rows. Sober, still, no flag, no animation: the title and, until he writes, "Presto, con le parole di Imad."; when `content/mondo/*.md` exist, the titles of his texts and the date of the last one. Opens `mondo`. `data-dot="quiet"`.
+7. **Su di me** 2x4 (photo window, placeholder photo) beside **Progetti** 2x2 (the cube that scrambles and solves itself, Kukko colours) over **Sto imparando** 2x2.
+8. **Tools** 4 wide, about 3 rows: the working mini QR.
+9. **Heatmap** 4 wide, about 2 rows.
+10. **Saluti** 4 wide, about 2 rows: "Lascia un saluto", the greetings drifting across the full width, the visitor's star.
+11. Footer: the lettered 3x3, the line about Torino's sky, credits.
+
+Nine tiles besides the hero. The intro's nine squares fly to them in this order of its 3x3 (row by row): corano, citta, mondo, sudime, progetti, imparando, tools, heatmap, saluti. The list is given to the intro by the page (`window.__niTiles`), because the live home uses the same `intro.js` with the old tiles.
+
+**Tablet and desktop**: the same tiles on a wider grid, no holes, the hero and the "Ciao" block side by side where there is room; max width about 1120 px.
+
+**The dock**: a small frosted pill fixed at the bottom centre (above the safe area): `Tutto · Su di me · Progetti · Tools`. A filter brings its tiles to the front of the grid and dims the rest; tiles travel to their new places (measure, reorder, animate the difference; by rows and columns, short and springy; nothing jumps). The Corano never moves and never dims. Groups: Su di me = sudime, imparando, heatmap, saluti; Progetti = progetti, heatmap, imparando; Tools = tools. Choosing a filter scrolls the first tile of the group into view. With reduced motion the order changes at once.
+
+**Dot on the home**: starts when the intro has finished. First time in a browser session: the opening (keys, box, "salam, sono Dot."); after that, Dot is simply around and the box stands in its place. Default look `adesivo` (`?look=manifesto|pelo` to compare) until Imad chooses. Dot's layer sits under every sheet or panel that opens (the Quran reader above all) and above the tiles. The dock's height goes to `bottomInset`. A filter or any layout change calls `DOT.refresh()`. The sound button also mutes Dot. `data-dot="quiet"` is strict: Dot never chooses that tile's edge or an edge right under it, leaves at once if dropped there, and never plays there.
+
+**Live tiles, how they behave**
+
+- **Tools**: one field ("Incolla un link", 16 px type so the iPhone does not zoom) and the code beside it, drawn by `QRCore`: at every change the modules redraw with a short ripple; empty field = a faint code of `https://imad.chat` with the line "prova: incolla un link". "Salva" gives a PNG (share sheet on phones when available). Under it three quiet chips: `QR Studio`, `Palette`, `Convertitore`, each "presto" until its page exists. Nothing is sent anywhere.
+- **Heatmap**: 53 weeks by 7 days on a canvas, sized to fit the tile (about 5 px squares on a phone); the squares light up in a wave when the tile first comes into view; a finger or the mouse moving over it scrubs: a line above says the day and its count ("mar 4 nov · 3 contributi"); the total of the year; a small `GitHub ↗` link to his profile. Colours: the site's warm gold on the tile's ink, five levels, readable in light and dark. No data: empty squares and "si aggiorna tra poco". Never sample numbers.
+- **Sto imparando**: "Three.js Journey", the last one or two commit titles of his `threejs-journey` repo with how long ago, and a small wireframe solid turning slowly, drawn with lines on a 2D canvas. Opens the repo. No data: "si aggiorna tra poco".
+- **Progetti**: the cube animation, "Progetti", opens `progetti`.
+
+**Data contracts (route handlers in the Next app; the static pages only read them)**
+
+- `GET /api/github/contributi` → `{ ok: true, user, total, from, to, days: [{ d: "YYYY-MM-DD", n: count, l: 0..4 }], updated }`, oldest day first; on any failure `{ ok: false }` (never a made-up value).
+- `GET /api/github/progetti` → `{ ok: true, repos: [{ name, description, language, url, homepage, pushedAt, stars, fork }], learning: { repo, url, pushedAt, commits: [{ message, date }] } | null, updated }`; public repositories only, the owner's own first, forks last; on failure `{ ok: false }`.
+- Both cached for hours on the server, with a short timeout towards GitHub. A `GITHUB_TOKEN` is optional. From this workspace GitHub cannot be reached at all: the handlers are checked for real only after a deploy (`https://imadchat.vercel.app/api/github/...`).
+
+**The QR engine** lives in `docs/anteprime/casa/tools/qr/`: `qr-core.js` (`window.QRCore`: payloads, `encode`, `render` to a canvas with shapes, colours, a picture in the middle and a draw-in progress, `svg`, `verify` that decodes the drawn pixels again) on top of two vendored libraries: `qrcode-generator` by Kazuhiko Arase (MIT) to build the matrix and `jsQR` (Apache-2.0) to read it back. Sources and licences in `docs/fonti.md`.
+
+**Pages in this round** (under the preview address for now, built so that moving them to the root later is one setting in `build.mjs`): `anteprima/progetti`, `anteprima/mondo` (and one page per file in `content/mondo/`), `anteprima/su-di-me`. `tools` and `tools/qr` come with QR Studio in the next round.
+
 ## 3. Pages
 
 All static, like the home: design sources under `docs/anteprime/casa/`, copied into `public/` by `scripts/home/build.mjs`, plain HTML, CSS and ES2017 scripts, no framework, shared tokens and a shared small header (logo, back, theme follows the phone). Dot comes along on every page, smaller and calmer (a corner, a peek), never on a page of `/mondo`.
