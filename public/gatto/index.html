@@ -95,7 +95,9 @@
   }
 
   press("aspetto", "data-look", look); press("tema", "data-tema", tema); setSuono(suono);
-  DOT.start({ tiles: ".t", home: doc.querySelector("[data-home]"), parent: doc.getElementById("dotclip"), look: look, firstVisit: q.get("primo") !== "0", dark: tema === "scuro", k: +q.get("k") > 0 ? Math.min(4, +q.get("k")) : 0 });
+  /* la barra in basso copre il fondo dello schermo: Dot lì non si vede, quindi non ci resta */
+  function coperto() { var b = doc.querySelector(".barra"), r; if (!b) return 0; r = b.getBoundingClientRect(); return Math.max(0, window.innerHeight - r.top) + 12; }
+  DOT.start({ tiles: ".t", home: doc.querySelector("[data-home]"), parent: doc.getElementById("dotclip"), look: look, firstVisit: q.get("primo") !== "0", dark: tema === "scuro", k: +q.get("k") > 0 ? Math.min(4, +q.get("k")) : 0, bottomInset: coperto });
 
   doc.getElementById("aspetto").addEventListener("click", function (e) {
     var b = e.target && e.target.closest ? e.target.closest("button") : null; if (!b) return;

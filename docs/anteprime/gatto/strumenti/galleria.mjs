@@ -22,7 +22,7 @@ const SC = [
   { id: "peek", tit: "Spunta dal bordo", js: top0 + `D.set("peek", { p: D.platsRaw()[0], x: P[0].a + 70 });`, t: 0.9, c: [0.5, 0.9, 1.3, 1.8] },
   { id: "drape", tit: "A cavallo del bordo", js: top0 + `D.set("drape", { dur: 9, face: "side", pose: "loaf" });`, t: 2.6, c: [1.6, 2.6, 3.6, 4.6] },
   { id: "hang", tit: "Appeso", js: top0 + `D.dragTo((L.l + L.r) / 2, L.b + 8); D.tick(0.6); D.drop(0, 0);`, t: 0.9, c: [0.4, 0.9, 1.4, 2.0] },
-  { id: "slide", tit: "Scivola e graffia", js: top0 + `var t = T[1]; D.dragTo((t.l + t.r) / 2, t.t + (t.b - t.t) * 0.3); D.tick(0.5); D.drop(0, 0);`, t: 0.75, c: [0.25, 0.5, 0.75, 1.0] },
+  { id: "slide", tit: "Scivola e graffia", js: top0 + `var t = T[5];   /* «Progetti»: sotto non c è il Corano, quindi scivola fino in fondo */ D.dragTo((t.l + t.r) / 2, t.t + (t.b - t.t) * 0.3); D.tick(0.5); D.drop(0, 0);`, t: 0.5, c: [0.25, 0.5, 0.75, 1.0] },
   { id: "long", tit: "Il gatto lungo", js: top0 + `var t = T[1]; D.dragTo((t.l + t.r) / 2, t.t + 34); D.tick(0.3);`, t: 0.6, c: [0.3, 0.6, 1.0, 1.5] },
   { id: "sleep", tit: "Dorme, il fez di traverso", js: top0 + `D.set("sleep", { dur: 99, face: "view", pose: "loaf" });`, t: 3.0, c: [2.0, 3.0, 4.0, 5.0] },
   { id: "sulk", tit: "Offeso, di spalle", js: top0 + `D.set("sulk", { face: "back", pose: "annoyed", dur: 9 });`, t: 1.2, c: [0.6, 1.2, 2.0, 2.8] }

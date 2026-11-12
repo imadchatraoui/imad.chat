@@ -221,7 +221,7 @@
         rig._tp = pvx;
         var az = (ft[2] - fb[2]) / fz.h, tx0 = ft[0] - fz.rTop * 0.7, ty0 = ft[1];
         fez = { x: fb[0], y: fb[1], tx: ft[0], ty: ft[1], rBase: fz.rBase, rTop: fz.rTop, h: fz.h, ell: clamp(Math.abs(az), 0.08, 1), top: az > 0, depth: fb[2] - hc[2],
-          behind: head.uz < -0.25,                                 /* la testa guarda in su: il fez va disegnato sotto il muso */
+          behind: head.uz < -0.25,                                   /* la testa guarda in su: il fez va disegnato sotto il muso */
           cord: { x: ft[0], y: ft[1] },                            /* il centro della cima: da qui parte il cordone del fiocco */
           tassel: { x0: tx0, y0: ty0, x1: tx0 + fz.tassel * Math.sin(rig._ta), y1: ty0 - fz.tassel * Math.cos(rig._ta), ang: rig._ta } };
       } else rig._tp = null;
@@ -255,7 +255,8 @@
         t: rig.t, P: P, yaw: rig.yaw, fwd: [o1[0] - o0[0], o1[1] - o0[1]], facing: o1[2] - o0[2],   /* fwd: verso dove punta il corpo sullo schermo; facing > 0 = verso chi guarda */
         body: body, head: head, eyes: eyes, ears: ears,
         nose: { x: qno[0], y: qno[1], vis: fv }, mouth: { x: qmo[0], y: qmo[1], open: A.mouth, vis: fv }, whiskers: whiskers,
-        fez: fez, legs: legs, tail: { pts: pts, front: dn ? dsum / dn > 1 : false, puff: A.puff },
+        fez: fez, fezSeat: { x: (fb[0] + ft[0]) / 2, y: (fb[1] + ft[1]) / 2 },   /* dove sta il centro del fez in testa (anche quando è per terra) */
+        legs: legs, tail: { pts: pts, front: dn ? dsum / dn > 1 : false, puff: A.puff },
         hold: { x: (legs[0].fx + legs[1].fx) / 2, y: (legs[0].fy + legs[1].fy) / 2 },                 /* dove sta un oggetto tenuto tra le zampe davanti */
         mood: { lid: A.lid, brow: A.brow, ear: A.ear, puff: A.puff, eye: A.eye, closed: closedMood() }, walk: rig.walk, long: rig.long, breath: br,
         pose: rig.poseAs || rig.pose,                                                                 /* il nome della posa voluta (es. "hang", "slide") */

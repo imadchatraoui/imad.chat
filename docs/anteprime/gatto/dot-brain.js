@@ -2,8 +2,8 @@
    Non disegna il gatto: guida lo scheletro (dot-rig.js) per nome di posa, valori forzati e pochi comandi, poi passa il
    fotogramma all'aspetto scelto (look-*.js). Le cose attorno (nuvoletta, graffi, oggetti) sono in dot-fx.js.
    Coordinate: pixel della pagina (x a destra, y in GIÙ); il gatto è disegnato in unità del modello (y in alto),
-   K pixel per unità. Uso: DOT.start({ tiles, home, look, firstVisit, reducedMotion, dark, parent }), DOT.stop(), DOT.setLook(nome), DOT.setDark(bool),
-   DOT.say(testo, secondi), DOT.replay(). Per le prove: window.__manual = true e DOT.debug.tick(dt). Solo ES2017. */
+   K pixel per unità. Uso: DOT.start({ tiles, home, look, firstVisit, reducedMotion, dark, parent, bottomInset }), DOT.stop(), DOT.setLook(nome), DOT.setDark(bool),
+   (bottomInset: i pixel coperti in fondo allo schermo, un numero o una funzione). DOT.say(testo, secondi), DOT.replay(). Per le prove: window.__manual = true e DOT.debug.tick(dt). Solo ES2017. */
 (function () {
   "use strict";
   var DOT = (window.DOT = window.DOT || {});
@@ -58,7 +58,7 @@
   var cat = { x: 0, y: 0, s: 1, dir: 1, face: "view", plat: null, rel: 0, state: "off", st: 0, d: {}, lift: 0, gy: null, rot: 0, piv: 12, clipY: null, paws: false, vis: false,
     att: null, gz: true, coast: 0, offT: 0, voff: 0, voffV: 0, ownRot: false, ownLift: false, clipAt: null, hideL: null, hideR: null, blinkO: null, last: "", lastTap: "", taps: [], hold: null, jit: 0,
     mood: null, moodKeys: null };
-  var view = { sx: 0, sy: 0, vw: 360, vh: 640 };
+  var view = { sx: 0, sy: 0, vw: 360, vh: 640, bi: 0 };
   var world = { tiles: [], plats: [], no: [], sig: "", at: 0 };
   var ptr = { x: -1e4, y: -1e4, t: -99, vx: 0, vy: 0, sp: 0, still: 0, touch: false, down: false };
   var now = 0, lastIn = 0, openedAt = 0, frenchDone = false, last = 0, raf = 0, lastF = null, life = { blinkAt: 2, blinkT: -9, dbl: false, slow: -9, earAt: 3, glAt: 1, gl: 0, glY: 0, petNear: 0, fezRoll: 0, fezRollV: 0, propAt: 14, propIx: 0, propList: null };
@@ -70,7 +70,7 @@
   /* ------------------------------------------------------------------ il mondo: i riquadri e i loro bordi */
   function readView() { view.sx = window.pageXOffset || 0; view.sy = window.pageYOffset || 0; view.vw = doc.documentElement.clientWidth || window.innerWidth; view.vh = window.innerHeight; }
   function readWorld() {
-    readView();
+    readView(); readInset();
     var els = doc.querySelectorAll(O.tiles), i, j, r, el, mode, rad, t, tiles = [], plats = [], no = [], oldPlat = cat.plat;
     for (i = 0; i < els.length; i++) {
       el = els[i]; r = el.getBoundingClientRect(); if (r.width < 40 || r.height < 24) continue;
@@ -100,7 +100,10 @@
   }
   function onEdge() { var s = cat.state; return !(s === "air" || s === "held" || s === "fall" || s === "fly" || s === "slide" || s === "hang" || s === "opening" || s === "boxed" || s === "box"); }
   function landOn(p) { cat.plat = p; cat.y = p.y; cat.gy = p.y; cat.rel = cat.x - p.tile.l; }
-  function inView(y, top, bot) { return y > view.sy + (top || 0) && y < view.sy + view.vh - (bot || 0); }
+  /* «si vede»: sotto c'è una striscia coperta (la barra dell'anteprima, la barra di Safari), view.bi pixel: lì non si vede */
+  function inView(y, top, bot) { return y > view.sy + (top || 0) && y < view.sy + view.vh - view.bi - (bot || 0); }
+  function catInView() { var k = px(); return cat.y - 24 * k > view.sy + 30 && cat.y - 10 * k < view.sy + view.vh - view.bi + 4; }
+  function readInset() { var b = O.bottomInset, v = 0; try { v = typeof b === "function" ? +b() : +b; } catch (e) { v = 0; } view.bi = v > 0 && v < view.vh * 0.5 ? v : 0; }
   function visPlats(any) { var o = [], i, p; for (i = 0; i < world.plats.length; i++) { p = world.plats[i]; if ((any || !p.quiet) && inView(p.y, 96, 26) && p.a < view.sx + view.vw - 30 && p.b > view.sx + 30) o.push(p); } return o; }
   function platBelow(x, y, any) { var i, p, b = null; for (i = 0; i < world.plats.length; i++) { p = world.plats[i]; if ((any || !p.quiet || true) && x >= p.a - 8 && x <= p.b + 8 && p.y >= y - 3 && (!b || p.y < b.y)) b = p; } return b; }
   function floorAt(x, y) { var p = platBelow(x, y, true); return p ? p.y : Infinity; }
@@ -123,13 +126,15 @@
   function set(state, d) {
     if (cat.state === "slide" && cat.d.sc) cat.d.sc.done();
     if (cat.state !== state && (cat.state === "purr" || cat.state === "pet" || cat.state === "belly") && state !== "belly") sound("purr", false);   /* le fusa finiscono con lo stato */
+    if (fez && fez.hold && state !== "fezoff") fez.hold = false;      /* interrotto mentre lanciava il fez: il fez ricade da solo */
     cat.state = state; cat.st = 0; cat.d = d || {};
+    cat.jit = 0; cat.tangle = 0; rig.headRoll = 0; life.fezRollT = 0;   /* valori che uno stato rimette a ogni fotogramma: se lo stato è interrotto non restano */
     rig.over = {}; rig.walkT = 0; rig.pitchT = 0; rig.rollT = 0; rig.longT = 0; rig.tailSwish = 0; rig.tailRate = 0; rig.grounded = true; rig.rate = 12; rig.pupilT = 0.8; rig.pupilDotT = 0;
     rig.poseAs = null; rig.edge = null; rig.eyeMood = null; rig.faceTurn = null; rig.gaitT = null; cat.moodKeys = null;
     cat.clipAt = null; cat.clipTop = null; cat.hideL = cat.hideR = null; cat.paws = false; cat.att = null; cat.gz = true; cat.ownRot = false;
     if (cat.d.face) cat.face = cat.d.face; if (cat.d.pose) rig.pose = cat.d.pose;
   }
-  function think() { set("think"); }
+  function think() { if (reduced) return sitFor(1e9); set("think"); }   /* movimento ridotto: resta seduto */
   function sitFor(dur, o) { var d = o || {}; d.dur = dur; d.face = d.face || "view"; d.pose = d.pose || "sit"; set("sit", d); }
   /* sposta l'origine del gatto di dy unità (in giù sullo schermo se dy > 0) senza che il disegno salti:
      lo scarto rientra con la stessa molla della posa, così il corpo resta dov'è mentre le zampe si riordinano */
@@ -158,7 +163,9 @@
   var SLEEPY = { walk: 0.1, jump: 0.05, sit: 0.08, look: 0.04, loaf: 0.14, sleep: 0.22, groom: 0.11, yawn: 0.09, stretch: 0.05, drape: 0.09, dive: 0.02, prop: 0.05 };
   function decide() {
     var p = cat.plat;
-    if (!p || !inView(cat.y, 40, -10)) return comeBack();
+    if (reduced) { if (!p || !catInView()) return comeBack(); return sitFor(1e9); }
+    if (!p || !catInView()) return comeBack();
+    if (fez && !rig.fezOn) return fetchFez();                          /* il fez è per terra (un tocco interrotto, una pancia in su): prima va a riprenderlo */
     if (p.quiet) return leave("sit");
     var w = {}, k, base = now - lastIn > 25 ? SLEEPY : IDLE; for (k in base) w[k] = base[k];
     if (now < life.propAt || props.length) w.prop = 0;
@@ -206,9 +213,13 @@
     v.sort(function (a, b) { return Math.abs(a.y - cat.y) - Math.abs(b.y - cat.y); });
     var q = v[0], x = clamp(cat.x, q.a + 10, q.b - 10);
     clearHeld();
-    if (rnd() < 0.62 || cat.state === "wait") { cat.x = x; cat.plat = q; set("peek", { p: q, x: x }); return; }
-    var fromTop = cat.y < view.sy; cat.x = clamp(x + (rnd() < 0.5 ? -60 : 60), view.sx + 20, view.sx + view.vw - 20); cat.y = fromTop ? view.sy - 30 : view.sy + view.vh + 70; cat.gy = null; cat.plat = null;
-    jumpTo(q, x, "sit", { quick: true, high: fromTop ? 16 : 40 });
+    if (reduced) { cat.x = x; landOn(q); cat.vis = true; cat.voff = 0; cat.voffV = 0; cat.lift = 0; cat.rot = 0; cat.s = 1; sitFor(1e9); rig.snap("sit"); return; }   /* movimento ridotto: è già lì, seduto */
+    if (rnd() >= 0.62 && cat.state !== "wait") {                      /* entra con un salto da fuori: da sotto o da sopra, dal lato il cui arco non passa davanti al Corano */
+      var fromTop = cat.y < view.sy, sy = fromTop ? view.sy - 30 : view.sy + view.vh + 70, hi = fromTop ? 16 : 40, s0 = rnd() < 0.5 ? -1 : 1, i, sx;
+      for (i = 0; i < 2; i++) { sx = clamp(x + (i ? -s0 : s0) * 60, view.sx + 20, view.sx + view.vw - 20);
+        if (!arcHitsNo(sx, sy, x, q.y, hi)) { cat.x = sx; cat.y = sy; cat.gy = null; cat.plat = null; jumpTo(q, x, "sit", { quick: true, high: hi }); return; } }
+    }
+    cat.x = x; cat.plat = q; set("peek", { p: q, x: x });             /* spunta da dietro il bordo: non attraversa nulla */
   }
   /* cadere da (x, y) passerebbe davanti al Corano? allora salta di lato su un bordo raggiungibile (o torna altrove) */
   function fallBlocked(x, y) {
@@ -216,11 +227,26 @@
     for (i = 0; i < world.no.length; i++) { n = world.no[i]; if (n.m) continue; if (x > n.l - 24 && x < n.r + 24 && n.b > y && n.t < ly) return true; }
     return false;
   }
-  function escapeJump(h0) {
-    var v = visPlats(), i, q, tx, best = null, bd = 1e9;
-    for (i = 0; i < v.length; i++) { q = v[i]; tx = clamp(cat.x, q.a, q.b); var dd = hyp(tx - cat.x, q.y - cat.y); if (dd < bd && dd < 420 && !hitsNo(cat.x, cat.y, tx, q.y, h0 || 30)) { bd = dd; best = { p: q, x: tx }; } }
+  /* il gatto con i piedi in (x, y) sta davanti a un riquadro «no» (o alla scatola)? */
+  function inNo(x, y) { var j, n; for (j = 0; j < world.no.length; j++) { n = world.no[j]; if (x > n.l - 26 && x < n.r + 26 && y > n.t - 6 && y - 60 < n.b) return true; } return false; }
+  /* l'arco vero di un salto (lo stesso di arc()): quanti punti passano davanti a un riquadro «no», e se ci rientra dopo esserne uscito */
+  function arcNo(x0, y0, x1, y1, c) {
+    var d = arc(x0, y0, x1, y1, c), i, u, tt, hit, out = !inNo(x0, y0), n = 0, re = false;
+    for (i = 1; i <= 16; i++) { u = i / 16; tt = u * d.dur; hit = inNo(lerp(x0, x1, u), y0 + d.vy0 * tt + 0.5 * GRAV * tt * tt);
+      if (hit) { n++; if (out) re = true; } else out = true; }
+    return { n: n, re: re };
+  }
+  function arcHitsNo(x0, y0, x1, y1, c) { var a = arcNo(x0, y0, x1, y1, c); return a.n > 0; }
+  /* via da davanti al Corano (o da una caduta che ci passerebbe davanti): un salto vero, da dove è, al bordo migliore.
+     Se parte già davanti al Corano va bene uscirne, mai rientrarci; meglio i bordi visibili, vicini, verso l'alto */
+  function escapeJump() {
+    var i, q, tx, a, sc, best = null, bs = 1e9, inside = inNo(cat.x, cat.y);
+    for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; tx = clamp(cat.x, q.a + 6, q.b - 6); a = arcNo(cat.x, cat.y, tx, q.y, 24);
+      sc = hyp(tx - cat.x, q.y - cat.y) + a.n * 40 + (a.re ? 3000 : 0) + (q.quiet ? 300 : 0) + (inView(q.y, 60, 20) ? 0 : 500) + (inside && q.y > cat.y + 20 ? 140 : 0);
+      if (sc < bs) { bs = sc; best = { p: q, x: tx }; } }
     if (!best) return comeBack();
-    cat.dir = best.x >= cat.x ? 1 : -1; set("air", arc(cat.x, cat.y, best.x, best.p.y, 24, { q: best.p, then: "shake", face: "side", pose: "air" }));
+    cat.plat = null; cat.dir = best.x >= cat.x ? 1 : -1;
+    set("air", arc(cat.x, cat.y, best.x, best.p.y, 24, { q: best.p, then: "shake", face: "side", pose: "air" }));
   }
   function clearHeld() { var i; for (i = 0; i < props.length; i++) if (props[i].held) dropProp(props[i]); }
 
@@ -232,7 +258,7 @@
     sit: function (dt, d) {
       var st = cat.st; if (d.plop == null) d.plop = Math.abs(rig.A.hy - rig.poses.sit.hy) > 1.5;
       if (st < 0.5 && d.plop) { var pl = bell(seg(st, 0.12, 0.32)) - 0.35 * bell(seg(st, 0.32, 0.5)); rig.over.sqy = 1 - 0.045 * pl; rig.over.sqx = 1 + 0.03 * pl; } else if (!d.pl) { d.pl = 1; delete rig.over.sqy; delete rig.over.sqx; }   /* si siede con un piccolo «plof» */
-      if (rig.pose === "sit" && d.mood !== "proud") rig.over.hr = rig.poses.sit.hr + 0.07 * Math.sin(now * 0.43 + 1.3) * smooth(0.4, 1.4, st);   /* da fermo la testa ondeggia piano: non è una foto */
+      if (rig.pose === "sit" && d.mood !== "proud" && !reduced) rig.over.hr = rig.poses.sit.hr + 0.07 * Math.sin(now * 0.43 + 1.3) * smooth(0.4, 1.4, st);   /* da fermo la testa ondeggia piano: non è una foto */
       if (d.mood === "proud") { rig.over.hp = 0.14; rig.over.lid = 0.28; } if (st > d.dur) { if (d.then) d.then(); else think(); }
     },
     pause: function (dt, d) { rig.pose = "stand"; if (cat.st > (d.dur || 0.8)) think(); },
@@ -280,7 +306,7 @@
       else { rig.pose = "stand"; delete rig.over.sqy; delete rig.over.sqx; }
       rig.over.ear = 0.42 * hard * bell(seg(st, 0.03, 0.36));
       if (!d.kick) { d.kick = 1; life.fezRollV += 2.6 * hard * cat.dir; life.tailKick = 0.75 * hard; }
-      if (st > 0.4) { var th = d.then; if (typeof th === "function") th(); else if (th === "shake") set("shake", { face: "side", pose: "stand" }); else if (th === "none") {} else sitFor(rr(1.6, 3.2)); }
+      if (st > 0.4) { var th = d.then; if (typeof th === "function") th(); else if (th === "shake") set("shake", { face: "side", pose: "stand" }); else if (th === "none") {} else if (fez && !rig.fezOn && cat.plat && !reduced) fetchFez(); else sitFor(rr(1.6, 3.2)); }
     },
     shake: function (dt, d) {                                          /* si scrolla: la testa vibra, il fez ondeggia, poi torna composto */
       var st = cat.st, e = sat(1 - st / 0.75); rig.headRoll = 0.42 * Math.sin(st * 30) * e * seg(st, 0, 0.06); rig.over.ear = 0.3 * e; rig.over.eye = 0.4 + 0.6 * (1 - e);
@@ -353,7 +379,7 @@
     var s = clamp(-vy / 900, -0.6, 1) + (u < 0.06 ? 0.5 * (1 - u / 0.06) : 0);   /* salendo si allunga in verticale (al distacco ancora di più), scendendo poco; all'arrivo si schiaccia */
     rig.over.sqy = 1 + 0.08 * Math.abs(s); rig.over.sqx = 1 - 0.05 * Math.abs(s);
     rig.over.te = 0.35 + clamp(vy / 1500, -0.5, 0.6); rig.over.tc = 0.45 + 0.35 * sat(u * 1.6);
-    var pt = clamp(Math.atan2(-vy, Math.abs(vx) + 70), -0.75, 0.75) * 0.7; if (pt < -0.32) pt = -0.32;
+    var pt = clamp(Math.atan2(-vy, Math.abs(vx) + 70), -0.75, 0.75) * 0.7; if (pt < -0.32) pt = -0.32; if (pt > 0.28) pt = 0.28;   /* salendo il muso va in su solo un poco: guardano gli occhi (così il fez resta in cima, non sulla faccia) */
     rig.pitchT = lerp(pt, -0.08, smooth(0.62, 0.92, u));
   }
   /* guarda a sinistra (-1) o a destra (1) o davanti (null): la testa si piega un poco da quella parte, le orecchie arrivano dopo */
@@ -423,24 +449,40 @@
         }
         return;
       }
-      if (d.ph === 1) {                                                /* sobbalza e lo segue con gli occhi (la testa va su e giù con lui) */
-        var u1 = st - d.t; cat.ownLift = true; cat.lift = bell(seg(u1, 0, 0.26)) * 3 * px();
-        if (u1 > 0.12) { delete rig.over.hp; delete rig.over.sqy; delete rig.over.sqx; rig.over.eye = 1.22; }
-        if (u1 > 0.5) { rig.over.eye = 1.05; rig.over.ear = 0.1; rig.pupilDotT = 0; }
-        cat.att = fez ? { x: fez.b.x, y: fez.b.y } : null;
-        if (fez && (fez.b.still > 0.35 || u1 > 2.6)) { d.ph = 2; d.t = st; }
-      } else if (d.ph === 2) {                                         /* ci va */
+      if (d.ph === 1) {                                                /* sobbalza e lo segue con gli occhi (la testa va su e giù con lui); d.calm: solo lo guarda */
+        if (d.t == null) d.t = st;
         if (!fez) return think();
+        var u1 = st - d.t;
+        if (!d.calm) { cat.ownLift = true; cat.lift = bell(seg(u1, 0, 0.26)) * 3 * px();
+          if (u1 > 0.12) { delete rig.over.hp; delete rig.over.sqy; delete rig.over.sqx; rig.over.eye = 1.22; }
+          if (u1 > 0.5) { rig.over.eye = 1.05; rig.over.ear = 0.1; rig.pupilDotT = 0; } }
+        cat.att = { x: fez.b.x, y: fez.b.y };
+        if (fez.b.still > 0.35 || u1 > 2.6) { d.ph = 2; d.t = st; }
+      } else if (d.ph === 2) {                                         /* ci va: a piedi se è sul suo bordo, con un salto se è su un altro; se non ci arriva, lo richiama */
+        if (!fez) return think();
+        var fp = fezPlat(), sd = fez.b.x > cat.x ? 1 : -1;
+        if (fp && fp.el !== p.el) {
+          var jx = clamp(fez.b.x - sd * 15 * px(), fp.a, fp.b);
+          if (!fp.quiet && inView(fp.y, 60, 20) && Math.abs(fp.y - cat.y) < 330 && Math.abs(jx - cat.x) < 380 && !hitsNo(cat.x, cat.y, jx, fp.y, 26 + Math.max(0, cat.y - fp.y) * 0.3)) {
+            return jumpTo(fp, jx, function () { if (fez && !rig.fezOn) set("fezoff", { ph: 2, side: fez.b.x > cat.x ? 1 : -1, face: "view", pose: "sit" }); else sitFor(rr(1.5, 2.5)); });
+          }
+          fp = null;
+        }
+        if (!fp) { d.ph = 6; d.t = st; return; }
         var gx = clamp(fez.b.x - d.side * 15 * px(), p.a, p.b);
         if (Math.abs(gx - cat.x) < 6) { cat.dir = d.side; d.ph = 3; d.t = st; }
         else walkTo(gx, function () { cat.dir = fez && fez.b.x > cat.x ? 1 : -1; set("fezoff", { ph: 3, t: 0, side: cat.dir, face: "side", pose: "b-sniff" }); }, { gait: "walk" });
+      } else if (d.ph === 6) {                                         /* troppo lontano: lo guarda, un colpo di testa, e il fez torna da solo con lo stesso arco */
+        if (!fez) return think();
+        cat.face = "view"; rig.pose = "sit"; cat.att = { x: fez.b.x, y: fez.b.y }; rig.over.ear = -0.08;
+        if (st - d.t > 0.8) { d.ph = 3; d.t = st - 0.74; d.side = fez.b.x > cat.x ? 1 : -1; d.far = 1; }
       } else if (d.ph === 3) {                                         /* lo annusa, ci infila il muso sotto, colpo di testa: il fez vola in alto e ricade in testa */
         var u3 = st - d.t; cat.face = "side"; if (!fez) { d.ph = 5; d.t = st; return; }
         rig.pose = u3 < 0.55 ? "b-sniff" : u3 < 0.74 ? "b-scoop" : "b-toss"; rig.rate = u3 < 0.74 ? 13 : 19;
         cat.att = d.fly ? { x: fez.b.x, y: fez.b.y } : { x: fez.b.x, y: fez.b.y };
-        if (u3 > 0.74 && !d.fly) { d.fly = { x0: fez.b.x, y0: fez.b.y, a0: fez.b.ang, t0: st }; fez.hold = true; life.earKickAt = now + 0.05; }
+        if (u3 > 0.74 && !d.fly) { var tg0 = fezHome(); d.fly = { x0: fez.b.x, y0: fez.b.y, a0: fez.b.ang, t0: st, dur: clamp(hyp(fez.b.x - tg0.x, fez.b.y - tg0.y) / 420, 0.5, 0.95) }; fez.hold = true; life.earKickAt = now + 0.05; }
         if (d.fly) {
-          var u = seg(st, d.fly.t0, d.fly.t0 + 0.5), tg = fezHome(), top = Math.min(d.fly.y0, tg.y) - 34, yc = 2 * top - (d.fly.y0 + tg.y) / 2;
+          var u = seg(st, d.fly.t0, d.fly.t0 + d.fly.dur), tg = fezHome(), top = Math.min(d.fly.y0, tg.y) - 34 - (d.far ? 30 : 0), yc = 2 * top - (d.fly.y0 + tg.y) / 2;
           fez.b.x = lerp(d.fly.x0, tg.x, u); fez.b.y = (1 - u) * (1 - u) * d.fly.y0 + 2 * u * (1 - u) * yc + u * u * tg.y;
           fez.b.ang = lerp(d.fly.a0, 0, u) - d.side * TAU * eIO(u); fez.b.vx = fez.b.vy = 0;
           if (u > 0.35) { rig.pose = "sit"; cat.face = "view"; rig.rate = 12; }
@@ -484,6 +526,7 @@
   }
   Object.assign(STATES, {
     held: function (dt, d) {                                           /* per la collottola: gatto lungo, corpo a pendolo, sguardo seccato */
+      if (!drag && !fake) { release(0, 0); return; }                  /* nessun dito lo tiene più (un dito perso, un secondo dito): lo si lascia */
       var h = drag ? drag : fake, tx = h ? h.x : cat.x, ty = h ? h.y : cat.y, k = 1 - Math.exp(-dt * 24), ox = cat.x;
       cat.x = lerp(cat.x, tx, k); cat.y = lerp(cat.y, ty, k); rig.grounded = false;
       var vx = (cat.x - ox) / Math.max(dt, 1e-3), ax = (vx - pend.pvx) / Math.max(dt, 1e-3); pend.pvx = vx;
@@ -507,6 +550,7 @@
       cat.dir = d.vx >= 0 ? 1 : -1; cat.face = "side"; flight(d.vy < 0 ? 0.3 : 0.7, d.vx, d.vy); rig.pupilDotT = 0.5;
       var p = null, i, q; for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (d.vy > 0 && y0 <= q.y && cat.y >= q.y && cat.x >= q.a - 10 && cat.x <= q.b + 10) { p = q; break; } }
       var b = platBelow(cat.x, cat.y); cat.gy = b ? b.y : null;
+      if (!p && d.vy > 0 && inNo(cat.x, cat.y)) { escapeJump(); return; }   /* ricadendo davanti al Corano: si gira in aria e salta via */
       if (p) { cat.x = clamp(cat.x, p.a, p.b); landOn(p); moodSet("scared", 1.6); if (Math.abs(d.vx) > 360) set("tumble", { vx: d.vx * 0.5, face: "side", pose: "loaf" }); else set("land", { then: "shake", v: d.vy, face: "side", pose: "land" }); return; }
       if (cat.y > view.sy + view.vh + 160) comeBack();
     },
@@ -518,6 +562,8 @@
     slide: function (dt, d) {                                          /* lasciato sulla faccia di un riquadro: unghie fuori, scivola e graffia (come nel riferimento 06) */
       var t = d.t, st = cat.st, k = px(), S = rig.poses.slide; rig.grounded = false; cat.face = "front"; rig.pose = "slide"; rig.rate = 16;
       if (!d.sc) d.sc = fx().Scratch(layer, { x: t.l, y: t.t, w: t.r - t.l, h: t.b - t.t }, dark), scratches.push(d.sc);
+      if (d.noB == null) { var j, n; d.noB = false; for (j = 0; j < world.no.length; j++) { n = world.no[j]; if (!n.m && n.t >= t.b - 4 && n.t < t.b + 48 && cat.x > n.l - 30 && cat.x < n.r + 30) d.noB = true; } }   /* sotto c'è il Corano? */
+      if (d.noB) { rig.over.te = -0.35; rig.over.tc = 1.1; }          /* allora la coda non pende: si arriccia di lato */
       d.vy = st < 0.16 ? 8 : Math.min((d.vy || 30) + 300 * dt, 118); cat.y += d.vy * dt;
       cat.x = clamp(cat.x, t.l + 16 * k, t.r - 16 * k);
       var sc = seg(st, 0.12, 0.3);                                     /* le zampe raspano: una su, l'altra giù, le unghie si piantano e strisciano */
@@ -526,6 +572,11 @@
       cat.ownRot = true; cat.piv = 0; cat.rot = 0.05 * Math.sin(st * 9) * sc;
       rig.gazeT[0].x = -0.6 + 0.2 * Math.sin(st * 7); rig.gazeT[0].y = 0.45; rig.gazeT[1].x = 0.5; rig.gazeT[1].y = -0.35 + 0.2 * Math.sin(st * 5); rig.pupilT = 0.9; rig.pupilDotT = 1; cat.gz = false; rig.look.ty = 0; rig.look.tp = 0;
       if (lastF && st > 0.05) { var i, l, pg; for (i = 0; i < 4; i++) { l = lastF.legs[i]; pg = toPage(l.fx, l.fy + l.paw * 0.4); if (pg.y < t.b - 3 && pg.y > t.t + 3) d.sc.add(i, pg.x, pg.y, k); } }
+      if (d.noB && lastF && st > 0.2) {                                 /* col Corano sotto si ferma quando il punto più basso (zampe dietro, coda) arriva al bordo, e salta via di lato */
+        var lo = -1e9, q2, m2; for (i = 0; i < 4; i++) { l = lastF.legs[i]; m2 = toPage(l.fx, l.fy - l.paw).y; if (m2 > lo) lo = m2; }
+        for (i = 0; i < lastF.tail.pts.length; i++) { q2 = lastF.tail.pts[i]; m2 = toPage(q2.x, q2.y - q2.r).y; if (m2 > lo) lo = m2; }
+        if (lo >= t.b - 3) { d.sc.done(); d.sc = null; reanchor(below() - below("air")); escapeJump(); return; }
+      }
       if (cat.y - slideTop() * k >= t.b - 6) {                         /* le zampe arrivano al bordo di sotto: si aggrappa, oppure cade */
         d.sc.done(); d.sc = null;
         var bl = platBelow(cat.x, t.b + 2), gap = bl ? bl.y - t.b : 1e9;
@@ -553,6 +604,8 @@
     if (stageOn && stage.hit && stage.hit(cat.x, bodyY)) return boxIn(true);
     if (sp > 650) { reanchor(below() - below("air")); var f = Math.min(1, 1500 / sp); set("fly", { vx: vx * f, vy: vy * f, face: "side", pose: "air" }); return; }
     var i, p, best = null, t;
+    for (i = 0; i < world.tiles.length; i++) { t = world.tiles[i]; if (t.mode !== "no") continue;   /* lasciato davanti al Corano: non ci cade e non ci scivola, ne salta via subito */
+      if (cat.x > t.l - 8 && cat.x < t.r + 8 && bodyY + 14 * k > t.t - 4 && bodyY - 10 * k < t.b + 4) { reanchor(below() - below("air")); escapeJump(); return; } }
     for (i = 0; i < world.tiles.length; i++) { t = world.tiles[i]; if (t.mode === "no") continue; if (cat.x > t.l + 24 && cat.x < t.r - 24 && cat.y > t.b - 24 && cat.y < t.b + 22 && !tileAt(cat.x, t.b + 30)) { reanchor(below() - below("hang")); set("hang", { t: t, edgeY: t.b, vx: vx, face: "front", pose: "hang" }); return; } }
     for (i = 0; i < world.plats.length; i++) { p = world.plats[i]; if (cat.x >= p.a - 14 && cat.x <= p.b + 14 && bodyY + 14 * k >= p.y - 30 && bodyY + 14 * k <= p.y + 26) { if (!best || Math.abs(p.y - bodyY) < Math.abs(best.y - bodyY)) best = p; } }
     if (best) { reanchor(below() - below("air")); cat.x = clamp(cat.x, best.a, best.b); set("fall", { p: best, vy: 0, vx: vx * 0.2, face: "view", pose: "air" }); return; }
@@ -567,8 +620,17 @@
     fez = { b: b, sp: fx().Sprite(layer, 64, 64, 32, 32, 2), tas: 0, tasW: 0, pvx: 0, hold: false };
   }
   function killFez() { if (fez) { fez.sp.remove(); fez = null; } }
+  /* il bordo su cui è caduto il fez (quello del suo riquadro più vicino), o null se è caduto dove Dot non va */
+  function fezPlat() {
+    if (!fez) return null; var b = fez.b, fy = b.low(), i, p, best = null, bd = 1e9, dd;
+    for (i = 0; i < world.plats.length; i++) { p = world.plats[i]; if (Math.abs(p.y - fy) > 5 || b.x < p.tile.l || b.x > p.tile.r) continue; dd = b.x < p.a ? p.a - b.x : b.x > p.b ? b.x - p.b : 0; if (dd < bd) { bd = dd; best = p; } }
+    return best && bd < 60 ? best : null;
+  }
+  /* il fez è per terra: va a riprenderlo (aspetta che si fermi, poi ci va a piedi o con un salto, o lo richiama) */
+  function fetchFez() { if (!fez || !cat.plat) return sitFor(rr(1.5, 2.5)); set("fezoff", { ph: 1, t: 0, calm: true, side: fez.b.x > cat.x ? 1 : -1, face: "view", pose: "sit" }); }
   function fezHome() {                                                 /* dove sta il centro del fez quando è in testa (pagina) */
     var f = lastF, F = rig.P.fez; if (!f) return { x: cat.x, y: cat.y - 40 * px() };
+    if (f.fezSeat) return toPage(f.fezSeat.x, f.fezSeat.y);
     var h = f.head, ux = h.u[0], uy = h.u[1], bx = h.x + ux * F.up + h.f[0] * F.fwd, by = h.y + uy * F.up + h.f[1] * F.fwd;
     return toPage(bx + ux * F.h / 2, by + uy * F.h / 2);
   }
@@ -832,6 +894,8 @@
       gx = life.gl * (life.glE ? 0.9 : 0.5); gy = life.glY;
     }
     if (s === "walk" && !cat.att) { rig.look.ty *= 0.35; rig.look.tp *= 0.4; }
+    var up = Math.max(0, rig.pitchT) + Math.max(0, (rig.poses[rig.pose] || rig.poses.sit).hp), tpm = Math.max(0, 0.28 - up);   /* il muso non va troppo in su (posa + corpo + sguardo): il resto lo fanno le pupille, il fez resta in cima */
+    if (rig.look.tp > tpm) { gy = Math.min(1, gy + (rig.look.tp - tpm) * 1.6); rig.look.tp = tpm; }
     var tl = now - (life.turnAt || -9);                                /* girandosi, la testa va per prima verso dove andrà il corpo */
     if (tl < 0.5) { var lw = 0.85 * (1 - smooth(0.25, 0.5, tl)); rig.look.ty = lerp(rig.look.ty, clamp(wrap(life.turnTo - rig.yaw), -0.55, 0.55), lw); gx = lerp(gx, cat.dir > 0 ? 0.6 : -0.6, lw); }
     for (i = 0; i < 2; i++) { rig.gazeT[i].x = gx; rig.gazeT[i].y = gy; }
@@ -842,7 +906,7 @@
     u = now - life.blinkT; if (u < 0.15) b = Math.abs(u - 0.075) / 0.075;
     u = now - life.slow; if (u > 0 && u < 1.4) b = Math.min(b, 1 - smooth(0, 0.5, u) * (1 - smooth(0.75, 1.4, u)));     /* il lento battito di fiducia */
     rig.autoBlink = false; rig.blink = cat.blinkO != null ? cat.blinkO : b; cat.blinkO = null;
-    rig.earTwitch = false; if (now > life.earAt) { rig.earKick(rnd() < 0.5 ? 1 : -1); life.earAt = now + rr(3, 8); }
+    rig.earTwitch = false; if (now > life.earAt && !reduced) { rig.earKick(rnd() < 0.5 ? 1 : -1); life.earAt = now + rr(3, 8); }
     if (life.earFlick) { rig.earKick(life.earSide || 1); life.earFlick = 0; }
     if (life.earKickAt && now >= life.earKickAt) { rig.earKick(life.earSide || 1); life.earKickAt = 0; }   /* l'orecchio che arriva dopo la testa */
     life.fezRollV += (-(life.fezRoll - (life.fezRollT || 0)) * 90 - life.fezRollV * 7) * dt; life.fezRoll = clamp(life.fezRoll + life.fezRollV * dt, -0.6, 0.6); rig.fezRoll = life.fezRoll;
@@ -870,7 +934,7 @@
     cat.st += dt; rig.yawT = yawFor(cat.face, cat.dir);
     rig.tailSwish -= life.flAdd || 0; var S = STATES[cat.state]; if (S) S(dt, cat.d);
     applyMood(); turnStep(dt);
-    if (CALM[cat.state] && now > (life.flAt || 0)) { life.flAt = now + rr(3, 7); life.flT = now; }
+    if (CALM[cat.state] && now > (life.flAt || 0) && !reduced) { life.flAt = now + rr(3, 7); life.flT = now; }
     life.tailKick = (life.tailKick || 0) * Math.exp(-dt * 3.5);
     life.flAdd = (CALM[cat.state] ? 0.32 * bell(seg(now - (life.flT || -9), 0, 0.7)) : 0) + life.tailKick; rig.tailSwish += life.flAdd;   /* la punta della coda dà un colpetto ogni tanto; dopo un salto la coda continua */
     if (drag && !drag.moved && !drag.pet && now - drag.t0 > 0.45 && CALM[cat.state] && cat.plat && !reduced) { drag.pet = true; set("pet", { face: "view", pose: "sit" }); }
@@ -892,7 +956,7 @@
     for (var j = scratches.length - 1; j >= 0; j--) { scratches[j].step(dt); if (scratches[j].dead) scratches.splice(j, 1); }
     /* fuori dalla vista: torna */
     var free = CALM[cat.state] || cat.state === "sleep" || cat.state === "drape" || cat.state === "sulk";
-    if (free && cat.vis && !inView(cat.y - 24 * px(), 30, -24)) { cat.offT += dt; if (cat.offT > 1.2) { cat.offT = 0; comeBack(); } } else cat.offT = 0;
+    if (free && cat.vis && !catInView()) { cat.offT += dt; if (cat.offT > 1.2) { cat.offT = 0; comeBack(); } } else cat.offT = 0;
     if (life.sayAt && now >= life.sayAt) { life.sayAt = 0; say("salam, sono Dot.", 4); }
     if (!frenchDone && (now - lastIn > 90 || now - openedAt > 240) && CALM[cat.state] && cat.vis && inView(cat.y, 80, 0) && !(bubble && bubble.on)) {
       frenchDone = true; try { sessionStorage.setItem("dot-fr", "1"); } catch (e) {}
@@ -972,6 +1036,7 @@
   function canGrab() { var s = cat.state; return !reduced && cat.vis && s !== "opening" && s !== "boxjump" && s !== "boxed" && s !== "boxexit" && s !== "box" && s !== "wait"; }
   function onDown(e) {
     if (!B.on || !canGrab() && !reduced) return; if (e.button && e.button !== 0) return;
+    if (drag) { if (e.cancelable) e.preventDefault(); return; }       /* un secondo dito sul gatto: conta solo il primo */
     try { grab.setPointerCapture(e.pointerId); } catch (er) {}
     drag = { id: e.pointerId, x: e.pageX, y: e.pageY, x0: e.pageX, y0: e.pageY, t0: now, moved: false, pet: false, hist: [{ x: e.pageX, y: e.pageY, t: now, rt: perf() }] };
     lastIn = now; if (e.cancelable) e.preventDefault();
@@ -983,7 +1048,8 @@
     if (!drag.moved && hyp(e.pageX - drag.x0, e.pageY - drag.y0) > 8 && !reduced) { drag.moved = true; if (canGrab()) pickUp(); }
   }
   function onUp(e) {
-    if (!drag || (e && e.pointerId !== drag.id)) return; var d = drag; drag = null;
+    if (!drag || (e && e.pointerId !== drag.id)) return;               /* si alza un altro dito: il primo tiene ancora il gatto */
+    var d = drag; drag = null;
     try { grab.releasePointerCapture(d.id); } catch (er) {}
     if (!d.moved) { if (d.pet) { if (cat.state === "pet") { cat.jit = 0; life.slow = now + 0.2; sitFor(rr(2, 3)); } } else if (e && e.type !== "pointercancel") tap(); return; }
     if (cat.state !== "held") return;
@@ -1048,6 +1114,7 @@
   };
   function begin(first) {
     var h = homePoint(); B.home = h; killFez(); rig.fezOn = true; cat.s = 1; cat.voff = 0; cat.rot = 0; cat.lift = 0;
+    cat.mood = null; cat.taps = []; cat.jit = 0; cat.tangle = 0; life.fezRollT = 0; if (bubble) bubble.hide(); sound("purr", false);   /* «Rivedi»: si riparte puliti */
     var i; for (i = 0; i < props.length; i++) props[i].sp.remove(); props = [];
     stageOn = false; if (DOT.stage && DOT.stage.mount) { try { stage = DOT.stage; if (!B.mounted) { stage.mount(layer, { x: h.x, y: h.y }); B.mounted = true; } else stage.place(h.x, h.y); stageOn = true; } catch (e) { stageOn = false; } }
     readWorld();
