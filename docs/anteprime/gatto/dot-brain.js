@@ -148,6 +148,7 @@
   var keepRange = null;
   function keepRects(el) {
     var out = [], rl, i, er = el.getBoundingClientRect(), over = false;
+    if (el.getAttribute && el.getAttribute("data-dot-keep") === "box") return [er];   /* un testo che cambia da solo (la città del globo): conta tutto il suo riquadro */
     try { if (!keepRange && doc.createRange) keepRange = doc.createRange(); if (keepRange) { keepRange.selectNodeContents(el); rl = keepRange.getClientRects();
       for (i = 0; i < rl.length; i++) { if (rl[i].left < er.left - 2 || rl[i].right > er.right + 2) over = true; out.push(rl[i]); } } } catch (e) { out = []; }
     if (!out.length || over) return [er];                              /* testo che esce dal suo riquadro (una riga che scorre, come i saluti): conta tutto il riquadro */
@@ -487,7 +488,7 @@
   /* fermo su un bordo con una parte del corpo davanti al Corano o a una parola (un riordino, un atterraggio storto): si sposta */
   var GUARD = { sit: 1, look: 1, loaf: 1, sleep: 1, groom: 1, yawn: 1, stretch: 1, drape: 1, sulk: 1, pause: 1, purr: 1, meow: 1, hop: 1, greet: 1, shake: 1, annoyed: 1, land: 1, think: 1 };
   function guard() {
-    if (!cat.vis || !cat.plat || cat.plat.fixed || !GUARD[cat.state] || cat.st < 0.12 || drag || fake || now < (life.guardAt || 0)) return;   /* sul dock ci pensa dockWatch() */
+    if (!cat.vis || !cat.plat || cat.plat.fixed || !GUARD[cat.state] || (cat.st < 0.12 && life.guardAt) || drag || fake || now < (life.guardAt || 0)) return;   /* sul dock ci pensa dockLife(); dopo un refresh guarda subito */
     if (cat.plat.low && cat.state === "land") return;                  /* sta per accucciarsi */
     life.guardAt = now + 0.2; var k = covered(); if (!k) return;
     if (O.strict && cat.plat.tile && cat.plat.tile.mode === "perch") return set("dive", { away: true, face: "side", pose: "crouch" });   /* il logo è stretto: niente passi, giù dietro i tasti (torna poi da un posto buono) */
@@ -648,7 +649,8 @@
     peek: function (dt, d) {                                           /* spunta dal bordo: orecchie, occhi, due zampe; si guarda attorno; poi sale davvero */
       if (!d.p) { cat.vis = false; return set("wait"); }                 /* il suo riquadro non c'è più */
       cat.vis = true; var st = cat.st, p = d.p, k = px(), P0 = rig.poses.peek;
-      if (O.strict && (p.quiet || p.low) && !d.first && !d.ab && st < 1.6) { d.ab = now; d.ay = cat.y; }   /* un filtro ha messo una parola (o il riquadro quiet) sopra quel bordo: torna giù, dietro lo stesso bordo */
+      var pf = O.strict && !d.first && !d.ab ? platFor(p.el, d.x) || p : null;   /* i segni del bordo di adesso (un filtro può aver spostato le parole sopra, anche senza spostare il bordo) */
+      if (pf && (pf.quiet || pf.low || pf.cov)) { d.ab = now; d.ay = cat.y; }   /* una parola (o il riquadro quiet) sopra quel bordo: torna giù, dietro lo stesso bordo */
       if (d.ab) { var ua = seg(now, d.ab, d.ab + 0.2); cat.plat = p; cat.x = d.x; cat.clipAt = p.y; cat.hideL = p.tile.l; cat.hideR = p.tile.r; rig.grounded = false; rig.pose = "peek"; cat.y = lerp(d.ay, p.y + 34 * k, ua * ua);
         if (ua >= 1) { cat.vis = false; cat.plat = null; cat.clipAt = null; cat.hideL = cat.hideR = null; set("wait"); } return; } cat.plat = p; cat.x = d.x; cat.gy = null; cat.clipAt = p.y; cat.hideL = p.tile.l; cat.hideR = p.tile.r; rig.grounded = false;
       if (!d.dir) d.dir = room(p, d.x, 1) > room(p, d.x, -1) ? 1 : -1;
@@ -1822,7 +1824,7 @@
   /* rilegge i riquadri dopo un cambio di impaginazione (riordinati, ridimensionati, nascosti). Dot resta col suo riquadro; se il suo bordo
      non c'è più, o ora sta sotto il Corano o sotto il riquadro quiet, va su un bordo buono e visibile. sec > 0: continua a seguire i riquadri
      a ogni fotogramma per sec secondi (mentre un'animazione li sposta: Dot ci resta sopra) */
-  DOT.refresh = function (sec) { if (!B.on) return; relayout(false); if (sec > 0) B.followTo = Math.max(B.followTo || 0, now + sec); };
+  DOT.refresh = function (sec) { if (!B.on) return; relayout(false); life.guardAt = 0; if (sec > 0) B.followTo = Math.max(B.followTo || 0, now + sec); };   /* la guardia guarda subito il posto nuovo */
   /* congela tutto mentre un foglio copre la pagina: nessun fotogramma, nessun suono, nessuna nuvoletta, nessun tocco */
   DOT.pause = function () {
     if (!B.on || B.paused) return; B.paused = true; cancelAnimationFrame(raf); raf = 0; clearInterval(stillI); stillI = 0; sound("purr", false);

@@ -168,6 +168,8 @@
     ".foot__sky", ".foot__cred", ".foot .l9--big i"
   ].join(", ");
   window.__dotKeep = KEEP;                                             /* per gli strumenti di prova */
+  /* la riga della città del globo cambia da sola ogni pochi secondi (Casablanca, Gaza...): per Dot conta tutta la riga, non solo il nome di adesso */
+  $$(".citta__now").forEach(function (e) { e.setAttribute("data-dot-keep", "box"); });
   /* la prima volta in questa sessione del browser? (deciso al caricamento: l'intro deve saperlo prima di finire) */
   var first = true; try { first = sessionStorage.getItem("imad.dot.aperto") !== "1"; } catch (e) { }
   if (I.shot || Q.get("primo") === "0") first = false;
