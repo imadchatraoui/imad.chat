@@ -1952,11 +1952,11 @@
   function onMove(e) {
     if (!drag || e.pointerId !== drag.id) return; drag.x = e.pageX; drag.y = e.pageY; lastIn = now;
     drag.hist.push({ x: e.pageX, y: e.pageY, rt: perf() }); if (drag.hist.length > 10) drag.hist.shift();
-    if (!drag.moved && hyp(e.pageX - drag.x0, e.pageY - drag.y0) > 8 && !reduced) { drag.moved = true; if (canGrab()) pickUp(); }
+    if (!drag.moved && hyp(e.pageX - drag.x0, e.pageY - drag.y0) > 8 && !reduced) { drag.moved = true; if (canGrab()) { pickUp(); sgDragged(); grabbing(true); } }   /* trascinato davvero: il telefono lo ricorda (il dito fantasma non serve più) */
   }
   function onUp(e) {
     if (!drag || (e && e.pointerId !== drag.id)) return;               /* si alza un altro dito: il primo tiene ancora il gatto */
-    var d = drag; drag = null;
+    var d = drag; drag = null; grabbing(false);
     try { grab.releasePointerCapture(d.id); } catch (er) {}
     if (!d.moved) { if (d.pet) { if (cat.state === "pet") { cat.jit = 0; life.slow = now + 0.2; sitFor(rr(2, 3)); } } else if (e && e.type !== "pointercancel") tap(); return; }
     if (cat.state !== "held") return;
@@ -1970,9 +1970,14 @@
     var t = now, dx = e.pageX - ptr.x, dy = e.pageY - ptr.y, dd = hyp(dx, dy), dtp = t - ptr.t;
     if (dtp > 0.0001) ptr.sp = dd / dtp; if (dd > 3) ptr.still = 0;
     ptr.x = e.pageX; ptr.y = e.pageY; ptr.t = t; ptr.touch = e.pointerType === "touch"; lastIn = now;
+    ptr.cx = e.clientX; ptr.cy = e.clientY; ptr.kind = e.pointerType || "mouse"; ptr.out = false;
   }
+  function onPtrUp(e) { if (e.pointerType !== "mouse") { ptr.down = false; ptr.upAt = now; } }
+  function onPtrOut(e) { if (!e.relatedTarget && ptr.kind === "mouse") ptr.out = true; }   /* il mouse è uscito dalla finestra */
+  function onKeyAny() { SG.keyAt = now; if (SG.g) ghostCancel("type"); }
   function onPtrDown(e) {
-    if (B.paused) return; onPtr(e); ptr.still = 0;
+    if (B.paused) return; onPtr(e); ptr.still = 0; ptr.downAt = now; if (e.pointerType !== "mouse") ptr.down = true;
+    if (SG.g && e.target !== grab) ghostCancel("elsewhere");          /* un tocco altrove: il dito fantasma lascia stare */
     if (stageOn && stage.hit && stage.hit(e.pageX, e.pageY) && (cat.state === "boxed" || cat.state === "box")) { boxOut(); return; }
     if (lastF && cat.vis && e.target !== grab) { var dx = e.pageX - cat.x, dy = e.pageY - (cat.y - 25 * px()); if (hyp(dx, dy) < 170) { life.earFlick = 1; life.earSide = dx > 0 ? 1 : -1; } }
   }
