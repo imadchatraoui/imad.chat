@@ -37,6 +37,8 @@
 .qr__cv { position: absolute; top: 0; left: 0; display: block; transition: opacity 260ms ease; }
 .qr.is-troppo .qr__cv { opacity: .28; }
 .qr__info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding-top: 2px; }
+.qr__info > * { flex: none; }                         /* niente si schiaccia: se c'è una nota, prende il posto della seconda riga */
+.qr.has-nota .qr__val { display: none; }
 .qr__tipo { font: 700 15px/20px var(--font-sans); letter-spacing: -.02em; color: var(--t-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qr__val {
   margin-top: 3px; font: 500 13px/18px var(--font-sans); letter-spacing: -.006em; color: var(--t-ink-2);
@@ -64,7 +66,11 @@
 .qr__chips { flex: none; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
 .chip { flex: none; height: 26px; padding: 0 10px; border-radius: 13px; font: 600 12px/26px var(--font-sans); letter-spacing: -.004em; color: var(--t-ink-2); background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); }
 .chip__presto { flex: none; margin-left: 2px; font: 500 12px/26px var(--font-sans); color: var(--ink-3); }
-@media (max-width: 374px) { .chip { padding: 0 8px; font-size: 11.5px; } .qr__chips { gap: 5px; } .qr__riga { gap: 12px; } }
+@media (max-width: 374px) {
+  .tools .vivo { margin-top: 10px; } .qr { gap: 8px; } .qr__riga { gap: 12px; }
+  .chip { padding: 0 8px; font-size: 11.5px; } .qr__chips { gap: 5px; }
+  .qr__salva { height: 32px; line-height: 32px; padding: 0 13px 0 11px; } .qr__salva::before { top: -6px; bottom: -6px; }
+}
 
 /* mentre si scrive nel campo il dock si fa da parte: la tastiera del telefono non lo porta sopra il campo */
 .is-scrivo .dock { opacity: 0; pointer-events: none; transform: translateY(18px); }
@@ -83,17 +89,17 @@
 .hm__gh svg { opacity: .85; }
 .hm__gh:focus-visible { outline-offset: 4px; border-radius: 6px; }
 .hm { display: flex; flex-direction: column; margin-top: 8px; }
-.hm__riga { flex: none; display: flex; align-items: baseline; gap: 6px; height: 22px; font: 600 15px/22px var(--font-sans); letter-spacing: -.02em; color: var(--t-ink-2); white-space: nowrap; overflow: hidden; }
-.hm__riga b { font-weight: 800; color: var(--t-ink); }
-.hm__a { display: inline-block; transition: opacity 200ms ease, transform 320ms var(--ease-out); }
+.hm__riga { flex: none; display: flex; align-items: flex-end; height: 32px; font: 600 14px/20px var(--font-sans); letter-spacing: -.012em; color: var(--t-ink-2); white-space: nowrap; overflow: hidden; }
+.hm__riga b { display: inline-block; margin-right: 5px; font: 800 27px/30px var(--font-sans); letter-spacing: -.045em; color: var(--t-ink); vertical-align: baseline; }
+.hm__a { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; transition: opacity 200ms ease, transform 320ms var(--ease-out); }
+.hm__a.is-giorno { font-size: 15px; }
 .hm__a.is-via { opacity: 0; transform: translateY(5px); }
 .hm__a .hm__d { color: var(--t-ink); font-weight: 700; }
 .hm__a .hm__s { opacity: .5; margin: 0 .3em; }
 /* la tela sporge di 4 px nel margine: 53 settimane ci stanno a quadrati interi anche sullo schermo più stretto */
 .hm__g { flex: 1 1 auto; min-height: 0; display: flex; align-items: flex-end; justify-content: center; margin: 0 -4px; }
-.hm__cv { display: block; flex: none; touch-action: pan-y; -webkit-touch-callout: none; cursor: crosshair; border-radius: 3px; }
+.hm__cv { display: block; flex: none; touch-action: pan-y; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; border-radius: 3px; }
 .hm__cv:focus-visible { outline: 2px solid var(--t-ink); outline-offset: 5px; }
-.hm.is-vuoto .hm__cv { cursor: default; }
 
 /* ------------------------------------------------------------------ Sto imparando: Three.js Journey */
 .ip__cv { position: absolute; top: 0; left: 0; z-index: 0; display: block; width: 100%; height: 100%; pointer-events: none; }

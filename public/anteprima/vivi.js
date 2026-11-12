@@ -34,6 +34,23 @@
     var raf = 0, go = function () { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; fn(); }); };
     if ("ResizeObserver" in window) new ResizeObserver(go).observe(el); else window.addEventListener("resize", go);
   }
+  /* una tela cade su pixel interi del dispositivo, o il browser la ricampiona e si sfoca. La posizione dei riquadri può avere
+     mezzi pixel (celle di 80,5 px su un telefono x3) e cambia con i filtri del dock: si riallinea all'avvio, al cambio di misura
+     e quando i riquadri hanno finito di viaggiare. */
+  var snaps = [];
+  function snap(el, d) {
+    el.style.transform = "";
+    var r = el.getBoundingClientRect(), fx = (r.left + (window.pageXOffset || 0)) * d, fy = (r.top + (window.pageYOffset || 0)) * d;
+    var dx = (Math.round(fx) - fx) / d, dy = (Math.round(fy) - fy) / d;
+    if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) el.style.transform = "translate(" + dx.toFixed(3) + "px," + dy.toFixed(3) + "px)";
+  }
+  function snapAll() { snaps.forEach(function (f) { try { f(); } catch (e) { } }); }
+  (function () {
+    var grid = doc.getElementById("grid"); if (!grid || !("MutationObserver" in window)) return;
+    var t = 0;
+    new MutationObserver(function () { clearTimeout(t); if (!grid.classList.contains("is-moving")) t = setTimeout(snapAll, 60); }).observe(grid, { attributes: true, attributeFilter: ["class", "data-filtro"] });
+  })();
+
   /* un indirizzo di GitHub e basta: quello che arriva dalle rotte non apre mai altro */
   function ghUrl(u, d) { return (typeof u === "string" && /^https:\/\/github\.com\/[A-Za-z0-9_.\-]+(\/[A-Za-z0-9_.\-]+)?\/?$/.test(u)) ? u : d; }
   function parseDay(s) { var m = typeof s === "string" ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(s) : null; return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN; }
@@ -117,10 +134,10 @@
     /* un fotogramma: il vecchio codice resta dove l'onda non è ancora passata, il nuovo arriva modulo per modulo */
     function quadro(p) {
       if (!cur || !size) return;
-      var info = Q.render(lay, cur.qr, { size: size, dpr: dpr, quiet: 3, shape: LOOK.shape, eye: LOOK.eye, fg: cur.fg, bg: "transparent", progress: p, order: "onda", style: false });
+      var info = Q.render(lay, cur.qr, { size: size, dpr: dpr, quiet: margine(cur.qr.n), shape: LOOK.shape, eye: LOOK.eye, fg: cur.fg, bg: "transparent", progress: p, order: "onda", style: false });
       R = Math.max(1, info.side / 2 * Math.SQRT2);
       if (cv.width !== lay.width || cv.height !== lay.height) { cv.width = lay.width; cv.height = lay.height; hasOld = false; }
-      cv.style.width = size + "px"; cv.style.height = size + "px";
+      if (cv.style.width !== size + "px") { cv.style.width = size + "px"; cv.style.height = size + "px"; snap(cv, dpr); }
       var W = cv.width, c = W / 2;
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
       ctx.clearRect(0, 0, W, W);
@@ -134,6 +151,12 @@
         ctx.globalCompositeOperation = "source-over";
       }
       ctx.drawImage(lay, 0, 0);
+    }
+    /* sullo schermo il margine bianco è di 3 moduli; dove i pixel sono pochi (computer) i moduli interi lascerebbero un bordo
+       troppo largo, e allora 2 (la carta bianca intorno fa il resto). Il PNG salvato ne ha sempre 4. */
+    function margine(n) {
+      var W = Math.round(size * dpr), m3 = Math.floor(W / (n + 6)), m2 = Math.floor(W / (n + 4));
+      return m2 * n > m3 * n * 1.12 ? 2 : 3;
     }
     function istantanea() {
       if (!cv.width) { hasOld = false; return; }
@@ -156,12 +179,12 @@
 
     /* quando si smette di scrivere: si rilegge il codice disegnato (jsQR arriva solo adesso); se non si legge, lo si dice piano */
     var jsqr = 0, attese = [];
-    function conJsQR(fn) {
-      if (typeof window.jsQR === "function") { fn(true); return; }
-      if (jsqr === 2) { fn(false); return; }
+    function conJsQR(fn) {                              /* fn può mancare: al primo fuoco sul campo si comincia solo a caricarlo */
+      if (typeof window.jsQR === "function") { if (fn) fn(true); return; }
+      if (jsqr === 2) { if (fn) fn(false); return; }
       if (fn) attese.push(fn);
       if (jsqr === 1) return;
-      var src = box.getAttribute("data-jsqr"); if (!src) { jsqr = 2; fn && fn(false); return; }
+      var src = box.getAttribute("data-jsqr"); if (!src) { jsqr = 2; if (fn) fn(false); return; }
       jsqr = 1;
       var s = doc.createElement("script"); s.src = src; s.async = true;
       var fine = function () { jsqr = typeof window.jsQR === "function" ? 3 : 2; var a = attese; attese = []; a.forEach(function (f) { f(jsqr === 3); }); };
@@ -179,13 +202,14 @@
           if (!pronto || st !== cur || anim) return;
           var v = null;
           try { v = Q.verify(cv, st.text); if (!v.ok) v = Q.verify(esporta(st.qr), st.text); } catch (e) { v = null; }
-          if (v && !v.ok && st === cur && !nota.textContent) nota.textContent = "Questo codice potrebbe non leggersi.";
+          if (v && !v.ok && st === cur && !nota.textContent) dici("Questo codice potrebbe non leggersi.");
         });
       }, 450);
     }
 
+    function dici(t) { nota.textContent = t || ""; box.classList.toggle("has-nota", !!t); }
     function testi(st) {
-      nota.textContent = "";
+      dici("");
       if (st.kind === "vuoto") {
         tipo.textContent = "prova: incolla un link"; val.textContent = "Si crea qui: non viene inviato niente."; val.classList.remove("is-link");
         salva.disabled = true; cv.setAttribute("aria-label", "Codice QR di prova: " + PROVA); return;
@@ -197,7 +221,7 @@
       }
       var chk = null; try { chk = Q.scannable(SALVA, st.qr); } catch (e) { chk = null; }
       salva.disabled = !!(chk && chk.level === "errore");
-      if (chk && chk.level !== "ok" && chk.why) nota.textContent = chk.why;
+      if (chk && chk.level !== "ok" && chk.why) dici(chk.why);
       cv.setAttribute("aria-label", "Codice QR di: " + st.text);
     }
     function aggiorna() {
@@ -209,7 +233,8 @@
         /* troppo lungo (o un carattere che il motore rifiuta): una riga, niente codice nuovo, niente salvataggio */
         troppo = true; box.classList.add("is-troppo");
         tipo.textContent = st.kind === "link" ? "Link" : "Testo"; val.textContent = ""; val.classList.remove("is-link");
-        nota.textContent = (e && e.message) || "Questo testo non entra in un codice QR."; salva.disabled = true;
+        dici(e && e.code === "TROPPO_LUNGO" ? "Troppo lungo per un codice QR: accorcia il testo." : ((e && e.message) || "Questo testo non entra in un codice QR."));
+        salva.disabled = true;
         clearTimeout(settle); return;
       }
       st.fg = st.kind === "vuoto" ? FAINT : INK;
@@ -248,7 +273,7 @@
     salva.addEventListener("click", function () {
       if (salva.disabled || !cur || cur.kind === "vuoto" || troppo) return;
       var blob = null, name = nome(cur);
-      try { blob = blobDa(esporta(cur.qr).toDataURL("image/png")); } catch (e) { nota.textContent = "Non sono riuscito a preparare l'immagine."; return; }
+      try { blob = blobDa(esporta(cur.qr).toDataURL("image/png")); } catch (e) { dici("L'immagine non si è potuta preparare."); return; }
       var file = null;
       try { file = new File([blob], name, { type: "image/png" }); } catch (e) { file = null; }
       var puo = false;
@@ -272,7 +297,8 @@
     start.fg = FAINT; cur = start; testi(start);
     if (input.value) aggiorna();                       /* il browser può aver rimesso il testo di prima */
     misura();
-    onResize(box, function () { if (misura() && seen) { anim = null; hasOld = false; quadro(1); } });
+    snaps.push(function () { if (size) snap(cv, dpr); });
+    onResize(box, function () { if (misura() && seen) { anim = null; hasOld = false; quadro(1); snap(cv, dpr); } });
     I.whenFree(function () {
       misura();
       if (I.still()) { seen = true; quadro(1); return; }
@@ -334,11 +360,7 @@
       G = { dpr: d, s: s, g: g, p: p, mh: mh, W: 53 * p - g, H: mh + 7 * p - g };
       cv.width = G.W; cv.height = G.H;
       cv.style.width = (G.W / d) + "px"; cv.style.height = (G.H / d) + "px";
-      /* la tela cade su pixel interi del dispositivo: niente sfocato */
-      cv.style.transform = "";
-      var r = cv.getBoundingClientRect(), fx = (r.left + (window.pageXOffset || 0)) * d, fy = (r.top + (window.pageYOffset || 0)) * d;
-      var dx = (Math.round(fx) - fx) / d, dy = (Math.round(fy) - fy) / d;
-      if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) cv.style.transform = "translate(" + dx.toFixed(3) + "px," + dy.toFixed(3) + "px)";
+      snap(cv, d);
       return true;
     }
 
@@ -415,8 +437,9 @@
       kick();
     }
     function onda() {
-      if (played || wave || !ok || !half || !G.W) return;
-      if (I.still()) { played = true; draw(performance.now()); return; }
+      if (played || wave || !ok || !G.W) return;
+      if (I.still()) { played = true; draw(performance.now()); return; }    /* fermo: lo stato finale subito, dovunque sia */
+      if (!half) return;
       wave = { t0: performance.now() }; kick();
     }
 
@@ -430,15 +453,16 @@
     function testoGiorno(x) {
       var dt = new Date(x.ms), y = dt.getUTCFullYear();
       var s = "<span class=\"hm__d\">" + GIORNI[wdOf(x.ms)] + " " + dt.getUTCDate() + " " + MESI[dt.getUTCMonth()] + (y !== endYear ? " " + y : "") + "</span>";
-      if (typeof x.n === "number") s += "<span class=\"hm__s\" aria-hidden=\"true\">·</span>" + (x.n === 0 ? "nessun contributo" : x.n === 1 ? "1 contributo" : fmt(x.n) + " contributi");
+      if (typeof x.n === "number") s += "<span class=\"hm__s\" aria-hidden=\"true\">·</span><span class=\"sr\">, </span>" + (x.n === 0 ? "nessun contributo" : x.n === 1 ? "1 contributo" : fmt(x.n) + " contributi");
       return s;
     }
     var span = $(".hm__a", riga), fadeT = 0;
     function scrivi(html, morbido) {
       clearTimeout(fadeT);
-      if (!morbido || I.still()) { span.classList.remove("is-via"); span.innerHTML = html; return; }
+      var g = mode === "giorno", put = function () { span.innerHTML = html; span.classList.toggle("is-giorno", g); };
+      if (!morbido || I.still()) { span.classList.remove("is-via"); put(); return; }
       span.classList.add("is-via");
-      fadeT = setTimeout(function () { span.innerHTML = html; span.classList.remove("is-via"); }, 150);
+      fadeT = setTimeout(function () { put(); span.classList.remove("is-via"); }, 150);
     }
     function giorno(i) {
       if (!ok || i < 0 || !cells[i]) return;
@@ -532,6 +556,7 @@
       onda();
     }
 
+    snaps.push(function () { if (G.W) snap(cv, G.dpr); });
     colori(); vuoti(); box.classList.add("is-vuoto");
     span.innerHTML = testoTotale();
     if (fit()) draw(0);
@@ -642,7 +667,9 @@
     function still() { draw(0); }
     onResize(tile, function () { fit(); still(); });
     still();
-    var giro = I.loop(cv, function (t) { draw(t - t0); });
+    /* gira piano: trenta disegni al secondo bastano (un quarto di grado ciascuno) e costano la metà */
+    var ultimo = -1e9;
+    var giro = I.loop(cv, function (t) { if (t - ultimo < 30) return; ultimo = t; draw(t - t0); });
     I.whenFree(function () { fit(); still(); I.api("progetti").then(dati, function () { }); });
     return giro;
   }
@@ -651,4 +678,5 @@
   try { if (q) MiniQR(q); } catch (e) { if (window.console) console.error(e); }
   try { if (h) Heat(h); } catch (e) { if (window.console) console.error(e); }
   try { if (ip) Impara(ip); } catch (e) { if (window.console) console.error(e); }
+  I.whenFree(function () { setTimeout(snapAll, 120); });
 })();
