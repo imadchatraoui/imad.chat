@@ -44,11 +44,11 @@
   /* ------------------------------------------------------------------ le pose
      h = fianchi, c = petto, d = testa rispetto al petto; f0..f3 = piedi (0 davanti vicino, 1 davanti lontano,
      2 dietro vicino, 3 dietro lontano) in coordinate del corpo; fs/hs = quanto si allargano di lato le zampe
-     davanti/dietro; tuck = zampe nascoste sotto il corpo; t* = coda (tby attacco, te alzata, tc ricciolo,
+     davanti/dietro (spalle e piedi insieme); fo/ho = quanto in più si allargano solo i piedi (zampe divaricate); tuck = zampe nascoste sotto il corpo; t* = coda (tby attacco, te alzata, tc ricciolo,
      tw avvolta attorno al corpo, puff gonfia); eye = apertura, lid = palpebra calata, brow = palpebra inclinata
      (arrabbiato); hp/hr = testa su-giù / inclinata; ear = orecchie basse; mouth = bocca; sq = schiacciamento
      del corpo; arch = schiena inarcata; br = respiro. */
-  var BASE = { hx: -6, hy: 13.6, cx: 6, cy: 14, dx: 5.5, dy: 8.6, f0x: 7.6, f0y: 0, f1x: 6.4, f1y: 0, f2x: -6.4, f2y: 0, f3x: -7.6, f3y: 0, fs: 0, hs: 0, tuck: 0,
+  var BASE = { hx: -6, hy: 13.6, cx: 6, cy: 14, dx: 5.5, dy: 8.6, f0x: 7.6, f0y: 0, f1x: 6.4, f1y: 0, f2x: -6.4, f2y: 0, f3x: -7.6, f3y: 0, fs: 0, hs: 0, fo: 0, ho: 0, tuck: 0,
     tby: 2.5, te: 0.75, tc: 0.9, tw: 0, puff: 0, eye: 1, lid: 0, brow: 0, hp: 0, hr: 0, ear: 0, mouth: 0, sqx: 1, sqy: 1, arch: 0, br: 0.3 };
   var KEYS = Object.keys(BASE), FAST = { eye: 1, lid: 1, brow: 1, mouth: 1, ear: 1, puff: 1 };
   function pose(o, from) { var p = {}, k, b = from || BASE; for (k in b) p[k] = b[k]; for (k in o) p[k] = o[k]; return p; }
@@ -74,8 +74,13 @@
     /* sui bordi: l'origine è sul bordo del riquadro */
     peek: pose({ hx: 0, hy: -18, cx: 0, cy: -7.5, dx: 0, dy: 13.4, f0x: 1.5, f0y: 1, f1x: 1.5, f1y: 1, fs: 8.6, f2x: 0, f2y: -28, f3x: 0, f3y: -28, tby: -6, te: -1.4, eye: 1.05 }),
     drape: pose({ hx: -7, hy: 5.8, cx: 6.4, cy: 6, dx: 7.6, dy: 1.6, f0x: 8.2, f0y: -9.5, f1x: 5, f1y: 2.5, f2x: -5.4, f2y: -8.6, f3x: -6, f3y: 2.5, tby: -1, te: -1.45, tc: 0.25, eye: 0.95, lid: 0.35, hp: -0.1, br: 0.7 }),
-    hang: pose({ hx: 0, hy: -33, cx: 0, cy: -22, dx: 0.6, dy: 8.6, f0x: 0.6, f0y: 0.6, f1x: 0.6, f1y: 0.6, fs: 7, f2x: 0.6, f2y: -43, f3x: 0.6, f3y: -43, hs: -0.5, tby: -6, te: -1.5, tc: 0.2, eye: 1.1, hp: 0.25 }),
-    slide: pose({ hx: 0, hy: -19, cx: 0, cy: -9, dx: 0.6, dy: 9.2, f0x: 0.8, f0y: 7.5, f1x: 0.8, f1y: 7.5, fs: 8, f2x: 0.8, f2y: -27, f3x: 0.8, f3y: -27, hs: 6, tby: -6, te: -1.2, tc: -0.6, eye: 1.3, ear: 0.4, puff: 0.5 })
+    hang: pose({ hx: 0, hy: -28, cx: 0, cy: -17, dx: 0.6, dy: 8.4, f0x: 0.6, f0y: 0.8, f1x: 0.6, f1y: 0.8, fs: 7.4, fo: -0.6, f2x: 0.6, f2y: -38.5, f3x: 0.6, f3y: -38.5, hs: -0.6, ho: 1.4, tby: -6, te: -1.2, tc: 0.55, tw: 0.45, eye: 1.1, hp: 0.3 }),
+    slide: pose({ hx: 0, hy: -16, cx: 0, cy: -7, dx: 0.6, dy: 8.6, f0x: 0.8, f0y: 6, f1x: 0.8, f1y: 6, fs: 2.4, fo: 10, f2x: 0.8, f2y: -22, f3x: 0.8, f3y: -22, hs: 1.5, ho: 8, tby: -6, te: -1.15, tc: 0.6, tw: -0.5, eye: 1.3, ear: 0.4, puff: 0.5 }),
+    /* con un oggetto: lo tiene tra le zampe, beve, dà una zampata, scrive */
+    hold: pose({ f0x: 7.2, f0y: 9.5, f1x: 6.4, f1y: 9.2, fs: -0.8, dx: 2.8, dy: 10, hp: -0.12 }, SIT),
+    sip: pose({ f0x: 8.4, f0y: 15.2, f1x: 7.6, f1y: 15, fs: -1.2, hp: 0.22, eye: 0, dx: 2.6, dy: 10.2 }, SIT),
+    bat: pose({ f0x: 13, f0y: 15, hp: 0.12, eye: 1.15, dx: 3, dy: 10 }, SIT),
+    type: pose({ f0x: 9.5, f0y: 4.5, f1x: 8.5, f1y: 5.2, hp: -0.18, dx: 3.2, dy: 9.6 }, SIT)
   };
   DOT.pose = pose;
 
@@ -190,7 +195,7 @@
         fx = lerp(fx, jx + (front ? 2.5 : -1), A.tuck); fy = lerp(fy, jy - 1.5, A.tuck);
         var ex = fx - jx, ey = fy - jy, d = Math.sqrt(ex * ex + ey * ey), kx, ky;
         if (d >= L.len || d < 0.001) { kx = (jx + fx) / 2; ky = (jy + fy) / 2; } else { var a = Math.acos(d / L.len), bb = Math.atan2(ey, ex) - a; kx = jx + L.len / 2 * Math.cos(bb); ky = jy + L.len / 2 * Math.sin(bb); }
-        var qj = P3(jx, jy, jz), qk = P3(kx, ky, jz), qft = P3(fx, fy, jz), rs = 1 - 0.85 * A.tuck;
+        var fz2 = jz + sg * (front ? A.fo : A.ho), qj = P3(jx, jy, jz), qk = P3(kx, ky, (jz + fz2) / 2), qft = P3(fx, fy, fz2), rs = 1 - 0.85 * A.tuck;
         legs.push({ jx: qj[0], jy: qj[1], kx: qk[0], ky: qk[1], fx: qft[0], fy: qft[1], r0: L.r0 * rs, r1: L.r1 * rs, paw: L.paw * rs, front: front, side: sg, depth: qj[2], near: jz * cps > 0.3 || qj[2] > 2.5 || Math.abs(cps) < 0.25, up: front && qft[1] > hc[1], tuck: A.tuck, lift: lift * rig.walk });   /* near: davanti al corpo; up: zampa alzata sopra la testa (va disegnata davanti alla testa) */
       }
 
@@ -208,6 +213,7 @@
         body: body, head: head, eyes: eyes, ears: ears,
         nose: { x: qno[0], y: qno[1], vis: fv }, mouth: { x: qmo[0], y: qmo[1], open: A.mouth, vis: fv }, whiskers: whiskers,
         fez: fez, legs: legs, tail: { pts: pts, front: dn ? dsum / dn > 1 : false, puff: A.puff },
+        hold: { x: (legs[0].fx + legs[1].fx) / 2, y: (legs[0].fy + legs[1].fy) / 2 },                 /* dove sta un oggetto tenuto tra le zampe davanti */
         mood: { lid: A.lid, brow: A.brow, ear: A.ear, puff: A.puff, eye: A.eye }, walk: rig.walk, long: rig.long, breath: br
       };
     };

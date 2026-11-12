@@ -56,7 +56,14 @@
     { id: "look-l", label: "testa a sinistra", pose: "sit", yaw: Y.front, look: [0.9, 0] },
     { id: "look-r", label: "testa a destra, in su", pose: "sit", yaw: Y.front, look: [-0.9, 0.3], gaze: [0.6, 0.6] },
     { id: "profile", label: "profilo", pose: "stand", yaw: Y.right, look: [0, 0] },
-    { id: "run", label: "corre", pose: "stand", yaw: Y.right, look: [-0.25, 0], walk: 0.3, speed: 150, pitch: -0.06 }
+    { id: "run", label: "corre", pose: "stand", yaw: Y.right, look: [-0.25, 0], walk: 0.3, speed: 150, pitch: -0.06 },
+    /* con gli oggetti: prop = [nome, dove ("hold" tra le zampe, "ground" a terra a dx unità dal gatto, "air" a [x, y]), ...] */
+    { id: "tea", label: "il tè alla menta", pose: "sip", yaw: Y.viewRight, look: V, prop: ["tea", "hold", 0, -2.6] },
+    { id: "tea-hold", label: "con il bicchiere", pose: "hold", yaw: Y.viewRight, look: V, gaze: [0.3, -0.5], prop: ["tea", "hold", 0, -1.2] },
+    { id: "cube", label: "con il cubo", pose: "hold", yaw: Y.viewRight, look: [-0.5, -0.3], gaze: [0.2, -0.8], prop: ["cube", "hold", 0, -2] },
+    { id: "yarn", label: "il gomitolo", pose: "wiggle", yaw: Y.right, look: [-0.2, -0.1], pupil: 1, prop: ["yarn", "ground", 19, 0] },
+    { id: "star", label: "la stella", pose: "bat", yaw: Y.viewRight, look: [-0.5, 0.4], gaze: [0.5, 0.8], pupil: 1, prop: ["star", "air", 15, 27] },
+    { id: "laptop", label: "programma", pose: "type", yaw: Y.right, look: [0, -0.15], prop: ["laptop", "ground", 13, 0] }
   ];
   if (only) { var ids = only.split(","); LIST = LIST.filter(function (s) { return ids.indexOf(s.id) >= 0; }); }
   if (strip) { LIST = []; for (var i = 0; i < N; i++) LIST.push(strip === "walk" ? { id: "w" + i, label: "passo " + (i + 1) + "/" + N, pose: "stand", yaw: Y.right, look: V, walk: i / N }
@@ -92,6 +99,7 @@
       c.translate(ox, oy); c.scale(K, -K);
       if (s.rise) c.translate(0, s.rise);
       look.draw(c, f, env);
+      if (s.prop) { var dp = look.drawProp || DOT.looks.base.drawProp, pr = s.prop; c.save(); if (pr[1] === "hold") c.translate(f.hold.x + pr[2], f.hold.y + pr[3]); else c.translate(pr[2], pr[3]); dp(c, pr[0], { t: 1.3 }, env); c.restore(); }
       if (s.loose && look.drawFez) { c.translate(15, 0); look.drawFez(c, { rBase: f.P.fez.rBase, rTop: f.P.fez.rTop, h: f.P.fez.h, ell: 0.22, top: true, tasselAng: 0.3 }, env); }
       c.restore();
       c.strokeStyle = line; c.lineWidth = 1; c.strokeRect(x0 + 0.5, y0 + 0.5, CW - 1, CH - 1);

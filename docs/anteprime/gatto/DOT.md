@@ -56,6 +56,15 @@ The page:
 - Site things (P3): bats at the blinking cursor of `imad.chat_`; watches the globe turn; follows a greeting-star with its eyes; at night in Torino it sleeps more; on the tools pages it sits in a corner and watches.
 - Reduced motion: Dot sits still and only blinks. Hidden tab: everything pauses.
 
+Objects (asked on 2026-11-12: "crea anche delle immagini in cui ha dei gadget, degli oggetti, vedi te"). Dot has a few things of its own, each drawn by the look in its style and moved by the brain; they appear now and then, never all together, and each has its own small behaviour:
+- **a glass of Moroccan mint tea**: it sits, holds it with both paws, sips with closed eyes, a wisp of steam (P1);
+- **the star-dot of the site**, a small gold light that flits about: it follows it with its pupils, bats at it, pounces (P1);
+- **a small cube in Imad's pastel colours** (the Kukko theme: `#ffb6c1`, `#fdfd96`, `#ffb347`, `#77dd77`, `#aec6cf`, `#ff6961`): it turns it over with a paw, tilts its head, puzzled; sometimes knocks it off the edge and looks down after it (P1);
+- **a ball of yarn**: rear wiggle, pounce, it rolls away, a thread trails; now and then it ends up tangled (P2);
+- **a tiny laptop**: it types fast with both paws, green lines of code scroll, it looks proud (P2);
+- its **box** (home) and its **fez** are objects too.
+Not objects for a cat: anything religious, any flag, anything about the conflicts.
+
 Words and sound: "salam, sono Dot." / "miao" (also "mrr", "prr") / "Lo sapevi che «chat» vuol dire gatto in francese?". Sound only on a direct tap, short and quiet, from free-licence recordings recorded in `docs/fonti.md`; if none is good enough, no sound.
 
 ## 4. The quality bar for the motion
@@ -77,7 +86,7 @@ Plain scripts, no library, no build step. **ES2017 at most** (no optional chaini
 Files in `docs/anteprime/gatto/` (each has one owner while agents work in parallel):
 
 - `dot-rig.js` — the skeleton. `DOT.makeRig(preset)` gives a rig: poses (`DOT.POSES`), proportions (`DOT.PROPS`), a pseudo-3D pose (body yaw, pitch, roll; head yaw, pitch, roll) projected to 2D. `rig.step(dt)` smooths toward the target pose; `rig.frame()` returns the **frame**: plain 2D geometry in model units, origin at the ground point under the cat, x right, **y up**. The frame is the contract between movement and drawing: fields may be added, never renamed or removed.
-- `look-*.js` — a look registers `DOT.looks[name] = { label, preset, draw(ctx, frame, env), drawFez(ctx, fez, env) }`. `ctx` arrives already transformed to model units with y up. A look never moves anything: it only draws the frame. Its `preset` may override proportions and pose numbers.
+- `look-*.js` — a look registers `DOT.looks[name] = { label, preset, draw(ctx, frame, env), drawFez(ctx, fez, env), drawProp(ctx, name, p, env) }` (`drawProp` draws Dot's objects: `tea`, `cube`, `yarn`, `star`, `laptop`; origin at the object's base, y up). `ctx` arrives already transformed to model units with y up. A look never moves anything: it only draws the frame. Its `preset` may override proportions and pose numbers.
 - `dot-brain.js` — behaviour: states, timing, physics, touch, bubbles, scratches, the loose fez, sounds. It talks to the rig by pose name, overrides and a few controls. It may register extra poses of its own; it does not edit the rig.
 - `dot-stage.js` — the nine keys and the box, Canvas 2D.
 - `dot-sound.js`, `media/` — sounds.

@@ -90,5 +90,31 @@
     var a = fz.tasselAng || 0, x0 = -fz.rTop * 0.7, y0 = fz.h, L = 6.4; tassel(c, { x0: x0, y0: y0, x1: x0 + L * Math.sin(a), y1: y0 - L * Math.cos(a) });
   }
 
-  DOT.looks.base = { label: "Base", preset: {}, draw: draw, drawFez: drawFez };
+  /* gli oggetti di Dot: name = "tea" | "cube" | "yarn" | "star" | "laptop"; origine alla base dell'oggetto, y in alto; p = { t, open } */
+  function drawProp(c, name, p) {
+    p = p || {}; var i, j;
+    if (name === "tea") {                                           /* il bicchiere di tè alla menta */
+      c.fillStyle = "rgba(255,255,255,.28)"; c.beginPath(); c.moveTo(-2.1, 0); c.lineTo(2.1, 0); c.lineTo(2.9, 6.4); c.lineTo(-2.9, 6.4); c.closePath(); c.fill();
+      c.fillStyle = "#c98a2b"; c.beginPath(); c.moveTo(-1.8, 0.4); c.lineTo(1.8, 0.4); c.lineTo(2.4, 4.6); c.lineTo(-2.4, 4.6); c.closePath(); c.fill();
+      c.fillStyle = "#5fae4a"; c.beginPath(); c.ellipse(0.6, 5.2, 1.5, 0.8, 0.5, 0, TAU); c.fill();
+      c.strokeStyle = "#e8b64a"; c.lineWidth = 0.4; c.beginPath(); c.moveTo(-2.9, 6.4); c.lineTo(2.9, 6.4); c.stroke();
+    } else if (name === "cube") {                                   /* il cubo, con i colori pastello di Imad */
+      var col = ["#ffb347", "#ffb6c1", "#77dd77", "#aec6cf", "#fdfd96", "#ff6961", "#ffb347", "#77dd77", "#ffb6c1"];
+      c.fillStyle = "#f4f1ea"; c.beginPath(); c.rect(-3.6, 0, 7.2, 7.2); c.fill(); c.fillStyle = "#fff"; c.fillRect(-3.6, 7.2, 7.2, 1.2);
+      for (i = 0; i < 3; i++) for (j = 0; j < 3; j++) { c.fillStyle = col[i * 3 + j]; c.fillRect(-3.3 + j * 2.25, 0.3 + i * 2.25, 1.95, 1.95); }
+    } else if (name === "yarn") {                                   /* il gomitolo */
+      c.fillStyle = "#e9e3d6"; c.beginPath(); c.arc(0, 3.4, 3.4, 0, TAU); c.fill(); c.strokeStyle = "#c9c0ae"; c.lineWidth = 0.35;
+      for (i = -2; i <= 2; i++) { c.beginPath(); c.ellipse(0, 3.4, 3.3, 1.1 + Math.abs(i) * 0.5, i * 0.5, 0, TAU); c.stroke(); }
+      c.strokeStyle = "#e9e3d6"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(3, 1.2); c.quadraticCurveTo(7, -0.4, 10, 0.6); c.stroke();
+    } else if (name === "star") {                                   /* la stella-punto del sito */
+      var g = c.createRadialGradient(0, 0, 0, 0, 0, 5); g.addColorStop(0, "rgba(255,226,160,.9)"); g.addColorStop(0.3, "rgba(240,180,80,.4)"); g.addColorStop(1, "rgba(240,180,80,0)"); c.fillStyle = g; c.beginPath(); c.arc(0, 0, 5, 0, TAU); c.fill();
+      c.fillStyle = "#fff3d2"; c.beginPath(); c.arc(0, 0, 1.15, 0, TAU); c.fill();
+    } else if (name === "laptop") {                                 /* il portatile */
+      c.fillStyle = "#d9dbe2"; c.fillRect(-7, 0, 14, 1); c.fillStyle = "#c2c5cf"; c.beginPath(); c.moveTo(-6, 1); c.lineTo(6, 1); c.lineTo(7.2, 9.6); c.lineTo(-4.8, 9.6); c.closePath(); c.fill();
+      c.fillStyle = "#12142a"; c.beginPath(); c.moveTo(-5.2, 1.7); c.lineTo(5.4, 1.7); c.lineTo(6.4, 8.9); c.lineTo(-4.2, 8.9); c.closePath(); c.fill();
+      c.fillStyle = "#7de08a"; c.fillRect(-3.6, 6.8, 4, 0.5); c.fillRect(-3.3, 5.4, 6, 0.5); c.fillRect(-3, 4, 3, 0.5);
+    }
+  }
+
+  DOT.looks.base = { label: "Base", preset: {}, draw: draw, drawFez: drawFez, drawProp: drawProp };
 })();
