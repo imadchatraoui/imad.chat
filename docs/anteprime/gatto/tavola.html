@@ -71,6 +71,19 @@
   var CELL = { look: 1, yaw: 1, gaze: 1, headMax: 1, faceTurn: 1, roll: 1, pitch: 1, pupil: 1, fez: 1, long: 1, walk: 1, speed: 1 };
   var prova = null; try { prova = q.get("prova") ? JSON.parse(q.get("prova")) : null; } catch (e) { prova = null; }
   if (prova && LIST.length) { var s0 = LIST[0]; LIST = prova.map(function (o, i) { var c = {}, k2; for (k2 in s0) c[k2] = s0[k2]; c.over = {}; for (k2 in (s0.over || {})) c.over[k2] = s0.over[k2]; for (k2 in o) { if (CELL[k2]) c[k2] = o[k2]; else c.over[k2] = o[k2]; } c.label = Object.keys(o).map(function (n) { return n + " " + JSON.stringify(o[n]); }).join("  ") || "com'è"; c.id = "v" + i; return c; }); }
+  /* ?giri=1 : la testa girata di 0, 0.35, 0.7 e 1 radianti dalle due parti, seduto, in piedi, camminando, sbirciando.
+     Il giro si misura da chi guarda (0 = il muso verso di noi); in piedi e camminando il corpo guarda dalla stessa parte. */
+  if (q.get("giri")) {
+    LIST = []; cols = 7;
+    var GT = [-1, -0.7, -0.35, 0, 0.35, 0.7, 1], GR = [["sit", "seduto"], ["stand", "in piedi"], ["walk", "cammina"], ["peek", "spunta"]];
+    GR.forEach(function (gr) { GT.forEach(function (t) {
+      var side = gr[0] === "stand" || gr[0] === "walk", yaw = side ? (t >= 0 ? Y.right : Y.left) : Y.front, ty = DOT.util.wrap(t - Math.PI / 2 - yaw);
+      var cell = { id: gr[0] + "@" + t, label: gr[1] + " " + (t < 0 ? "← " : t > 0 ? "→ " : "") + Math.abs(t).toFixed(2), pose: gr[0] === "walk" ? "stand" : gr[0], yaw: yaw, look: [ty, 0.04], faceTurn: 0 };
+      if (gr[0] === "walk") cell.walk = 0.3;
+      if (gr[0] === "peek") { cell.edge = "top"; cell.clip = true; cell.paws = true; }
+      LIST.push(cell);
+    }); });
+  }
   if (strip) { LIST = []; for (var i = 0; i < N; i++) LIST.push(strip === "walk" ? { id: "w" + i, label: "passo " + (i + 1) + "/" + N, pose: "stand", yaw: Y.right, look: V, walk: i / N }
     : strip === "turn" ? { id: "t" + i, label: "giro " + (i + 1) + "/" + N, pose: i < N / 2 ? "stand" : "sit", yaw: Y.right + (Y.left - Y.right) * i / (N - 1), look: V }
     : { id: "b" + i, label: "occhi " + (i + 1) + "/" + N, pose: "sit", yaw: Y.viewRight, look: V, over: { eye: 1.3 - 1.3 * i / (N - 1), lid: i % 2 ? 0.4 : 0, brow: i % 3 === 0 ? 0.8 : 0 } }); }
