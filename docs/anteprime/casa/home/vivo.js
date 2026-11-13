@@ -434,13 +434,35 @@
     }
     (function type() { if (i < chars.length) { tx.textContent += chars[i++]; setTimeout(type, 75 + Math.random() * 60); } else setTimeout(rise, 950); })();
   }
-  function kick() {
-    if (!riga || !pending || busy || I.still()) return;
-    if (root.classList.contains("is-sheet") || root.classList.contains("ni-on")) return;
-    var g = pending; pending = null; setTimeout(function () { play(g); }, 420);
+  /* il saluto si batte solo quando l'hero si vede almeno a metà: scelto dal foglio dei saluti con la pagina in basso, aspetta; chiuso il
+     foglio, la pagina sale piano fino in cima (con «meno movimento» di colpo) e il saluto parte quando l'hero è in vista */
+  var hero = doc.getElementById("hero"), heroSi = true, daFoglio = false, foglio = root.classList.contains("is-sheet");
+  function sheetOn() { return root.classList.contains("is-sheet"); }
+  if (hero && "IntersectionObserver" in window) {
+    heroSi = false;
+    new IntersectionObserver(function (es) { var e = es[es.length - 1]; heroSi = e.isIntersecting && e.intersectionRatio >= 0.49; if (heroSi) kick(); }, { threshold: [0, 0.25, 0.5, 0.75, 1] }).observe(hero);
   }
-  doc.addEventListener("imad:saluto", function (e) { if (e && e.detail && e.detail.text) { pending = e.detail; kick(); } });
-  if ("MutationObserver" in window) new MutationObserver(kick).observe(root, { attributes: true, attributeFilter: ["class"] });
-  /* chi ha già lasciato un saluto lo rivede salire, una volta, quando apre il sito */
-  try { var mine = JSON.parse(localStorage.getItem("imad.saluto") || "null"); if (mine && D.greetings[mine.i]) { pending = { text: D.greetings[mine.i].text, lang: D.greetings[mine.i].lang }; setTimeout(kick, 900); } } catch (e) { /* senza memoria va bene lo stesso */ }
+  function kick() {
+    if (!riga || !pending || busy || I.still() || !heroSi) return;
+    if (sheetOn() || root.classList.contains("ni-on")) return;
+    var g = pending; pending = null; busy = true;
+    setTimeout(function () {
+      busy = false;
+      if (!heroSi || sheetOn()) { if (!pending) pending = g; return; }   /* nel frattempo l'hero è uscito, o si è aperto un foglio: aspetta ancora */
+      daFoglio = false; play(g);
+    }, 420);
+  }
+  function suInCima() {
+    if (!daFoglio || !pending || heroSi || busy) return;
+    daFoglio = false;                                   /* una volta sola: un altro foglio chiuso dopo non riporta in cima */
+    window.scrollTo({ top: 0, behavior: I.reduced() ? "auto" : "smooth" });
+  }
+  doc.addEventListener("imad:saluto", function (e) { if (e && e.detail && e.detail.text) { pending = e.detail; daFoglio = sheetOn(); kick(); } });
+  if ("MutationObserver" in window) new MutationObserver(function () {
+    var ora = sheetOn(), chiuso = foglio && !ora; foglio = ora;
+    if (chiuso) suInCima();
+    kick();
+  }).observe(root, { attributes: true, attributeFilter: ["class"] });
+  /* chi ha già lasciato un saluto lo rivede salire, una volta, quando apre il sito (non tornando da una nostra pagina: index.html) */
+  try { var mine = JSON.parse(localStorage.getItem("imad.saluto") || "null"); if (mine && D.greetings[mine.i] && !window.__casaRitorno) { pending = { text: D.greetings[mine.i].text, lang: D.greetings[mine.i].lang }; setTimeout(kick, 900); } } catch (e) { /* senza memoria va bene lo stesso */ }
 })();
