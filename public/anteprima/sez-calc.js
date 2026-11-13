@@ -1,8 +1,10 @@
 /* imad.chat — i conti delle sezioni (prototipo). Plain script, ES2017 al massimo, nessuna dipendenza oltre a ImadAstro
    (../../shared/astro-lite.js). Funziona nella pagina (window.SEZ_CALC) e in node (module.exports), così i numeri si controllano
    contro le risposte salvate delle rotte e contro lib/astro.
-     heat(j)            l'anno di GitHub da /api/github/contributi: giorni attivi, serie più lunga, serie in corso, giorno più pieno,
-                        mesi, giorni della settimana. Solo dai giorni della risposta; null se la risposta non c'è.
+     heat(j, oggi)      l'anno di GitHub da /api/github/contributi: giorni attivi, serie più lunga, serie in corso, giorno più pieno,
+                        mesi, giorni della settimana. Solo dai giorni della risposta; null se la risposta non c'è. oggi (facoltativo,
+                        ms UTC della data di oggi sul telefono): la serie in corso si misura contro di lui, non contro l'ultimo giorno
+                        della risposta (una risposta in cache di ieri non fa credere che la serie continui); senza, l'ultimo giorno.
      city(c, d)         una città adesso: ora (Casablanca a UTC+0 dal 20 settembre 2026), Sole e Luna (altezza, azimut), alba,
                         tramonto, ore di luce, qibla e distanza dalla Kaʿba. */
 (function (root) {
@@ -20,7 +22,7 @@
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 
   /* ------------------------------------------------------------------ l'anno di GitHub */
-  function heat(j) {
+  function heat(j, oggi) {
     if (!j || !j.ok || !j.days || !j.days.length) return null;
     var list = [];
     for (var i = 0; i < j.days.length; i++) {
@@ -56,14 +58,18 @@
       prev = x;
     });
     out.longest = best.n ? best : null;
-    /* la serie in corso: finisce oggi, o ieri se oggi non ci sono ancora contributi (la giornata non è finita) */
-    var k = list.length - 1, today = list[k], alive = null;
-    if (!on(today)) k--;
-    if (k >= 0 && on(list[k])) {
+    /* la serie in corso: finisce oggi, o ieri se oggi non ci sono ancora contributi (la giornata non è finita). «Oggi» è la data del
+       telefono: se l'ultimo giorno della risposta è ieri (la risposta non ha ancora oggi), un ieri attivo continua la serie «fino a
+       ieri»; se è più vecchio, nessuna serie in corso (lag dice di quanti giorni è indietro la risposta) */
+    var k = list.length - 1, lastMs = list[k].ms, todayMs = typeof oggi === "number" && isFinite(oggi) ? oggi : lastMs, alive = null;
+    var lag = Math.max(0, Math.round((todayMs - lastMs) / DAY));
+    if (lag === 0 && !on(list[k])) k--;
+    var yest = todayMs - DAY;
+    if (lag <= 1 && k >= 0 && on(list[k]) && (list[k].ms === todayMs || list[k].ms === yest)) {
       var m = k; while (m > 0 && on(list[m - 1]) && list[m].ms - list[m - 1].ms === DAY) m--;
-      alive = { n: k - m + 1, from: list[m], to: list[k], untilYesterday: k === list.length - 2 };
+      alive = { n: k - m + 1, from: list[m], to: list[k], untilYesterday: list[k].ms === yest };
     }
-    out.current = alive;
+    out.current = alive; out.lag = lag;
     /* il giorno più pieno (il primo, se sono più di uno) e quanti lo pareggiano */
     if (counts && max > 0) {
       var top = list.filter(function (x) { return x.n === max; });

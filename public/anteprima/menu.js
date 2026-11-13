@@ -49,6 +49,13 @@
   var M_SC = molla(0.8, N);            /* la scala: 1,5% oltre */
   var M_POP = molla(0.7, N);           /* il punto: si posa con un 1,04 */
   var EO = "cubic-bezier(.22, 1, .36, 1)", EIN = "cubic-bezier(.5, 0, .75, 0)";
+  /* la stessa ease-in in numeri (per il velo che segue le pieghe): x(s) = 3(1−s)²s·.5 + 3(1−s)s²·.75 + s³, y(s) = s³ */
+  function einAt(x) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    var lo = 0, hi = 1, m = 0.5;
+    for (var i = 0; i < 22; i++) { m = (lo + hi) / 2; var xm = 3 * (1 - m) * (1 - m) * m * 0.5 + 3 * (1 - m) * m * m * 0.75 + m * m * m; if (xm < x) lo = m; else hi = m; }
+    return m * m * m;
+  }
   var FLY = 520, STEP = 45, FIRST = 40;
 
   /* ---------------------------------------------------------------- i posti */
@@ -115,7 +122,8 @@
   var M = doc.createElement("div");
   M.className = "menu"; M.id = "menu"; M.hidden = true;
   M.setAttribute("role", "dialog"); M.setAttribute("aria-modal", "true"); M.setAttribute("aria-label", "Menu");
-  M.setAttribute("data-dot-keep", "");
+  /* niente data-dot-keep sul menu intero: Dot sta fermo sotto il velo opaco (DOT.pause), e un'area vietata grande quanto lo schermo lo
+     faceva tuffare via appena ripartiva, mentre il menu finiva di chiudersi */
   var photo = (function () { var im = $(".tile.me .win__img"); return im ? (im.getAttribute("src") || "") : ""; })();
   var html = '<div class="menu__velo"></div><ul class="menu__g">';
   PLACES.forEach(function (p, i) {
@@ -253,32 +261,34 @@
     if (state === "closing" && !o.instant) return false;
     /* chiuso mentre i tasti volano ancora: si ripiegano da dove sono, senza scatti */
     var now = keys.map(function (k) { var cs = getComputedStyle(k); return { t: cs.transform && cs.transform !== "none" ? cs.transform : "none", o: +cs.opacity }; });
+    var v0 = Math.min(1, +getComputedStyle(velo).opacity || 0);   /* chiuso mentre il velo arriva: parte da dov'è */
     stopAll(); state = "closing";
     logo.setAttribute("aria-expanded", "false");
     if (pushed && !o.fromPop && !o.keepHistory) { pushed = false; skipPop++; try { history.back(); } catch (e) { skipPop--; } }
     else if (o.fromPop) pushed = false;
     M.classList.add("is-via");
+    /* la casa torna viva solo quando il menu non c'è più (display: none): prima Dot si sveglierebbe davanti a un menu ancora acceso */
     var finish = function () {
       stopAll();
       M.hidden = true; M.classList.remove("is-via", "is-sotto");
       keys.forEach(function (k) { k.classList.remove("is-giu", "is-scelto"); k.style.visibility = ""; k.style.translate = ""; });
-      squaresOut(false); state = "closed"; emit("close");
-      if (o.then) { try { o.then(); } catch (e) { if (W.console) console.error(e); } }
-    };
-    /* la casa torna viva appena il velo se n'è andato; i tasti finiscono di ripiegarsi sopra di lei */
-    var free = function () {
+      squaresOut(false);
       root.classList.remove("is-menu"); inert(false);
-      if (dotPaused) { dotPaused = false; dot("resume"); }
+      if (dotPaused) { dotPaused = false; dot("resume"); dot("refresh"); }
       if (!o.then) { try { logo.focus({ preventScroll: true }); } catch (e) { } }
       kbdOpen = false;
+      state = "closed"; emit("close");
+      if (o.then) { try { o.then(); } catch (e) { if (W.console) console.error(e); } }
     };
-    if (o.instant || still()) { free(); finish(); return true; }
+    if (o.instant || still()) { finish(); return true; }
 
-    var R = cells.map(rectOf), S = squares.map(rectOf), longest = 0;
+    var R = cells.map(rectOf), S = squares.map(rectOf), longest = 0, starts = [];
     var quick = !!o.quick, pre = quick ? 0 : 60, fold = quick ? 240 : 360, settle = 40, step = quick ? 14 : 26;
     keys.forEach(function (k, n) {
-      var i = keyIndex(k), isDot = i === 4, d = isDot ? step * 5 : step * (4 - diag(i));
+      /* il punto per ultimo, ma insieme all'ultima diagonale (il Corano): da solo, dopo gli altri, attraversava la scritta */
+      var i = keyIndex(k), isDot = i === 4, d = isDot ? step * 4 + 6 : step * (4 - diag(i));
       if (k.style.visibility === "hidden") return;
+      starts.push(d + pre); if (isDot) starts.push(d + pre);   /* il velo conta il punto due volte: è il tasto chiaro, si vede di più */
       var s = S[i], r = R[n], kk = s.w / r.w, dx = s.x - r.x, dy = s.y - r.y, tot = pre + fold + settle;
       var to = "translate(" + dx.toFixed(2) + "px," + dy.toFixed(2) + "px) scale(" + kk.toFixed(4) + ")";
       var kf = [{ offset: 0, transform: now[n].t, opacity: now[n].o, easing: "ease-out" }];
@@ -295,10 +305,25 @@
       longest = Math.max(longest, d + tot);
     });
     A(piede, [{ opacity: 1 }, { opacity: 0, transform: "translateY(8px)" }], { duration: 160, easing: "ease-in", fill: "forwards" });
-    var vd = quick ? 0 : pre, vdur = 220;
-    A(velo, [{ opacity: 1 }, { opacity: 0 }], { duration: vdur, delay: vd, easing: "ease-out", fill: "forwards" });
-    later(free, vd + vdur);
-    later(finish, Math.max(longest, vd + vdur) + 20);
+    /* il velo segue le pieghe: in ogni istante è opaco quanto il viaggio che i tasti hanno ancora da fare (la media, con la loro stessa
+       ease-in; la potenza .6 lo tiene un filo più a lungo), così la griglia aperta non sta mai sopra la casa nuda e il velo è a metà
+       quando i tasti sono a metà. Prima se ne andava in 220 ms e i nove tasti restavano spiegati sulla casa per 150 ms */
+    var vend = 0, NV = 24, vk = [];
+    starts.forEach(function (t0) { vend = Math.max(vend, t0 + fold); });
+    for (var j = 0; j <= NV; j++) {
+      var t = vend * j / NV, m = 0;
+      starts.forEach(function (t0) { m += einAt((t - t0) / fold); });
+      m = starts.length ? m / starts.length : 1;
+      vk.push({ offset: j / NV, opacity: j === NV ? 0 : +(v0 * Math.pow(1 - m, 0.6)).toFixed(3) });
+    }
+    if (vend > 0) A(velo, vk, { duration: vend, easing: "linear", fill: "forwards" });
+    /* html.is-menu se ne va quando il velo è quasi trasparente (sotto il 6%): il versetto del Corano (sezioni.css lo nasconde sotto il menu)
+       torna allora, mai velato e senza aspettare la fine delle pieghe. Lo scorrimento resta fermo fino alla fine (gli ascolti su #menu);
+       Dot riparte solo a menu spento (finish) */
+    var vgone = vend;
+    for (var jj = 0; jj < vk.length; jj++) if (vk[jj].opacity < 0.06) { vgone = vend * vk[jj].offset; break; }
+    later(function () { root.classList.remove("is-menu"); }, vgone);
+    later(finish, Math.max(longest, vend) + 20);
     return true;
   }
 
@@ -330,7 +355,14 @@
     if (!ok) return;                      /* la sezione non può adesso: il menu resta com'è */
     handoff(k);
   }
-  /* il menu scende sotto la sezione che si apre: gli altri tasti si ripiegano nel logo, il velo se ne va, poi niente (inerte, nascosto) */
+  /* il menu scende sotto la sezione che si apre: gli altri tasti si ripiegano nel logo sotto il velo, che resta opaco finché la sezione
+     non copre lo schermo; poi il menu se ne va di colpo, da sotto (sul telefono non si vede niente: la sezione è sopra). Prima il velo
+     se ne andava in 250 ms e la casa lampeggiava per 150-250 ms tra il menu e la sezione.
+     Da 700 px la sezione è una scheda che non copre lo schermo: lì il velo, quando la scheda è aperta, sfuma in 240 ms sulla casa
+     (sotto il fondo scuro della sezione) */
+  var COVER = 480;                        /* ms: al 75% dei 640 dell'apertura (la molla ζ .76 è già oltre il 98%) */
+  var sezHook = false, handGone = null;
+  function onSez(e) { if (e && e.type === "close" && state === "handoff" && handGone) { stopAll(); handGone(); } }
   function handoff(k) {
     pushed = false;                       /* la voce della cronologia ora è della sezione (replace) */
     stopAll(); state = "handoff";
@@ -338,7 +370,7 @@
     M.classList.add("is-sotto");
     k.style.visibility = "hidden";
     var gone = function () {
-      stopAll();
+      handGone = null; stopAll();
       M.setAttribute("inert", ""); M.hidden = true; M.removeAttribute("inert"); M.classList.remove("is-sotto", "is-via");
       keys.forEach(function (q) { q.classList.remove("is-giu", "is-scelto"); q.style.visibility = ""; q.style.translate = ""; });
       squaresOut(false); root.classList.remove("is-menu");
@@ -346,6 +378,8 @@
       dotPaused = false; kbdOpen = false; state = "closed"; emit("close");
     };
     if (still()) { gone(); return; }
+    handGone = gone;
+    if (!sezHook && W.SEZIONI && W.SEZIONI.on) { sezHook = true; W.SEZIONI.on(onSez); }   /* chiusa prima di coprire: via subito */
     var R = cells.map(rectOf), S = squares.map(rectOf), longest = 0;
     keys.forEach(function (q, n) {
       if (q === k) return;
@@ -355,10 +389,14 @@
       longest = Math.max(longest, d + 280);
     });
     A(piede, [{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: "ease-in", fill: "forwards" });
-    A(velo, [{ opacity: 1 }, { opacity: 0 }], { duration: 250, easing: "ease-out", fill: "forwards" });
-    /* al 40% dell'apertura della sezione (640 ms) il menu non c'è più: inerte subito, nascosto quando le pieghe sono finite */
-    later(function () { M.setAttribute("inert", ""); }, 256);
-    later(function () { M.removeAttribute("inert"); gone(); }, Math.max(256, longest + 10));
+    /* inerte subito (la sezione ha già il fuoco); nascosto quando la sezione copre lo schermo e le pieghe sono finite */
+    M.setAttribute("inert", "");
+    var at = Math.max(COVER, longest + 10), card = W.innerWidth >= 700;
+    if (card) {
+      A(velo, [{ opacity: 1 }, { opacity: 0 }], { duration: 240, delay: at, easing: "ease-out", fill: "forwards" });
+      at += 250;
+    }
+    later(function () { M.removeAttribute("inert"); gone(); }, at);
   }
   /* senza sezioni.js: si chiude il menu, poi il riquadro fa da sé (il suo foglio, la sua pagina) */
   function fallback(id) {

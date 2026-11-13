@@ -67,7 +67,7 @@
 
   function dropMag(now) {
     if (!mag) return;
-    if (now || mqReduce.matches) { mag.el.style.translate = ""; mag = null; return; }
+    if (now || mqReduce.matches) { magSet(mag.el, 0, 0); mag = null; return; }
     mag.tx = 0; mag.ty = 0; mag.z = 0.58; mag.gone = true; wake();      /* lasciato: torna con la molla viva */
   }
   function shapeOf(n) {
@@ -88,7 +88,7 @@
     if (mode === "wrap") {
       /* la forma si misura entrando (e dopo uno scorrimento o una pressione), non a ogni movimento del mouse */
       if (!mag || mag.el !== d.el) {
-        if (mag) { mag.el.style.translate = ""; mag = null; }
+        if (mag) { magSet(mag.el, 0, 0); mag = null; }
         mag = { el: d.el, x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0, z: 0.82, gone: false, sh: null };
       }
       if (!mag.sh || mag.gone || dirty) { mag.sh = shapeOf(d.el); dirty = false; }
@@ -104,7 +104,7 @@
       if (mode === "ring") { T.w = T.h = 34; T.r = 17; } else { T.w = T.h = 14; T.r = 7; }
       T.sc = down ? 0.82 : 1;
     }
-    if (calm) { KEYS.forEach(function (k) { S[k] = T[k]; V[k] = 0; }); if (mag) { mag.x = mag.tx; mag.y = mag.ty; mag.vx = mag.vy = 0; if (mag.gone) { mag.el.style.translate = ""; mag = null; } else paintMag(); } paint(); return; }
+    if (calm) { KEYS.forEach(function (k) { S[k] = T[k]; V[k] = 0; }); if (mag) { mag.x = mag.tx; mag.y = mag.ty; mag.vx = mag.vy = 0; if (mag.gone) { magSet(mag.el, 0, 0); mag = null; } else paintMag(); } paint(); return; }
     if (was !== mode && was === "text") { S.x = T.x; S.y = T.y; V.x = V.y = 0; }           /* uscendo da un campo l'alone non arriva volando da lontano */
     wake();
   }
@@ -133,13 +133,20 @@
       var still = Math.abs(mag.tx - mag.x) < 0.01 && Math.abs(mag.ty - mag.y) < 0.01 && Math.abs(mag.vx) < 0.02 && Math.abs(mag.vy) < 0.02;
       if (still) { mag.x = mag.tx; mag.y = mag.ty; mag.vx = mag.vy = 0; } else moving = true;
       paintMag();
-      if (still && mag.gone) { mag.el.style.translate = ""; mag = null; }
+      if (still && mag.gone) { magSet(mag.el, 0, 0); mag = null; }
     }
     paint();
     /* finché il mouse si muove il giro resta acceso anche con l'alone fermo: la guardia deve vedere i fotogrammi lunghi */
     if (moving || t - lastMove < 250) raf = W.requestAnimationFrame(step);
   }
-  function paintMag() { if (mag) mag.el.style.translate = (Math.abs(mag.x) < 0.01 && Math.abs(mag.y) < 0.01) ? "" : mag.x.toFixed(2) + "px " + mag.y.toFixed(2) + "px"; }
+  /* il tema e i suoni hanno translate, rotate e scale tutti di filo.js (il tasto che salta nel suo posto, strappato, che torna): lì il
+     magnete scrive solo transform, che si somma a loro; altrove translate, che non tocca il transform di moto.js né i voli del menu */
+  function magSet(el, x, y) {
+    var z = Math.abs(x) < 0.01 && Math.abs(y) < 0.01;
+    if (el.id === "tema" || el.id === "sound") el.style.transform = z ? "" : "translate(" + x.toFixed(2) + "px," + y.toFixed(2) + "px)";
+    else el.style.translate = z ? "" : x.toFixed(2) + "px " + y.toFixed(2) + "px";
+  }
+  function paintMag() { if (mag) magSet(mag.el, mag.x, mag.y); }
   function paint() {
     var w = Math.max(4, S.w), hh = Math.max(4, S.h), sc = Math.max(0.3, S.sc), o = Math.max(0, Math.min(1, S.o));
     halo.style.width = w.toFixed(2) + "px"; halo.style.height = hh.toFixed(2) + "px";

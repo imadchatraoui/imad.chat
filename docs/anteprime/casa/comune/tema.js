@@ -2,7 +2,7 @@
 (function () {
 "use strict";
 var W = window, d = document, R = d.documentElement, K = "imad.tema", mm = W.matchMedia && W.matchMedia.bind(W),
-ph, st, keep = 1, fans = [], qs = [], was, q, pend, AE = "addEventListener";
+ph, st, keep = 1, fans = [], qs = [], was, q, pend, V = 0, AE = "addEventListener";
 function ls(f) { try { return f(localStorage); } catch (e) { } }
 try { ph = mm("(prefers-color-scheme: dark)"); q = new URLSearchParams(location.search).get("theme"); } catch (e) { }
 st = ls(function (l) { return l.getItem(K); });
@@ -46,19 +46,21 @@ d[AE]("DOMContentLoaded", metas);
 function onPh() { if (st === "auto") apply(st); }
 if (ph) { if (ph[AE]) ph[AE]("change", onPh); else ph.addListener(onPh); }
 function change(go, o) {
-var f = o && o.from, c = R.classList, r, x, y, a, vt, end = c.remove.bind(c, "tema-vt");
+var f = o && o.from, c = R.classList, r, a, vt, end, cl = function () { V = 0; c.remove("tema-vt"); };
+/* un cambio durante il cerchio: il cerchio salta, il nuovo tema subito dopo */
+if (V) { try { V.skipTransition(); } catch (e) { } return (V.updateCallbackDone || V.finished).then(go, go); }
 if (!f || !d.startViewTransition || /ni-on|is-shot/.test(R.className) || mm("(prefers-reduced-motion: reduce)").matches) return go();
-r = f.getBoundingClientRect();
-x = r.left + r.width / 2; y = r.top + r.height / 2; a = "px at " + x + "px " + y + "px)";
+r = f.getBoundingClientRect(); a = "px at " + (r.left + r.width / 2) + "px " + (r.top + r.height / 2) + "px)";
 c.add("tema-vt");
+end = function () { if (V === vt) cl(); };
 try {
-vt = d.startViewTransition(go);
+V = vt = d.startViewTransition(go);
 vt.ready.then(function () { try {
 R.animate({ clipPath: ["circle(0" + a, "circle(" + Math.hypot(innerWidth, innerHeight) + a] },
 { duration: 560, easing: getComputedStyle(R).getPropertyValue("--molla-piana").trim() || "ease", pseudoElement: "::view-transition-new(root)" });
 } catch (e) { } }, nop);
 vt.finished.then(end, end);
-} catch (e) { end(); go(); }
+} catch (e) { cl(); go(); }
 }
 function set(s, o) {
 if (!/^(auto|chiaro|scuro)$/.test(s)) return st;
@@ -69,5 +71,6 @@ return s;
 W.TEMA = { get: function () { return st; }, dark: dark, phoneDark: phoneDark, set: set,
 flip: function (o) { var k = !dk(pend || st); return set(k === phoneDark() ? "auto" : k ? "scuro" : "chiaro", o); },
 on: function (f) { if (f && f.call) fans.push(f); },
-off: function (f) { var i = fans.indexOf(f); if (i >= 0) fans.splice(i, 1); } };
+off: function (f) { var i = fans.indexOf(f); if (i >= 0) fans.splice(i, 1); },
+vt: function () { return V || null; } };
 })();

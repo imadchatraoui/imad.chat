@@ -78,6 +78,32 @@
     var s = T.flip({ from: tb });
     if (hud) showHud(NAME[s]);
   }
+  /* il cerchio del tema (tema.js) è una view transition: per i suoi 560 ms ogni tocco va a <html> e si perderebbe (il suono, il logo,
+     un secondo tocco sul tema, un filo tirato). Un tocco lo fa saltare alla fine; poi il clic arriva a chi sta sotto il dito, e un dito
+     sceso su un filo lo prende davvero (un pointerdown rifatto sulla sua presa). Solo nella casa: il cerchio parte solo dal tasto */
+  var fw = null;
+  doc.addEventListener("pointerdown", function (e) {
+    var vt = T && T.vt ? T.vt() : null; fw = null; if (!vt) return;
+    var p = fw = { x: e.clientX, y: e.clientY, id: e.pointerId, pt: e.pointerType, up: false, el: null };
+    try { vt.skipTransition(); } catch (x) { }
+    var go = function () {
+      if (fw !== p || p.up) return;
+      var el = doc.elementFromPoint(p.x, p.y);
+      if (!el || !el.classList || !el.classList.contains("filo__presa") || !W.PointerEvent) return;
+      p.el = el;
+      try { el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, composed: true, pointerId: p.id, pointerType: p.pt, isPrimary: true, clientX: p.x, clientY: p.y, button: 0, buttons: 1 })); } catch (x) { }
+    };
+    vt.finished.then(go, go);
+  }, true);
+  doc.addEventListener("pointerup", function (e) { if (fw && fw.id === e.pointerId) fw.up = true; }, true);
+  doc.addEventListener("click", function (e) {
+    var p = fw; fw = null;
+    if (!p || p.el || (e.target !== root && e.target !== doc.body)) return;
+    var el = doc.elementFromPoint(p.x, p.y);
+    el = el && el.closest ? el.closest("a[href], button, [role=button], label, summary") : null;
+    if (!el || el.disabled) return;
+    e.stopPropagation(); e.preventDefault(); el.click();
+  }, true);
 
   /* ================================================================== 2. i fili */
   var N = 16;                 /* tratti (17 punti) */
@@ -162,7 +188,7 @@
     this.off = { x: 0, y: 0, vx: 0, vy: 0 };   /* il tasto tirato nel suo posto: una molla */
     this.B = null;                  /* il tasto staccato: un disco libero */
     this.strain = 0; this.tens = 0; this.overT = 0; this.restT = 0; this.stretchK = 1; this.pop = 0; this.relK = 1; this.relJ = 0; this.k2 = 1; this.pullD = 0;
-    this.unroll = -1; this.twist = 0; this.tr = ""; this.calm = 0; this.slow = false; this.downT = 0;
+    this.unroll = -1; this.twist = 0; this.tr = ""; this.calm = 0; this.tail = 0; this.slow = false; this.downT = 0;
     this.hit = doc.createElement("div"); this.hit.className = "filo__presa"; this.hit.setAttribute("aria-hidden", "true"); this.hit.setAttribute("data-dot-keep", "");
     this.hit.style.display = "none";
     home.appendChild(this.hit);
@@ -175,14 +201,14 @@
     this.sock.x = homeOff.x + x; this.sock.y = homeOff.y + y;
     this.knot.x = this.sock.x; this.knot.y = this.sock.y + KNOT;
   };
+  /* l'arrivo: tutti i punti sul nodo, fermi, sulla verticale; la lunghezza cresce e il filo cade dritto (2f B). Il filo dei suoni parte
+     140 ms dopo quello del tema; a metà discesa ciascuno riceve un dondolio piccolo e diverso, dallo stesso lato (mai a specchio) */
   Rope.prototype.reset = function (unroll) {
-    this.p = []; this.len = unroll ? 0.01 : REST; this.unroll = unroll ? simT : -1;
-    var dir = this.id === "tema" ? -1 : 1;
+    var late = this.id === "suono" ? 0.14 : 0;
+    this.p = []; this.len = unroll ? REST * 0.0002 : REST; this.unroll = unroll ? simT + late : -1; this.swayed = !unroll;
     for (var i = 0; i <= N; i++) {
-      var x = this.knot.x, y = this.knot.y + (unroll ? i * 0.02 : i * REST / N);
-      /* srotolandosi, la fine esce con un poco di lato: dondola mentre scende */
-      var vx = unroll ? dir * 70 * i / N : 0;
-      this.p.push({ x: x, y: y, ox: x - vx * H, oy: y, w: i ? 1 : 0 });
+      var x = this.knot.x, y = this.knot.y + (unroll ? i * this.len / N : i * REST / N);
+      this.p.push({ x: x, y: y, ox: x, oy: y, w: i ? 1 : 0 });
     }
   };
   /* la cima del filo: dove sta il nodo adesso (il tasto al suo posto, tirato o staccato) */
@@ -200,7 +226,16 @@
   Rope.prototype.step = function (h, fx, fy) {
     var p = this.p, i, q, wt = this.weight, top, B = this.B, seg;
     /* l'arrivo: la lunghezza cresce da 0 a 52 px in 620 ms sulla molla piana */
-    if (this.unroll >= 0) { var u = (simT - this.unroll) / UNROLL; this.len = REST * Math.max(0.0002, PIANA(u)); if (u >= 1) { this.len = REST; this.unroll = -1; } }
+    if (this.unroll >= 0) {
+      var u = (simT - this.unroll) / UNROLL;
+      this.len = REST * Math.max(0.0002, PIANA(clamp(u, 0, 1)));
+      /* il dondolio: a metà discesa la punta riceve una velocità di lato (al più 4-6 px di ampiezza), più sotto più forte */
+      if (!this.swayed && u >= 0.42) {
+        this.swayed = true; var sw = this.id === "suono" ? -19 : -28;
+        for (var j = 1; j <= N; j++) p[j].ox = p[j].x - sw * (j / N) * H;
+      }
+      if (u >= 1) { this.len = REST; this.unroll = -1; }
+    }
     seg = this.len / N;
     /* il tasto staccato: un disco con la gravità, che rotola sulla mensola; tornando, una molla verso il suo posto (k 120, ζ .62) */
     if (B) {
@@ -238,8 +273,10 @@
     }
     if (B) { B.cx = 0; B.cy = 0; }
     /* Verlet. Mentre il tasto torna (e per 0,6 s dopo) il filo è più frenato: segue il tasto invece di frustare verso l'altro filo */
-    var dmp = DAMP;
-    if (this.state === "returning" || this.calm > 0) { dmp = 0.992; this.calm = Math.max(0, this.calm - h); }
+    var dmp = DAMP, back = this.state === "returning" || this.calm > 0;
+    if (back) { dmp = 0.985; this.calm = Math.max(0, this.calm - h); }
+    else if (B) dmp = 0.988;                                        /* staccato: la lana caduta si posa, non serpeggia */
+    if (this.tail > 0) this.tail = Math.max(0, this.tail - h);
     /* l'attrito della lana: un dondolio ormai piccolo (meno di 0,12 px a passo, circa 5 px di ampiezza) si spegne in un secondo invece
        di trascinarsi per altri tre; i dondolii grandi restano vivi (.9963) */
     else if (this.slow && !this.held && !(wt && !wt.free) && !B) dmp = 0.988;
@@ -266,6 +303,12 @@
     this.stretchK += (k2 - this.stretchK) * 0.25;
     /* lasciato: la parte allungata torna corta in circa 140 ms (.97 a passo), non di colpo: niente frusta sopra il tasto */
     if (!hd && this.relK > 1) { this.relK = 1 + (this.relK - 1) * 0.97; if (this.relK < 1.002) this.relK = 1; }
+    /* mentre la parte tirata torna corta (e per poco dopo) la coda sotto il punto preso sale con lui, quasi in blocco: se no il cordino che
+       scatta su la comprime e lei si piega a uncino o a esse */
+    if (!hd && this.tail > 0 && this.relJ > 0 && this.relJ < N) {
+      var pj = p[this.relJ], vjy = pj.y - pj.oy, kt = 0.22 * Math.min(1, this.tail / 0.2);
+      for (i = this.relJ + 1; i <= N; i++) { q = p[i]; var tvx = q.x - q.ox, tvy = q.y - q.oy; q.ox = q.x - tvx * (1 - kt * 0.5); q.oy = q.y - (tvy + (vjy - tvy) * kt); }
+    }
     /* i vincoli */
     for (var it = 0; it < ITER; it++) {
       top = this.top(); p[0].x = top.x; p[0].y = top.y;
@@ -283,11 +326,11 @@
       }
       /* un filo di rigidezza: niente gomiti. Mentre il tasto torna su, di più: la lana ammucchiata sulla mensola si scioglie invece di
          restare appesa a otto */
-      var bend = this.state === "returning" || this.calm > 0 ? 0.3 : BEND;
+      var bend = back ? 0.3 : B ? 0.4 : BEND, bendT = back ? 0.55 : this.tail > 0 ? 0.09 : bend;
       for (i = 0; i < N - 1; i++) {
         var a2 = p[i], c2 = p[i + 2], ex2 = c2.x - a2.x, ey2 = c2.y - a2.y, d2 = Math.sqrt(ex2 * ex2 + ey2 * ey2) || 1e-6;
         if (d2 >= seg * 2) continue;
-        var df = (d2 - seg * 2) / d2 * bend, wa2 = i === 0 ? 0 : a2.w, wc = c2.w, w2 = wa2 + wc; if (!w2) continue;
+        var df = (d2 - seg * 2) / d2 * (i >= N - 6 ? Math.max(bend, bendT) : bend), wa2 = i === 0 ? 0 : a2.w, wc = c2.w, w2 = wa2 + wc; if (!w2) continue;
         a2.x += ex2 * df * wa2 / w2; a2.y += ey2 * df * wa2 / w2; c2.x -= ex2 * df * wc / w2; c2.y -= ey2 * df * wc / w2;
       }
       /* il peso appeso: un punto pesante legato al filo a s px dal nodo (C = W − ((1−u)·a + u·b)) */
@@ -305,8 +348,20 @@
         if (hg2) { wt.x += hg2.nx * hg2.d; wt.y += hg2.ny * hg2.d; wt.ox += (wt.x - wt.ox) * 0.3; wt.touch = true; }
       }
       /* il filo sulla mensola (staccato, o tirato giù fin lì) */
-      if (B || hd || wt) for (i = 1; i <= N; i++) { q = p[i]; var hp = hitGround(q.x, q.y, 1.1); if (hp) { q.x += hp.nx * hp.d; q.y += hp.ny * hp.d; q.ox += (q.x - q.ox) * 0.45; q.oy += (q.y - q.oy) * 0.45; } }
+      /* (staccato, la lana scivola sulla mensola dietro al suo tasto invece di restare incollata e accartocciarsi) */
+      var fr = B && !back ? 0.12 : 0.45;
+      if (B || hd || wt) for (i = 1; i <= N; i++) { q = p[i]; var hp = hitGround(q.x, q.y, 1.1); if (hp) { q.x += hp.nx * hp.d; q.y += hp.ny * hp.d; q.ox += (q.x - q.ox) * fr; q.oy += (q.y - q.oy) * fr; } }
     }
+    /* tornando su (e nel secondo dopo) il filo si rimette a piombo sotto il tasto: ogni punto scivola di lato verso la verticale del nodo,
+       senza prendere velocità (si spostano insieme posizione e posizione di prima). Così segue il tasto invece di frustare in uncini */
+    if (back && !hd && !(wt && !wt.free)) {
+      var tp = this.top(), kg = this.state === "returning" ? 0.03 : 0.014;
+      for (i = 1; i <= N; i++) { q = p[i]; var gdx = (tp.x - q.x) * kg * (0.5 + i / N); q.x += gdx; q.ox += gdx; }
+      /* la coda non sale più in fretta del tasto (al più .6 della sua velocità in su): niente frusta a uncino in fondo */
+      if (B) for (i = N - 5; i <= N; i++) { q = p[i]; var up = (q.oy - q.y) / h, lim = Math.max(0, -B.vy) * 0.6 + 30; if (up > lim) q.oy = q.y + lim * h; }
+    }
+    /* scendendo all'arrivo il filo non torna mai su se stesso: ogni punto sta sotto quello prima (niente riccioli né esse) */
+    if (this.unroll >= 0 && !hd) for (i = 1; i <= N; i++) { if (p[i].y < p[i - 1].y) { p[i].y = p[i - 1].y; if (p[i].oy < p[i].y - 4) p[i].oy = p[i].y; } }
     /* quanto il filo ha spostato il tasto staccato diventa anche la sua velocità (se no il disco crederebbe di muoversi ancora) */
     if (B && this.state !== "returning") {
       B.vx += clamp(B.cx / h, -300, 300); B.vy += clamp(B.cy / h, -300, 300);
@@ -349,6 +404,8 @@
     this.B = { x: this.sock.x + this.off.x, y: this.sock.y + this.off.y, vx: inward * 90 + v.x * 0.25, vy: Math.max(150, v.y * 0.3) + 40, a: 0,
       va: inward * (2.2 + Math.random() * 1.4), onG: false };
     this.off.x = this.off.y = this.off.vx = this.off.vy = 0;
+    /* il filo cade con il suo tasto: i punti prendono la sua velocità (se no il tasto gli cade addosso e la lana si arriccia) */
+    for (var i = 1; i < this.p.length; i++) { var q = this.p[i]; q.ox = q.x - this.B.vx * H; q.oy = q.y - this.B.vy * H; }
     this.state = "torn"; this.held = null; this.overT = 0; this.restT = 0; this.downT = 0;
     this.btn.classList.add("is-strappato"); this.btn.setAttribute("aria-disabled", "true");
     if (this.btn === doc.activeElement) { try { this.btn.blur(); } catch (e) { } }
@@ -444,7 +501,7 @@
       }
       var hd = r.held; if (!hd || (e && hd.id !== e.pointerId)) return;
       var q = r.p[hd.j], vx = clamp(hd.vx, -1600, 1600), vy = clamp(hd.vy, -1600, 1600);
-      r.relK = r.k2 || 1; r.relJ = hd.j;
+      r.relK = r.k2 || 1; r.relJ = hd.j; r.tail = 0.35;   /* la coda resta un poco più rigida: niente uncino */
       if (now() - hd.lt > 80) { vx = 0; vy = 0; }                  /* fermo prima di lasciare: niente lancio */
       q.ox = q.x - vx * H; q.oy = q.y - vy * H;
       r.held = null; if (!r.B) r.state = "rest"; root.classList.remove("filo-preso"); el.classList.remove("is-preso");
@@ -543,7 +600,7 @@
     if (r.state === "returning" && r.B) {
       var d = Math.abs(r.B.x - r.sock.x) + Math.abs(r.B.y - r.sock.y), vv = Math.abs(r.B.vx) + Math.abs(r.B.vy);
       if (d < 0.8 && vv < 14) {
-        r.B = null; r.state = "rest"; r.weight = null; r.pop = 1; r.off.vy = 40; r.calm = 0.6;
+        r.B = null; r.state = "rest"; r.weight = null; r.pop = 1; r.off.vy = 40; r.calm = 1;
         r.btn.classList.remove("is-strappato"); r.btn.removeAttribute("aria-disabled");
         emit("returned", { id: r.id });
       }

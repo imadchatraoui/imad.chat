@@ -24,16 +24,18 @@
   var LET = "imad.chat";
 
   /* ---------------------------------------------------------------- i numeri */
-  var KEY = 30, BAND = 4, KR = 8, SC = 1.45;        /* il tasto della scena (dot-stage.js) e quanto è più grande qui: 43,5 px */
+  var KEY = 30, BAND = 4, KR = 8, SC = 1.45;        /* il tasto della scena (dot-stage.js) e quanto è più grande qui: 43,5 px sul telefono */
   var HS = KEY * SC / 2, RR = KR * SC;               /* mezzo lato, raggio degli angoli */
+  /* sul computer la scatola è più larga (fino a 720 px) e i tasti crescono con lei: un undicesimo della larghezza, da 43,5 a 72 px */
+  function scaleFor(bw) { return Math.max(43.5, Math.min(72, bw / 11)) / KEY; }
   var G = 2200, HZ = 120, ITER = 10, REST = 0.18, MU = 0.55, SLOP = 0.75, BIAS = 0.2;
   var VMAX = 2400, SLEEP_V = 4, SLEEP_T = 0.5, SCAT = 900;
   var JK = 520, JZ = 0.9;                            /* la molla del dito (per unità di massa) */
   /* l'ottagono: i lati del quadrato e i tagli a 45° tangenti agli angoli arrotondati */
-  var CH = HS - RR * (2 - Math.SQRT2);
-  var OCT = [[HS, -CH], [HS, CH], [CH, HS], [-CH, HS], [-HS, CH], [-HS, -CH], [-CH, -HS], [CH, -HS]];
+  var CH, OCT;
+  function shape() { CH = HS - RR * (2 - Math.SQRT2); OCT = [[HS, -CH], [HS, CH], [CH, HS], [-CH, HS], [-HS, CH], [-HS, -CH], [-CH, -HS], [CH, -HS]]; }
+  shape();
   function normals(v) { var n = [], i; for (i = 0; i < v.length; i++) { var a = v[i], b = v[(i + 1) % v.length], ex = b[0] - a[0], ey = b[1] - a[1], l = Math.sqrt(ex * ex + ey * ey); n.push([ey / l, -ex / l]); } return n; }
-  var OCTN = normals(OCT);
 
   /* il pozzo: la tela intera (BW, BH) e, 10 px dentro il bordo, i muri veri: i tasti non entrano negli angoli arrotondati del vetro */
   var BW = 0, BH = 0, dpr = 1, PAD = 10;
@@ -61,6 +63,11 @@
     }
     this.ex = mx; this.ey = my;      /* il mezzo ingombro adesso (ruotato) */
   };
+  /* la scala cambia (la finestra si allarga o si stringe): ogni tasto prende la sua nuova forma, al posto giusto */
+  function reshape(b, k) {
+    b.lv = OCT; b.ln = normals(OCT); b.invI = 1 / ((4 * HS * HS + 4 * HS * HS) / 12);
+    b.x *= k; b.y *= k; b.upd();
+  }
   function box4(hx, hy) { return [[hx, -hy], [hx, hy], [-hx, hy], [-hx, -hy]]; }
 
   /* ---------------------------------------------------------------- il contatto tra due poligoni (Box2D) */
@@ -193,6 +200,14 @@
          dura per sempre e la scatola si addormenta (uno che cade va molto più veloce: non lo tocca) */
       if (idle > 2 && sp < 40 && Math.abs(A.w) < 1.5) { A.vx *= 0.96; A.vy *= 0.96; A.w *= 0.96; }
       if (A.w > 40) A.w = 40; else if (A.w < -40) A.w = -40;
+      /* un tasto vero non sta in piedi su un angolo: lento (sotto 20 px/s) e a meno di 30° dalla diagonale, una piccola coppia lo porta
+         verso il lato piatto più vicino e non lo lascia dormire lì. Per al più 1,5 s: appoggiato a un muro o a un altro tasto può restare
+         inclinato davvero, e la scatola deve potersi addormentare */
+      if (!(joint && joint.b === A) && sp < 20) {
+        var q90 = Math.PI / 2, aq = ((A.a % q90) + q90) % q90, dev = aq - Math.PI / 4;
+        if (Math.abs(dev) < Math.PI / 6 && (A.tt || 0) < 1.5) { A.tt = (A.tt || 0) + h; A.w += (dev < 0 ? -1 : 1) * 26 * h; A.st = 0; A.sa = A.a; }
+        else if (Math.abs(dev) >= Math.PI / 6) A.tt = 0;
+      } else if (sp >= 60) A.tt = 0;
       A.x += A.vx * h; A.y += A.vy * h; A.a += A.w * h;
       A.upd();
       if (A.enter && A.y - A.ey > PAD + 1) A.enter = false;
@@ -216,7 +231,19 @@
   }
   /* un tasto chiamato dalla tastiera: esce dal mucchio lungo un arco (220 ms) fino in cima, poi cade */
   function stepLift(b, h) {
-    var L = b.lift; L.t += h; var u = Math.min(1, L.t / L.d), e = 1 - Math.pow(1 - u, 3);
+    var L = b.lift;
+    /* la prima caduta: dritta, con la gravità vera, fino al suo posto della fila; due rimbalzi piccoli (.18), poi è un tasto come gli altri */
+    if (L.fall) {
+      L.vy += G * h; b.y += L.vy * h;
+      if (b.y >= L.y1) {
+        b.y = L.y1;
+        if (L.vy > 320 && !L.n) emit("land", { i: b.i, speed: Math.round(L.vy) });
+        if (L.vy > 150 && (L.n || 0) < 2) { L.vy = -L.vy * REST; L.n = (L.n || 0) + 1; }
+        else { b.lift = null; b.vx = 0; b.vy = 0; b.w = 0; b.st = 0; b.sx = b.x; b.sy = b.y; b.sa = b.a; }
+      }
+      return;
+    }
+    L.t += h; var u = Math.min(1, L.t / L.d), e = 1 - Math.pow(1 - u, 3);
     b.x = L.x0 + (L.x1 - L.x0) * e; b.y = L.y0 + (L.y1 - L.y0) * e - Math.sin(Math.PI * u) * 26; b.a = L.a0 + (L.a1 - L.a0) * e;
     if (u >= 1) { b.lift = null; b.vx = (L.x1 - L.x0) * 0.6; b.vy = 40; b.w = L.spin; b.st = 0; }
   }
@@ -226,6 +253,8 @@
     var r = cv.getBoundingClientRect(); BW = Math.max(120, Math.round(r.width)); BH = Math.max(120, Math.round(r.height));
     dpr = Math.min(W.devicePixelRatio || 1, 2);
     cv.width = Math.round(BW * dpr); cv.height = Math.round(BH * dpr);
+    var sc = scaleFor(BW);
+    if (Math.abs(sc - SC) > 0.01) { var k = sc / SC; SC = sc; HS = KEY * SC / 2; RR = KR * SC; SPR = Math.ceil((KEY + 26) * SC); shape(); bodies.forEach(function (b) { reshape(b, 1); }); faces = []; }
     var T = 600;
     walls = [new Body(100, BW / 2, BH - PAD + T / 2, box4(BW / 2 + T, T / 2), 0), new Body(101, PAD - T / 2, BH / 2, box4(T / 2, BH + T), 0),
       new Body(102, BW - PAD + T / 2, BH / 2, box4(T / 2, BH + T), 0), new Body(103, BW / 2, PAD - T / 2, box4(BW / 2 + T, T / 2), 0)];
@@ -237,21 +266,27 @@
     for (var i = 0; i < 9; i++) {
       var b = new Body(i, 0, 0, OCT, 1);
       if (drop) {
-        /* la prima caduta: uno dopo l'altro, 70 ms l'uno dall'altro, da sopra il bordo, sparsi sulla larghezza */
-        b.x = PAD + HS + 6 + (BW - 2 * PAD - 2 * HS - 12) * ((0.18 + i * 0.381) % 1); b.y = -HS - 8; b.a = (hash(i) - 0.5) * 0.7; b.w = (hash(i + 9) - 0.5) * 5; b.vy = 260;
-        b.enter = true; b.wait = 0.07 * i; b.upd();
+        /* la prima caduta è un momento disegnato: ogni tasto cade dritto (al più 2°, senza girare) sopra il suo posto della fila, così sul
+           fondo si legge imad.chat. Uno dopo l'altro, 70 ms l'uno dall'altro, in ordine di lettura; se la fila non ci sta (il telefono),
+           prima «.chat» sul fondo e poi «imad» sopra «chat». Si rotola solo dopo, quando qualcuno li tocca */
+        rowPlace(b, i); var two = rowTwo();
+        b.lift = { fall: true, y1: b.y, vy: 260 }; b.y = -HS - 8; b.a = (hash(i) - 0.5) * 0.035; b.w = 0; b.vx = 0; b.vy = 0; b.st = 0; b.home = null;
+        b.enter = true; b.wait = !two ? 0.07 * i : i >= 4 ? 0.07 * (i - 4) : 0.07 * 5 + 0.12 + 0.07 * i; b.upd();
       } else rowPlace(b, i);
       bodies.push(b);
     }
     asleep = false;
   }
+  function rowTwo() { return (2 * HS + 4) * 9 - 4 > BW - 2 * PAD - 8; }
   function hash(n) { var s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
-  /* la fila ordinata sul fondo (meno movimento, fotografie): imad.chat; se non ci sta, «imad» sopra «.chat», sfalsati come mattoni */
+  /* la fila ordinata sul fondo (meno movimento, fotografie, la prima caduta): imad.chat; se non ci sta (il telefono), «.chat» sul fondo
+     e «imad» sopra «chat», tasto su tasto: così ognuno posa su un lato piatto e la pila sta ferma (sfalsati come mattoni, gli angoli
+     smussati di sotto si incastravano tra due tasti e li allargavano) */
   function rowPlace(b, i) {
     var per = 2 * HS + 4, x0;
     if (per * 9 - 4 <= BW - 2 * PAD - 8) { x0 = (BW - per * 9 + 4) / 2 + HS; b.x = x0 + i * per; b.y = BH - PAD - HS - 0.5; }
     else {
-      var low = i >= 4, col = low ? i - 4 : i; per = 2 * HS + 5; x0 = (BW - per * 5 + 5) / 2 + HS + (low ? 0 : per / 2);
+      var low = i >= 4, col = low ? i - 4 : i + 1; per = 2 * HS + 5; x0 = (BW - per * 5 + 5) / 2 + HS;
       b.x = x0 + col * per; b.y = low ? BH - PAD - HS - 0.5 : BH - PAD - HS * 3 - 1;
     }
     b.a = 0; b.vx = b.vy = b.w = 0; b.lift = null; b.enter = false; b.wait = 0; b.st = SLEEP_T + 1; b.home = { x: b.x, y: b.y }; b.upd();

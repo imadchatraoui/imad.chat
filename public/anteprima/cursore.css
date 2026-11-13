@@ -13,8 +13,10 @@
   background: var(--accent-ink, #b98a2e); box-shadow: 0 0 0 .5px var(--hair, rgba(30, 28, 70, .09));
   will-change: transform; transition: opacity 120ms ease;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pnt__d { background: var(--accent, #f3dfa8); } }
-:root[data-theme="dark"] .pnt__d { background: var(--accent, #f3dfa8); }
+/* nel buio il dischetto chiaro ha un orlo scuro di 1 px: sulla capsula d'oro «Lascia un saluto» (oro su oro) resta visibile, sul cielo
+   scuro l'orlo non si vede */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pnt__d { background: var(--accent, #f3dfa8); box-shadow: 0 0 0 1px rgba(22, 18, 8, .62); } }
+:root[data-theme="dark"] .pnt__d { background: var(--accent, #f3dfa8); box-shadow: 0 0 0 1px rgba(22, 18, 8, .62); }
 /* l'alone: un anello di 1,25 px nell'oro degli aloni. Sulla luce il bagliore pallido (243 223 168) a .55 sparirebbe sul cielo chiaro
    (1,2 : 1): lì l'anello prende il segno d'oro del sito, --accent-ink, a .5 */
 .pnt__h {

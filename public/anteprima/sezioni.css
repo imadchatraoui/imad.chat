@@ -6,6 +6,20 @@
 .sz { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 62; }
 .sz[hidden] { display: none !important; }
 .sz__scrim { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: var(--scrim); }
+/* tablet e computer: la scheda non copre tutto, quindi intorno a lei il cielo della pagina (il suo colore di cima) quasi pieno:
+   la casa sotto non fa concorrenza alla scheda (il velo è un figlio, così l'opacità che la sezione anima resta da 0 a 1) */
+.sz__scrim::before { content: none; }
+@media (min-width: 700px) {
+  .sz__scrim { background: none; }
+  .sz__scrim::before { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: var(--cielo-alto); opacity: .92; }
+}
+/* il versetto del riquadro Corano non si vede mai a pezzi accanto a una scheda o sotto il menu: sparisce (visibility, nessun
+   effetto sul testo). html.sz-hush lo mette sezioni.js quando il bordo della scheda che si allarga sta per toccarlo e lo toglie
+   quando, alla chiusura, il bordo se n'è andato; sotto il menu sparisce quando il velo è ormai pieno (240 ms) */
+html.sz-hush .tile.corano .ayah, html.sz-hush .tile.corano .corano__it { visibility: hidden; }
+html.is-menu .tile.corano .ayah, html.is-menu .tile.corano .corano__it { visibility: hidden; transition: visibility 0s linear 240ms; }
+/* il lampo dei tocchi (azzurro in Chromium, grigio in Safari) sopra i riquadri e le sezioni: i riquadri hanno già il loro «premuto» */
+html { -webkit-tap-highlight-color: transparent; }
 .sz__panel {
   position: absolute; top: 0; right: 0; bottom: 0; left: 0; overflow: hidden; outline: none; color: var(--ink);
   background-color: var(--sz-solid, var(--page));
@@ -24,6 +38,8 @@
   background: var(--sz-bar, rgba(12, 14, 30, .72)); -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
   box-shadow: inset 0 -1px 0 var(--hair); }
 .sz.is-scrolled .sz__bar::before { opacity: 1; }
+/* nel Corano la barra è carta piena, senza sfocatura: l'arabo dei versetti non si vede mai sfocato sotto di lei */
+.sz__panel[data-mat="paper"] .sz__bar::before { background: var(--sz-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
 .sz__bart { position: relative; font: 700 16px/22px var(--font-sans); letter-spacing: -.02em; opacity: 0; transform: translateY(6px); transition: opacity 220ms ease, transform 320ms var(--ease-out); }
 .sz.is-scrolled .sz__bart { opacity: 1; transform: none; }
 .sz__x { position: absolute; top: calc(env(safe-area-inset-top) + 7px); right: calc(env(safe-area-inset-right) + 10px); pointer-events: auto; }
@@ -42,7 +58,7 @@
    ritaglio taglia solo sopra e sotto */
 .sz-dg { position: relative; display: inline-block; height: 30px; vertical-align: top; -webkit-clip-path: inset(0 -.45em); clip-path: inset(0 -.45em); }
 .sz-dg__z { display: inline-block; visibility: hidden; line-height: 30px; }
-.sz-dg__c { position: absolute; top: 0; left: 50%; display: block; text-align: center; transition: transform 560ms var(--spring, cubic-bezier(.2, .9, .25, 1)); will-change: transform; }
+.sz-dg__c { position: absolute; top: 0; left: 50%; display: block; text-align: center; transition: transform 560ms var(--spring, cubic-bezier(.2, .9, .25, 1)); }
 .sz-dg__c span { display: block; height: 30px; line-height: 30px; }
 .sz-dg__s { display: inline-block; vertical-align: top; line-height: 30px; }
 .sz-cc__t small { display: inline-block; vertical-align: top; }
@@ -108,7 +124,10 @@
 @media (min-width: 700px) { .sz-globo { margin: 18px 0 0; height: 400px; } }
 .sz-chips { margin: 4px -20px 0; padding: 4px 20px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
 .sz-chips::-webkit-scrollbar { display: none; }
-@media (min-width: 700px) { .sz-chips { margin: 4px 0 0; padding: 4px 0; justify-content: center; } }
+/* sul telefono la fila scorre: a destra sfuma (24 px) finché non si arriva in fondo, così si capisce che continua */
+.sz-chips { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+.sz-chips.is-end { -webkit-mask-image: none; mask-image: none; }
+@media (min-width: 700px) { .sz-chips { margin: 4px 0 0; padding: 4px 0; justify-content: center; -webkit-mask-image: none; mask-image: none; } }
 .sz-chip { position: relative; flex: none; height: 36px; padding: 0 14px; border-radius: 18px; font: 600 14px/36px var(--font-sans); letter-spacing: -.012em; color: rgba(255, 255, 255, .76);
   background: rgba(255, 255, 255, .08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); transition: color 200ms ease, background-color 240ms ease, transform var(--d-press) var(--ease-out); }
 .sz-chip::before { content: ""; position: absolute; top: -4px; right: 0; bottom: -4px; left: 0; }
@@ -211,6 +230,7 @@
 .sz-step { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 2px; }
 .sz-step__v { min-width: 150px; text-align: center; font: 600 13px/18px var(--font-sans); color: var(--ink-2); }
 .sz-step__v b { display: block; font: 700 15px/20px var(--font-mono); color: var(--ink); letter-spacing: 0; }
+#szGeoN span { display: inline-block; }
 .sz-step button { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); transition: transform var(--d-press) var(--ease-out), opacity 200ms ease; }
 .sz-step button:active { transform: scale(.9); }
 .sz-step button[disabled] { opacity: .3; cursor: default; }
@@ -237,6 +257,7 @@
 .heatmap .tile__head { padding-right: 0; }
 
 @media (prefers-reduced-motion: reduce) {
+  html.is-menu .tile.corano .ayah, html.is-menu .tile.corano .corano__it { transition: none; }
   .sz__bart, .sz__bar::before, .sz-ora__th, .sz-chip, .sz-pill, .sz-ib { transition: none; }
 }
 

@@ -5,8 +5,8 @@
    I tasti hanno il materiale del loro riquadro (2d C): il Corano carta, Le città notte, Su di me la sua foto, gli altri vetro; con il
    filo di luce dal lato del sole vero e l'ombra in tre strati (--sun-ang, --shx, --shy di vivo.js). Le ombre sono ferme: nei voli si
    muovono solo transform e opacity (menu.js).
-   Il velo è opaco e senza sfocatura: a .9 la capsula della casa e il Corano si vedevano sotto e la capsula si raddoppiava; una
-   sfocatura costerebbe e deformerebbe il Corano.
+   Il velo è opaco del tutto (alfa 1) e senza sfocatura: a .9, e ancora a .975, la capsula della casa e il Corano si vedevano sotto
+   (la capsula si raddoppiava, il versetto restava velato: un effetto sul Corano); una sfocatura costerebbe e deformerebbe il Corano.
    Per Safari non recente: niente :has(), top/right/bottom/left per esteso accanto a ogni posizione piena. */
 
 .menu {
@@ -27,11 +27,11 @@
 @media (min-width: 700px) { .menu { --mgx: calc(50% - (3 * var(--mk) + 20px) / 2); } }
 
 /* ------------------------------------------------------------------ il velo */
-.menu__velo { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: linear-gradient(180deg, rgba(238, 240, 248, .975) 0%, rgba(232, 233, 245, .985) 100%); }
+.menu__velo { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: linear-gradient(180deg, #eef0f8 0%, #e8e9f5 100%); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .menu__velo { background: linear-gradient(180deg, rgba(5, 7, 16, .975) 0%, rgba(10, 12, 26, .985) 100%); }
+  :root:not([data-theme="light"]) .menu__velo { background: linear-gradient(180deg, #050710 0%, #0a0c1a 100%); }
 }
-:root[data-theme="dark"] .menu__velo { background: linear-gradient(180deg, rgba(5, 7, 16, .975) 0%, rgba(10, 12, 26, .985) 100%); }
+:root[data-theme="dark"] .menu__velo { background: linear-gradient(180deg, #050710 0%, #0a0c1a 100%); }
 
 /* ------------------------------------------------------------------ la griglia */
 .menu__g {
@@ -95,7 +95,10 @@
 .menu__gl { position: absolute; left: 14px; top: 14px; width: 40px; height: 40px; color: var(--t-ink-2); }
 .menu__gl svg { display: block; width: 40px; height: 40px; overflow: visible; }
 .menu__n { position: absolute; left: 14px; right: 12px; bottom: 14px; font: 650 15px/18px var(--font-sans); letter-spacing: -.014em; color: var(--t-ink); }
-/* sotto i 375 px il tasto è 103 px: il nome resta su una riga (Sto imparando è la più lunga) */
+/* sul telefono «Sto imparando» non sta in una riga (87 px a 390): va su due, più strette (17 px), e l'ultima riga resta sulla linea
+   dei vicini (il nome sta in basso, bottom: 14px) */
+@media (max-width: 459px) { .menu__n { line-height: 17px; } }
+/* sotto i 375 px il tasto è 103 px: un filo più piccolo */
 @media (max-width: 374px) { .menu__n { left: 12px; bottom: 12px; font-size: 14px; letter-spacing: -.02em; } .menu__gl { left: 12px; top: 12px; } }
 /* la heatmap del tasto: le ultime quattro settimane vere, nelle cinque tinte d'oro della heatmap (menu.js copia --hm-0..4 dal riquadro) */
 .menu__hm .l0 { fill: var(--hm-0, rgba(30, 28, 70, .07)); }

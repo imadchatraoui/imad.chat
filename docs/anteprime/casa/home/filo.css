@@ -36,6 +36,12 @@
    delle transizioni tra documenti (moto.css 7, html:not(.is-pagina)): :root.tema-vt pesa di più */
 :root.tema-vt::view-transition-old(root), :root.tema-vt::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 :root.tema-vt::view-transition-group(root) { animation-duration: 560ms; }
+/* il Corano non è mai attraversato dal bordo del cerchio (metà versetto in un tema, metà nell'altro): il suo riquadro cambia tutto e
+   subito, sopra il cerchio. Il nome c'è solo durante il cambio di tema (tema-vt), così non tocca le altre transizioni */
+:root.tema-vt .tile.corano { view-transition-name: tema-corano; }
+:root.tema-vt::view-transition-old(tema-corano) { display: none; }
+:root.tema-vt::view-transition-new(tema-corano) { animation: none; }
+:root.tema-vt::view-transition-group(tema-corano) { animation: none; }
 
 /* ------------------------------------------------------------------ i fili */
 /* la tela: sopra la riga in alto e l'hero, sotto gli strati di Dot (che stanno fuori da .home); non si tocca mai */

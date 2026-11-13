@@ -174,6 +174,52 @@
   function scala() { return window.SEZIONI && window.SEZIONI.forma === "scala"; }
   function restAbs(pr) { var b = restBox(); return { left: pr.left + b.left, top: pr.top + b.top, width: b.width, height: b.height }; }
 
+  /* il trascinamento in corso (il globo di Le città, il solido di Sto imparando): tre ascolti sulla finestra, registrati qui una
+     volta sola; la sezione mette il suo gestore in DRAG al pointerdown e lo toglie al rilascio. Prima ogni apertura ne aggiungeva
+     tre, mai tolti, che tenevano in vita la tela e lo stato delle sezioni già chiuse. */
+  var DRAG = null;
+  window.addEventListener("pointermove", function (e) { if (DRAG) DRAG.move(e); });
+  function dragUp(e) { if (DRAG) DRAG.up(e); }
+  window.addEventListener("pointerup", dragUp); window.addEventListener("pointercancel", dragUp);
+
+  /* il versetto del riquadro Corano non è mai tagliato dal bordo della scheda (2f E: nessun bordo attraversa l'arabo; da 700 px la
+     scheda ferma copre metà del riquadro): sparisce (html.sz-hush: visibility, nessun effetto sul testo) quando il bordo che si
+     allarga sta per toccarlo, e torna alla chiusura quando il bordo se n'è andato o la scheda è ormai trasparente. I tempi si
+     ricavano dalla stessa molla dell'animazione e si leggono sul suo orologio (vale anche con seek degli strumenti). */
+  function springAt(zeta, t) { if (t >= 1) return 1; var w = 6.4 / zeta, wd = w * Math.sqrt(1 - zeta * zeta); return 1 - Math.exp(-zeta * w * t) * (Math.cos(wd * t) + (zeta * w / wd) * Math.sin(wd * t)); }
+  function verseBox() {
+    var a = $(".grid > .tile.corano .ayah"), b = $(".grid > .tile.corano .corano__it"); if (!a) return null;
+    var r = unscaled(a.getBoundingClientRect()), q = b ? unscaled(b.getBoundingClientRect()) : r;
+    if (!(r.width > 0) || r.bottom < 0 || r.top > window.innerHeight) return null;
+    return { left: Math.min(r.left, q.left) - 4, top: Math.min(r.top, q.top) - 4, right: Math.max(r.right, q.right) + 4, bottom: Math.max(r.bottom, q.bottom) + 4 };
+  }
+  /* quando (ms) il rettangolo che va da «a» a «b» tocca per la prima volta il versetto (first) o lo lascia per l'ultima (last);
+     s0 → s1: la scala della casa dietro, sulla stessa molla */
+  function verseMeet(a, b, zeta, dur, s0, s1, first) {
+    var V = verseBox(); if (!V) return null;
+    var o = S.origin || { x: 0, y: 0 }, last = null;
+    for (var t = 0; t <= dur; t += 8) {
+      var p = springAt(zeta, t / dur), s = s0 + (s1 - s0) * p;
+      var L = lerp(a.left, b.left, p), T = lerp(a.top, b.top, p), R = lerp(a.left + a.width, b.left + b.width, p), B = lerp(a.top + a.height, b.top + b.height, p);
+      var hit = L < o.x + (V.right - o.x) * s && R > o.x + (V.left - o.x) * s && T < o.y + (V.bottom - o.y) * s && B > o.y + (V.top - o.y) * s;
+      if (hit && first) return t;
+      if (hit) last = t;
+    }
+    return first ? null : last;
+  }
+  function hush(on) { clearHush(); root.classList.toggle("sz-hush", !!on); }
+  function clearHush() { if (S.hushR) cancelAnimationFrame(S.hushR); S.hushR = 0; }
+  /* on: quando l'animazione «anim» arriva a ms, il versetto sparisce (on) o torna (!on) */
+  function hushWhen(anim, ms, on) {
+    clearHush();
+    (function go() {
+      var t = anim ? anim.currentTime : null;
+      if (t == null || anim.playState === "idle") { S.hushR = 0; return; }
+      if (t + (on ? 17 : 0) >= ms) { S.hushR = 0; root.classList.toggle("sz-hush", on); return; }     /* sparire: un fotogramma prima */
+      S.hushR = requestAnimationFrame(go);
+    })();
+  }
+
   /* ---------------------------------------------------------------- aprire */
   function open(id, tile, o) {
     o = o || {};
@@ -181,7 +227,7 @@
     if (!sec || S.id || S.busy || root.classList.contains("ni-on") || root.classList.contains("is-sheet")) return false;
     if (!o.from && menuOpen()) return false;                     /* il menu aperto: solo lui (con from) può aprire una sezione */
     if (o.from && !(o.from.width > 0 && o.from.height > 0)) o.from = null;
-    S.id = id; S.tile = tile || null; S.busy = true; S.anims = []; S.hold = !!o.hold; S.kbd = !!o.kbd; S.any = true;
+    S.id = id; S.tile = tile || null; S.busy = true; S.anims = []; S.hold = !!o.hold; S.kbd = !!o.kbd; S.any = true; S.t0 = performance.now(); S.inK = null;
     S.ret = o.kbd ? doc.activeElement : null;                    /* da tastiera il fuoco torna proprio lì */
     panel.setAttribute("data-mat", sec.mat); panel.className = "sz__panel" + (sec.mat === "night" ? " on-dark" : "");
     panel.style.transform = ""; panel.style[CP] = "";
@@ -191,13 +237,17 @@
     behind.forEach(function (n) { n.style.transformOrigin = "50% " + (window.pageYOffset + window.innerHeight / 2) + "px"; });
     shell.hidden = false; root.classList.add("is-sheet", "is-locked", "is-sz"); inert(true); dotCall("pause");
     emit("open", id);
-    try { S.ctx = sec.build(body, { tile: tile, day: o.day }) || {}; } catch (e) { if (window.console) console.error(e); S.ctx = {}; }
+    var quiet = id !== "corano", still = !!(o.instant || I.still());
+    if (quiet && (still || o.from || menuOpen())) hush(true);     /* subito: senza moto, o dal menu (il suo velo copre già la casa) */
+    try { S.ctx = sec.build(body, { tile: tile, day: o.day, instant: still }) || {}; } catch (e) { if (window.console) console.error(e); S.ctx = {}; }
     scroller.scrollTop = 0;          /* qui, a scheda visibile: nascosta (display: none) Chromium le lasciava lo scorrimento della volta prima */
     /* replace: il menu passa la sua voce della cronologia alla sezione (così «indietro» chiude la sezione, non il menu sotto) */
     if (o.push !== false) { try { if (o.replace) history.replaceState({ sz: id }, "", "#" + id); else history.pushState({ sz: id }, "", "#" + id); S.pushed = true; } catch (e) { S.pushed = false; } } else S.pushed = !!o.pushed;
     if (o.instant || I.still() || (!o.from && (!tile || !onScreen(tile)))) {
       if (!o.instant && !I.still()) {   /* il riquadro non si vede (aperta da un indirizzo o da un menu): la scheda sale dal basso */
-        track(panel.animate([{ transform: "translateY(" + Math.round(window.innerHeight * 0.6) + "px)" }, { transform: "none" }], { duration: DUR_OPEN, easing: SP_OPEN }));
+        var dy = Math.round(window.innerHeight * 0.6), ra = restAbs(panel.getBoundingClientRect());
+        var up_ = track(panel.animate([{ transform: "translateY(" + dy + "px)" }, { transform: "none" }], { duration: DUR_OPEN, easing: SP_OPEN }));
+        if (quiet && !root.classList.contains("sz-hush")) { var th0 = verseMeet({ left: ra.left, top: ra.top + dy, width: ra.width, height: ra.height }, ra, 0.76, DUR_OPEN, 1, 1, true); if (th0 != null) hushWhen(up_, th0, true); }
         track(scrim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" })).onfinish = openDone;
         return true;
       }
@@ -219,6 +269,7 @@
       if (src) { var skinT = skinAt(src, tr, pr); track(skin.animate([{ transform: "none" }, { transform: skinT }], { duration: DUR_OPEN, easing: SP_OPEN, fill: "both" })); }
     }
     if (src) track(skin.animate([{ opacity: 1 }, { opacity: 1, offset: 0.24 }, { opacity: 0, offset: 0.74 }, { opacity: 0 }], { duration: DUR_OPEN, easing: "linear", fill: "both" }));
+    if (quiet && !root.classList.contains("sz-hush")) { var th = verseMeet(tr, restAbs(pr), 0.76, DUR_OPEN, 1, 0.955, true); if (th != null) hushWhen(main, th, true); }
     if (!fr) {
       var det = detailsGhost(tile, tr, pr);
       if (det && !sc) track(det.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 130, easing: "ease-out", fill: "both" }));
@@ -232,6 +283,7 @@
       var r = n.getBoundingClientRect(); if (r.top > window.innerHeight + 40) return;
       track(n.animate([{ opacity: 0, transform: "translateY(20px)" }, { opacity: 1, transform: "none" }], { duration: 480, delay: Math.round(DUR_OPEN * 0.3 + Math.min(k++, 8) * 46), easing: EO, fill: "backwards" }));
     });
+    S.inK = k;
     [bar, grab].forEach(function (n) { track(n.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 220, easing: "ease-out", fill: "backwards" })); });
     track(scrim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: "ease-out", fill: "backwards" }));
     behind.forEach(function (n, i) { var a = n.animate([{ transform: "none" }, { transform: "scale(.955)" }], { duration: DUR_OPEN, easing: SP_OPEN, fill: "forwards" }); S.back.push(a); if (S.hold) a.pause(); });
@@ -241,6 +293,7 @@
   function openDone() {
     if (!S.id) return;
     dropAnims(); dropClones(); skin.hidden = true; S.busy = false;
+    if (S.id !== "corano") hush(true);      /* aperta: il versetto resta nascosto sotto il velo o sotto la scheda intera */
     panel.style.transformOrigin = ""; if (scala()) panel.style[CP] = "";
     (S.ctx.share || []).forEach(function (p) { if (p.b) { p.b.style.transformOrigin = ""; } });
     var t = $("#szTitle", body); try { (t || panel).focus({ preventScroll: true }); } catch (e) { }
@@ -272,7 +325,7 @@
       else { var vr = panel.getBoundingClientRect(); panel.style.transform = ""; from = inset(rectIn(vr, panel.getBoundingClientRect()), 40); }
     }
     var pr = panel.getBoundingClientRect(), tr = unscaled(tile.getBoundingClientRect()), rad = parseFloat(getComputedStyle(tile).borderTopLeftRadius) || 32;
-    var q = rectIn(tr, pr), pre = S.id === "corano" ? 70 : 0, main;
+    var q = rectIn(tr, pr), pre = S.id === "corano" ? 70 : 0, main, s0 = homeScale(), cr = o.drag && !sc && vr ? vr : restAbs(pr);
     if (sc) {
       panel.style[CP] = wide() ? restClip() : "inset(0 round 40px)"; panel.style.transformOrigin = "0 0"; skinAt(tile, restAbs(pr), pr);
       main = track(panel.animate([{ transform: fromT }, { transform: scalaT(tr, pr) }], { duration: DUR_CLOSE, easing: SP_CLOSE, fill: "both", delay: pre }));
@@ -295,6 +348,7 @@
     [bar, grab].forEach(function (n) { track(n.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: "ease-out", fill: "forwards" })); });
     track(scrim.animate([{ opacity: parseFloat(getComputedStyle(scrim).opacity) || 1 }, { opacity: 0 }], { duration: DUR_CLOSE - 80, easing: "ease-out", fill: "both", delay: pre }));
     backTo(DUR_CLOSE);
+    if (root.classList.contains("sz-hush")) { var tl = verseMeet(cr, tr, 0.88, DUR_CLOSE, s0, 1, false); if (tl == null) hush(false); else hushWhen(main, Math.min(tl + 8, DUR_CLOSE * 0.92), false); }
     main.onfinish = finishClose;
   }
   function backTo(dur) {
@@ -306,7 +360,7 @@
     dropAnims(); dropBack(); dropClones();
     if (S.ctx && S.ctx.cleanup) { try { S.ctx.cleanup(); } catch (e) { } }
     scroller.scrollTop = 0; shell.hidden = true; skin.hidden = true; body.innerHTML = ""; panel.style.transform = ""; panel.style[CP] = ""; panel.style.transformOrigin = ""; scrim.style.opacity = "";
-    root.classList.remove("is-sheet", "is-locked", "is-sz"); inert(false);
+    root.classList.remove("is-sheet", "is-locked", "is-sz"); inert(false); hush(false); DRAG = null;
     behind.forEach(function (n) { n.style.transformOrigin = ""; });
     if (tile) {
       tile.classList.remove("is-source");
@@ -570,6 +624,12 @@
       });
       G.proj = [];
       ctx.font = '600 12.5px Manrope, -apple-system, "Segoe UI", sans-serif'; ctx.textBaseline = "middle";
+      /* Medina e Makkah sono a 3,4° l'una dall'altra: sul globo i due punti stanno a pochi px e le etichette si coprivano. Quando
+         sono più vicine di 24 px (sempre, a queste misure) Medina, che è a nord, scrive dall'altra parte e un poco più in alto,
+         Makkah un poco più in basso */
+      var qMed = null, qMak = null, sp = 0;
+      cs.forEach(function (c) { if (c.id === "medina") qMed = R(c.v); else if (c === mak) qMak = R(c.v); });
+      if (qMed && qMak && qMed[2] > 0.02 && qMak[2] > 0.02) sp = clamp((24 - Math.hypot(qMed[0] - qMak[0], qMed[1] - qMak[1]) * rad) / 8, 0, 1);
       cs.forEach(function (c) {
         var q = R(c.v); if (q[2] <= 0.02) return;
         var x = cx + q[0] * rad, y = cy - q[1] * rad, on = G.sel === c.id, big = c === mak ? 1.3 : 1;
@@ -578,9 +638,12 @@
         ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x, y, 12 * big, 0, 6.3); ctx.fill();
         ctx.fillStyle = "#fff8e8"; ctx.beginPath(); ctx.arc(x, y, 2.7 * big, 0, 6.3); ctx.fill();
         if (on) { var w = live ? (t % 1600) / 1600 : 0.35; ctx.strokeStyle = "rgba(255,240,208," + (0.8 * (1 - w)).toFixed(3) + ")"; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(x, y, 5 + 14 * w, 0, 6.3); ctx.stroke(); }
-        var left = q[0] < -0.1 || c.id === "casablanca", lx = x + (left ? -12 : 12);
+        var left = q[0] < -0.1 || c.id === "casablanca", ly = y;
+        if (sp && c.id === "medina") { left = !(qMak[0] < -0.1); ly = y - 3 * sp; }
+        else if (sp && c === mak) ly = y + 3 * sp;
+        var lx = x + (left ? -12 : 12);
         ctx.textAlign = left ? "right" : "left"; ctx.globalAlpha = on ? 1 : 0.72 * clamp((q[2] - 0.02) / 0.25, 0, 1);
-        ctx.fillStyle = "rgba(6,10,34,.6)"; ctx.fillText(c.name, lx, y + 1.5); ctx.fillStyle = "#fff"; ctx.fillText(c.name, lx, y + 0.5); ctx.globalAlpha = 1;
+        ctx.fillStyle = "rgba(6,10,34,.6)"; ctx.fillText(c.name, lx, ly + 1.5); ctx.fillStyle = "#fff"; ctx.fillText(c.name, lx, ly + 0.5); ctx.globalAlpha = 1;
       });
     }
     /* il moto: inerzia dopo il dito, molla verso una città scelta */
@@ -596,20 +659,21 @@
       draw(t);
     }
     function aimAt(id) { var c = cityById(id); G.sel = id; G.aim = { lon: c.lon, lat: clamp(c.lat * 0.85, -40, 50) }; if (I.still()) { G.lon = G.aim.lon; G.lat = G.aim.lat; G.aim = null; draw(now()); } }
-    var drag = null, host_ = cv.parentNode;
-    host_.addEventListener("pointerdown", function (e) { drag = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, lt: performance.now(), lon: G.lon, lat: G.lat, moved: false, id: e.pointerId, mouse: e.pointerType === "mouse" }; G.aim = null; G.vlon = G.vlat = 0; });
-    window.addEventListener("pointermove", function (e) {
+    var drag = null, host_ = cv.parentNode, me = { move: onMove, up: up };
+    host_.addEventListener("pointerdown", function (e) { drag = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, lt: performance.now(), lon: G.lon, lat: G.lat, moved: false, id: e.pointerId, mouse: e.pointerType === "mouse" }; G.aim = null; G.vlon = G.vlat = 0; DRAG = me; });
+    function done() { drag = null; if (DRAG === me) DRAG = null; }
+    function onMove(e) {
       if (!drag || e.pointerId !== drag.id) return;
       var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       if (!drag.moved && Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-      if (!drag.moved && !drag.mouse && Math.abs(dy) > Math.abs(dx)) { drag = null; return; }   /* sul telefono il dito in verticale scorre la pagina */
+      if (!drag.moved && !drag.mouse && Math.abs(dy) > Math.abs(dx)) { done(); return; }   /* sul telefono il dito in verticale scorre la pagina */
       drag.moved = true;
       var nt = performance.now(), k = Math.max(1, nt - drag.lt) / 16.67;
       G.vlon = -(e.clientX - drag.lx) * 0.42 / k; G.vlat = drag.mouse ? (e.clientY - drag.ly) * 0.3 / k : 0;
       drag.lx = e.clientX; drag.ly = e.clientY; drag.lt = nt;
       G.lon = drag.lon - dx * 0.42; if (drag.mouse) G.lat = clamp(drag.lat + dy * 0.3, -70, 75);
       if (I.still()) draw(now());
-    });
+    }
     function up(e) {
       if (!drag || (e && e.pointerId !== drag.id)) return;
       if (!drag.moved && e && e.type === "pointerup") {      /* un tocco su una città la sceglie */
@@ -618,9 +682,8 @@
         if (best && onPick) onPick(best.id);
       }
       if (performance.now() - drag.lt > 90) { G.vlon = 0; G.vlat = 0; }
-      drag = null;
+      done();
     }
-    window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
     size();
     return { size: size, draw: draw, step: step, aim: aimAt, setTime: function (d) { G.T = d; }, geom: function () { return geom(); }, state: G };
   }
@@ -648,6 +711,22 @@
     if (part === "crepuscolo") return st.sun.rising ? "aurora" : "crepuscolo";
     return part;
   }
+  /* le cinque città calcolate quando la casa è libera, e di nuovo ogni minuto (mai con la pagina nascosta o una sezione aperta):
+     mentre la scheda si apre le schede usano questi conti (al più vecchi di un minuto); a scheda aperta si rifanno freschi */
+  var PRE = { t: -1e15, st: null };
+  function preCities() {
+    if (doc.hidden || S.id) return;
+    var d = I.now(), m = {}; ORDER.forEach(function (id) { var c = cityById(id); if (c) m[id] = C.city(c, d); }); PRE = { t: d.getTime(), st: m };
+  }
+  I.whenFree(function () { preCities(); setInterval(preCities, 60000); });
+  function cityState(c, d) { var m = PRE.st; return S.busy && m && m[c.id] && Math.abs(PRE.t - d.getTime()) < 60000 ? m[c.id] : C.city(c, d); }
+  /* un pezzo aggiunto mentre la scheda si apre sale con gli altri, al suo scalino (non tracciato: openDone non lo ferma a metà) */
+  function riseLate(n) {
+    if (!S.busy || S.inK == null || I.still()) return;
+    var r = n.getBoundingClientRect(); if (r.top > window.innerHeight + 40) return;
+    var at = Math.round(DUR_OPEN * 0.3 + Math.min(S.inK++, 8) * 46), gone = performance.now() - S.t0;
+    n.animate([{ opacity: 0, transform: "translateY(20px)" }, { opacity: 1, transform: "none" }], { duration: 480, delay: Math.max(0, Math.round(at - gone)), easing: EO, fill: "backwards" });
+  }
   function offTxt(o) { if (!o) return ""; var n = Math.abs(o), s = n === 1 ? "1 ora" : String(n).replace(".", ",") + " ore"; return s + (o > 0 ? " avanti" : " indietro"); }
   function buildCitta(b, ctx) {
     var tile = ctx.tile || $('.tile[data-tile="citta"]'), tLab = $(".tile__head .label--ink", tile), tCv = $("#globo", tile);
@@ -659,25 +738,48 @@
       '<div class="sz-ora__r" id="szOra" role="slider" tabindex="0" aria-label="Sposta l’ora, da 12 ore fa a fra 12 ore" aria-valuemin="-720" aria-valuemax="720" aria-valuenow="0" aria-valuetext="adesso"><i class="sz-ora__tr"></i>' +
       [-12, -9, -6, -3, 0, 3, 6, 9, 12].map(function (k) { return '<i class="sz-ora__tk' + (k ? "" : " sz-ora__tk--0") + '" style="left:' + (50 + k / 24 * 100) + '%"></i>'; }).join("") + '<i class="sz-ora__fill"></i><i class="sz-ora__th"></i></div>' +
       '<p class="sz-ora__b" aria-hidden="true"><span>−12 h</span><span>sposta l’ora</span><span>+12 h</span></p></div>' +
-      '<ul class="sz-cl">' + CITIES.map(function (c) {
-        return '<li class="sz-cc" data-c="' + c.id + '" data-sz-in><div class="sz-cc__top"><div><h3 class="sz-cc__n">' + esc(c.name) + '</h3><span class="sz-cc__ar" lang="ar" dir="rtl"></span><p class="sz-cc__m js-m"></p></div>' +
-          '<div><time class="sz-cc__t num js-t"><span class="js-hm"></span><small class="js-s"></small></time><p class="sz-cc__m sz-cc__p js-p"></p></div></div>' +
-          '<div class="sz-cc__mid"><div class="js-dome"></div><div class="sz-f"><p>Sole<b class="js-sun"></b></p><p><span class="js-moonk">Luna</span><b class="js-moon"></b></p><p>Alba e tramonto<b class="js-rs num"></b></p></div></div>' +
-          '<div class="sz-cc__q js-q"></div></li>';
-      }).join("") + "</ul>" +
+      '<ul class="sz-cl" id="szCl"></ul>' +
       '<div class="sz-note" data-sz-in><p>Tutto è calcolato qui, sul tuo telefono, e niente viene chiesto ad altri siti. Il Sole e la Luna: formule astronomiche semplificate (il Sole entro 0,05°, la Luna entro mezzo grado, vista dal posto e non dal centro della Terra). Alba e tramonto: quando il bordo alto del Sole tocca l’orizzonte (−0,833°, con la rifrazione).</p>' +
       "<p>La qibla: la direzione del cerchio massimo verso la Kaʿba (21,4225° N, 39,8262° E), contata da nord in senso orario; la distanza è sulla Terra come sfera di 6371 km. Il Marocco è a UTC+0 tutto l’anno dal 20 settembre 2026: l’ora di Casablanca la tiene giusta anche un telefono con i fusi vecchi.</p>" +
       '<p>I nomi in arabo vengono da Wikidata. Nella bussola il centro è sopra la testa e il bordo è l’orizzonte; la freccia tratteggiata è la qibla.</p></div>';
     b.innerHTML = h;
-    $$(".sz-cc", b).forEach(function (li, i) { $(".sz-cc__ar", li).textContent = CITIES[i].ar; });   /* i nomi arabi: solo dal dato (Wikidata) */
-    var gCv = $("#szGlobo canvas", b), globe = Globe(gCv, CITIES, pick), raf = 0, rolls = {};
-    $$(".sz-cc", b).forEach(function (li) { rolls[li.getAttribute("data-c")] = { hm: Roll($(".js-hm", li)), s: Roll($(".js-s", li)) }; });
+    var gCv = $("#szGlobo canvas", b), globe = Globe(gCv, CITIES, pick), raf = 0, rolls = {}, sel = null, cl = $("#szCl", b), made = 0, late = [];
+    /* le cinque schede (il loro DOM è la parte pesante: trenta colonne di cifre, cinque bussole) non stanno nel primo fotogramma:
+       arrivano mentre la scheda si apre, in due pezzi, quando il ritaglio è già partito (dal 30%), e salgono al loro scalino */
+    function cardHTML(c) {
+      return '<li class="sz-cc" data-c="' + c.id + '" data-sz-in><div class="sz-cc__top"><div><h3 class="sz-cc__n">' + esc(c.name) + '</h3><span class="sz-cc__ar" lang="ar" dir="rtl"></span><p class="sz-cc__m js-m"></p></div>' +
+        '<div><time class="sz-cc__t num js-t"><span class="js-hm" aria-hidden="true"></span><small class="js-s" aria-hidden="true"></small><span class="sr js-tl"></span></time><p class="sz-cc__m sz-cc__p js-p"></p></div></div>' +
+        '<div class="sz-cc__mid"><div class="js-dome"></div><div class="sz-f"><p>Sole<b class="js-sun"></b></p><p><span class="js-moonk">Luna</span><b class="js-moon"></b></p><p>Alba e tramonto<b class="js-rs num"></b></p></div></div>' +
+        '<div class="sz-cc__q js-q"></div></li>';
+    }
+    function addCards(n) {
+      if (made >= CITIES.length || !root.contains(cl)) return;
+      var to = Math.min(CITIES.length, made + n), tmp = doc.createElement("ul");
+      tmp.innerHTML = CITIES.slice(made, to).map(cardHTML).join("");
+      var lis = $$(".sz-cc", tmp);
+      lis.forEach(function (li, i) {
+        var c = CITIES[made + i];
+        $(".sz-cc__ar", li).textContent = c.ar;     /* i nomi arabi: solo dal dato (Wikidata) */
+        rolls[c.id] = { hm: Roll($(".js-hm", li)), s: Roll($(".js-s", li)) };
+        if (sel) li.classList.toggle("is-sel", c.id === sel);
+        cl.appendChild(li);
+      });
+      made = to; paint(true);
+      lis.forEach(riseLate);
+    }
+    if (ctx.instant) addCards(CITIES.length);
+    else { late.push(setTimeout(function () { addCards(2); }, Math.round(DUR_OPEN * 0.3))); late.push(setTimeout(function () { addCards(3); }, Math.round(DUR_OPEN * 0.3) + 90)); }
     function pick(id) {
+      sel = id;
       $$(".sz-chip", b).forEach(function (x) { x.setAttribute("aria-pressed", x.getAttribute("data-c") === id ? "true" : "false"); });
       $$(".sz-cc", b).forEach(function (x) { x.classList.toggle("is-sel", x.getAttribute("data-c") === id); });
       globe.aim(id);
     }
-    $(".sz-chips", b).addEventListener("click", function (e) { var c = e.target.closest ? e.target.closest(".sz-chip") : null; if (c) pick(c.getAttribute("data-c")); });
+    var chips = $(".sz-chips", b);
+    chips.addEventListener("click", function (e) { var c = e.target.closest ? e.target.closest(".sz-chip") : null; if (c) pick(c.getAttribute("data-c")); });
+    /* la fila delle città sul telefono scorre: sfuma a destra finché non si arriva in fondo */
+    function chipsEnd() { chips.classList.toggle("is-end", chips.scrollLeft + chips.clientWidth >= chips.scrollWidth - 2); }
+    chips.addEventListener("scroll", chipsEnd, { passive: true });
     var lastSec = "", lastFull = -1e15, lastOff = null;
     function paint(force) {
       var d = new Date(I.now().getTime() + offMin * 60000), sec = String(Math.floor(d.getTime() / 1000));
@@ -692,13 +794,15 @@
         var c = CITIES[i], tz = A.fixTz(c.tz, d), t = A.localTime(d, c.tz, true);
         rolls[c.id].hm.set(t.slice(0, 5), dir); rolls[c.id].s.set(t.slice(5), dir);
         if (!full) return;
-        var st = C.city(c, d);
+        var st = cityState(c, d), tl = $(".js-tl", li), t5 = t.slice(0, 5);
+        if (tl.textContent !== t5) { tl.textContent = t5; $(".js-t", li).setAttribute("datetime", t5); }
         li.setAttribute("style", skyVars(st.sun.alt, st.sun.rising ? 20 : 80));
         $(".js-m", li).textContent = c.country + (c.id === "torino" ? "" : " · " + (offTxt(st.off) || "stessa ora"));
         $(".js-p", li).textContent = partOf(st);
         $(".js-dome", li).innerHTML = domeSVG(st);
-        $(".js-sun", li).textContent = st.sun.alt > -0.833 ? "alto " + Math.round(st.sun.alt) + "°, a " + C.wind(st.sun.az) : "sotto l’orizzonte";
-        $(".js-moon", li).textContent = (st.moon.alt > 0 ? "alta " + Math.round(st.moon.alt) + "°, a " + C.wind(st.moon.az) : "sotto l’orizzonte");
+        /* sotto mezzo grado non si dice «alto 0°»: è all'orizzonte (il Sole da −0,833°, quando il suo bordo alto lo tocca) */
+        $(".js-sun", li).textContent = st.sun.alt > -0.833 ? (st.sun.alt < 0.5 ? "all’orizzonte, a " : "alto " + Math.round(st.sun.alt) + "°, a ") + C.wind(st.sun.az) : "sotto l’orizzonte";
+        $(".js-moon", li).textContent = st.moon.alt > 0 ? (st.moon.alt < 0.5 ? "all’orizzonte, a " : "alta " + Math.round(st.moon.alt) + "°, a ") + C.wind(st.moon.az) : "sotto l’orizzonte";
         $(".js-moonk", li).textContent = "Luna, illuminata al " + Math.round(st.moon.fraction * 100) + "%";
         $(".js-rs", li).innerHTML = esc((st.riseT || "—") + " – " + (st.setT || "—")) + (st.light ? "<em>" + esc(hm(st.light)) + " di luce</em>" : "");
         var q = st.qibla;
@@ -755,8 +859,11 @@
     function frame(t) { raf = requestAnimationFrame(frame); globe.step(t); paint(false); }
     return {
       share: [{ a: tCv, b: gCv, kind: "scale", aBox: function () { return circleOf(tCv, 0.385, 0.515); }, bBox: function () { return circleOf(gCv, 0.4, 0.5); } }, { a: tLab, b: $("#szTitle", b), kind: "text" }],
-      start: function () { globe.size(); if (I.still()) { globe.draw(now()); var tk = setInterval(function () { paint(false); }, 1000); this._tk = tk; return; } raf = requestAnimationFrame(frame); },
-      stop: function () { cancelAnimationFrame(raf); cancelAnimationFrame(back); clearInterval(this._tk); },
+      start: function () {
+        addCards(CITIES.length); paint(true); chipsEnd();        /* a scheda aperta i conti si rifanno freschi (non dalla cache) */
+        globe.size(); if (I.still()) { globe.draw(now()); var tk = setInterval(function () { paint(false); }, 1000); this._tk = tk; return; } raf = requestAnimationFrame(frame);
+      },
+      stop: function () { cancelAnimationFrame(raf); cancelAnimationFrame(back); clearInterval(this._tk); late.forEach(clearTimeout); late = []; },
       pick: pick, setOff: setOff,
       retheme: function () { globe.draw(now()); }
     };
@@ -831,7 +938,7 @@
     var host_ = $("#szH", b);
     var fillNow = null;
     function fill(j) {
-      var H = C.heat(j);
+      var H = C.heat(j, oggi());
       if (!S.id || S.id !== "heatmap") return;
       var list, cells, endMs;
       if (H) { list = H.days; endMs = H.last.ms; } else { endMs = oggi(); list = []; for (var t = endMs - (52 * 7 + C.wdOf(endMs)) * 86400000; t <= endMs; t += 86400000) list.push({ ms: t, n: null, l: 0 }); }
@@ -848,7 +955,7 @@
           '<div class="sz-card sz-stat" data-sz-in><b class="num">' + fmtN(H.active) + "</b><span>giorni con contributi</span><em>su " + fmtN(H.span) + " del calendario</em></div>" +
           '<div class="sz-card sz-stat" data-sz-in data-go="' + (lg ? list.indexOf(lg.to) : -1) + '"><b class="num">' + (lg ? lg.n + "<small>" + (lg.n === 1 ? "giorno" : "giorni") + "</small>" : "—") + "</b><span>la serie più lunga</span><em>" + (lg ? esc(C.rangeLabel(lg.from, lg.to)) : "nessuna") + "</em></div>" +
           (bu ? '<div class="sz-card sz-stat" data-sz-in data-go="' + list.indexOf(bu.day) + '"><b class="num">' + fmtN(bu.n) + "</b><span>il giorno più pieno</span><em>" + esc(C.dayLabel(bu.day, true, true)) + (bu.ties > 1 ? ", e altri " + (bu.ties - 1) : "") + "</em></div>" : "") +
-          '<div class="sz-card sz-stat" data-sz-in><b class="num">' + (cu ? cu.n + "<small>" + (cu.n === 1 ? "giorno" : "giorni") + "</small>" : "0") + "</b><span>la serie in corso</span><em>" + (cu ? (cu.untilYesterday ? "fino a ieri: oggi non è finito" : "fino a oggi") : "per ora nessuna") + "</em></div></div>";
+          '<div class="sz-card sz-stat" data-sz-in><b class="num">' + (cu ? cu.n + "<small>" + (cu.n === 1 ? "giorno" : "giorni") + "</small>" : "0") + "</b><span>la serie in corso</span><em>" + (cu ? (cu.untilYesterday ? "fino a ieri: oggi non è finito" : "fino a oggi") : H.lag > 1 ? "ultimo giorno nei dati: " + new Date(H.last.ms).getUTCDate() + " " + C.MESI[new Date(H.last.ms).getUTCMonth()] : "per ora nessuna") + "</em></div></div>";
         if (!H.counts) x += '<p class="sz-cap" data-sz-in style="margin-top:12px">I conti di ogni giorno non sono arrivati: qui ci sono solo i livelli.</p>';
         /* mese per mese */
         var mx = 0; H.months.forEach(function (m) { var v = H.counts ? m.sum : m.active; if (v > mx) mx = v; });
@@ -920,8 +1027,7 @@
     withData("contributi", fill);
     out.start = function () {
       if (!fillNow || !fillNow.H || I.still()) return;
-      /* i numeri arrivano rotolando, le barre crescono dal basso, a scalini */
-      var tot = $("#szTot", b); if (tot) { var to = fillNow.H.total != null ? fillNow.H.total : fillNow.H.sum, t0 = performance.now(); (function go() { var k = clamp((performance.now() - t0) / 900, 0, 1), e = 1 - Math.pow(1 - k, 4); tot.textContent = fmtN(Math.round(to * e)); if (k < 1) requestAnimationFrame(go); })(); }
+      /* le barre crescono dal basso, a scalini; il totale no: arriva già intero, salendo con il resto (2f E) */
       $$(".sz-bar i", b).forEach(function (n, i) { n.animate([{ transform: "scaleY(0)" }, { transform: "none" }], { duration: 640, delay: i * 32, easing: SP_POP, fill: "backwards" }); });
       $$(".sz-wk__r i", b).forEach(function (n, i) { n.animate([{ transform: "scaleX(0)" }, { transform: "none" }], { duration: 640, delay: 120 + i * 40, easing: SP_POP, fill: "backwards" }); });
     };
@@ -973,19 +1079,19 @@
       S_.sv += (1 - S_.scale) * 0.16 * dt; S_.sv *= Math.pow(0.78, dt); S_.scale += S_.sv * dt;
       draw();
     }
-    var host_ = cv.parentNode;
-    host_.addEventListener("pointerdown", function (e) { drag = { id: e.pointerId, x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, lt: performance.now(), moved: false, mouse: e.pointerType === "mouse" }; });
-    window.addEventListener("pointermove", function (e) {
+    var host_ = cv.parentNode, me = { move: onMove, up: up };
+    host_.addEventListener("pointerdown", function (e) { drag = { id: e.pointerId, x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, lt: performance.now(), moved: false, mouse: e.pointerType === "mouse" }; DRAG = me; });
+    function done() { drag = null; if (DRAG === me) DRAG = null; }
+    function onMove(e) {
       if (!drag || drag.id !== e.pointerId) return;
       var dx = e.clientX - drag.lx, dy = e.clientY - drag.ly;
-      if (!drag.moved) { if (Math.abs(e.clientX - drag.x) < 6 && Math.abs(e.clientY - drag.y) < 6) return; if (!drag.mouse && Math.abs(e.clientY - drag.y) > Math.abs(e.clientX - drag.x)) { drag = null; return; } drag.moved = true; }
+      if (!drag.moved) { if (Math.abs(e.clientX - drag.x) < 6 && Math.abs(e.clientY - drag.y) < 6) return; if (!drag.mouse && Math.abs(e.clientY - drag.y) > Math.abs(e.clientX - drag.x)) { done(); return; } drag.moved = true; }
       var nt = performance.now(), k = Math.max(1, nt - drag.lt) / 16.67;
       S_.yaw += dx * 0.011; S_.vyaw = dx * 0.011 / k; if (drag.mouse) { S_.pitch += dy * 0.009; S_.vpitch = dy * 0.009 / k; }
       drag.lx = e.clientX; drag.ly = e.clientY; drag.lt = nt;
       if (I.still()) draw();
-    });
-    function up(e) { if (!drag || drag.id !== e.pointerId) return; if (performance.now() - drag.lt > 90) { S_.vyaw = 0; S_.vpitch = 0; } drag = null; }
-    window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+    }
+    function up(e) { if (!drag || drag.id !== e.pointerId) return; if (performance.now() - drag.lt > 90) { S_.vyaw = 0; S_.vpitch = 0; } done(); }
     fit(); draw();
     return { retheme: function () { IPL = trip("--ip-line", "227 231 244"); IPD = trip("--ip-dot", "240 242 252"); draw(); }, fit: fit, draw: draw, step: step, detail: function (n) { M = icosa(n); prep(); S_.scale = 0.9; S_.sv = 0; if (I.still()) { S_.scale = 1; } draw(); return M; }, mesh: function () { return M; }, geom: function () { return G; } };
   }
@@ -1000,7 +1106,8 @@
     var sCv = $("#szSolid canvas", b), solid = Solid(sCv, detail), geo = $("#szGeo", b), geoN = $("#szGeoN", b), meno = $("#szMeno", b), piu = $("#szPiu", b);
     function showGeo(M) {
       geo.textContent = "IcosahedronGeometry(1, " + detail + ")";
-      geoN.textContent = fmtN(M.V.length) + " vertici · " + fmtN(M.E.length) + " spigoli · " + fmtN(M.faces) + " facce";
+      /* i conti sono del solido (i vertici una volta sola), non del buffer di three.js: lo dice la nota; due pezzi che vanno a capo solo tra loro */
+      geoN.innerHTML = "<span>il solido: " + fmtN(M.V.length) + " vertici,</span> <span>" + fmtN(M.E.length) + " spigoli, " + fmtN(M.faces) + " facce</span>";
       meno.disabled = detail <= 0; piu.disabled = detail >= 4;
     }
     showGeo(solid.mesh());
@@ -1032,7 +1139,7 @@
         if (f.length) x += '<div class="sz-facts" data-sz-in>' + f.map(function (s) { return "<span>" + s + "</span>"; }).join("") + "</div>";
       }
       x += '<div class="sz-pills" data-sz-in><a class="sz-pill" href="' + esc(url) + '" target="_blank" rel="noopener">Il repository su GitHub' + ICO.out + '<span class="sr"> (si apre in una nuova scheda)</span></a></div>';
-      x += '<div class="sz-note" data-sz-in><p>Il solido è una IcosahedronGeometry di three.js disegnata qui a fil di ferro: trascinalo per farlo girare, e cambia il dettaglio. I conti di vertici, spigoli e facce sono quelli del solido che vedi.</p>' + (j && j.updated ? "<p>I commit vengono dal repository pubblico su GitHub, " + esc(letto(j.updated)) + ".</p>" : "") + "</div>";
+      x += '<div class="sz-note" data-sz-in><p>Il solido è un icosaedro diviso come lo divide IcosahedronGeometry(1, n) di three.js, ridisegnato qui a fil di ferro senza three.js: trascinalo per farlo girare, e cambia il dettaglio. I conti sono quelli del solido che vedi, con i vertici contati una volta sola: three.js non li condivide tra le facce e nel suo buffer ne mette tre per faccia (240 con il dettaglio 1).</p>' + (j && j.updated ? "<p>I commit vengono dal repository pubblico su GitHub, " + esc(letto(j.updated)) + ".</p>" : "") + "</div>";
       host_.innerHTML = x;
     }
     withData("progetti", fill);
