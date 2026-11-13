@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/lib/site";
+import { CASA_NUOVA, SITE_URL } from "@/lib/site";
 
+// Con la casa nuova a "/" (CASA_NUOVA in lib/site.ts) si indicizza tutto il sito tranne la pagina di prova di Dot (/gatto).
+// Prima del cambio restano fuori anche le anteprime (/anteprima con le sue pagine interne) e il vecchio /lab.
 export default function robots(): MetadataRoute.Robots {
   return {
-    // i banchi di prova (/lab) e le anteprime (/anteprima con le sue pagine interne, /gatto) non vanno nei motori di ricerca
-    rules: { userAgent: "*", allow: "/", disallow: ["/lab/", "/anteprima", "/gatto"] },
+    rules: { userAgent: "*", allow: "/", disallow: CASA_NUOVA ? ["/gatto"] : ["/lab/", "/anteprima", "/gatto"] },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

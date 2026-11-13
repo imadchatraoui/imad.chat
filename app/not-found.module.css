@@ -1,0 +1,107 @@
+/* La pagina 404, nel disegno della casa: i nove tasti del logo (come in fondo alla casa, .l9--big), il titolo in Manrope,
+   la capsula d'oro di «Lascia un saluto» per tornare. Chiaro e scuro seguono il telefono (app/globals.css). */
+
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 48px 16px calc(48px + env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 26em;
+}
+
+/* i nove tasti: otto di vetro, quello di mezzo con il punto d'oro */
+.logo {
+  display: grid;
+  grid-template-columns: repeat(3, 38px);
+  grid-auto-rows: 38px;
+  gap: 5px;
+  margin-bottom: 26px;
+}
+.logo i {
+  display: block;
+  position: relative;
+  border-radius: 11px;
+  background: linear-gradient(180deg, var(--key) 0%, var(--key-2) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 0 0 0.5px var(--key-edge), 0 1px 2px rgba(10, 12, 40, 0.18), 0 6px 12px -8px rgba(10, 12, 40, 0.45);
+}
+.logo .centre::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--gold-ink);
+  box-shadow: 0 0 9px 2px rgb(var(--gold-glow) / 0.62);
+}
+
+.code {
+  margin: 0 0 10px;
+  font: 500 13px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  color: var(--ink-2);
+}
+
+.title {
+  margin: 0;
+  font: 800 34px/1.06 var(--font-sans);
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.text {
+  margin: 12px 0 28px;
+  font: 500 17px/1.45 var(--font-sans);
+  letter-spacing: -0.01em;
+  color: var(--ink-2);
+  text-wrap: balance;
+}
+
+/* la capsula d'oro della casa (.pill--clay): il testo scuro sull'oro */
+.home {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px 0 16px;
+  border-radius: 22px;
+  font: 700 15px/1 var(--font-sans);
+  letter-spacing: -0.016em;
+  color: #2b2210;
+  text-decoration: none;
+  background: linear-gradient(180deg, #f8e7b9 0%, #ebd08a 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 0 0 0.5px rgba(120, 86, 20, 0.18), 0 1px 2px rgba(120, 86, 20, 0.18), 0 8px 18px -10px rgba(150, 110, 30, 0.5);
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.home:active {
+  transform: scale(0.96);
+}
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2b2210;
+}
+
+@media (min-width: 700px) {
+  .title {
+    font-size: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home {
+    transition: none;
+  }
+}
