@@ -19,6 +19,10 @@
 /* il nome del repository: una cosa che la macchina sa, in Geist Mono */
 .pj-cubo__a { align-self: flex-start; margin-top: 16px; font: 500 13px/1 var(--font-mono); letter-spacing: -.01em; }
 .pj-cubo__a svg, .pj-r__sito svg, .pj-vuoto svg { flex: none; opacity: .62; }
+/* «Gioca» (la capsula d'oro: il gioco vero, cubo/) e il repository, sulla stessa riga quando ci stanno */
+.pj-cubo__azioni { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
+.pj-cubo__azioni .pj-cubo__a { margin-top: 0; }
+.pj-cubo__gioca { gap: 4px; padding-right: 12px; }
 
 /* ------------------------------------------------------------------ l'elenco */
 .pj-lista { margin-top: 12px; display: grid; grid-template-columns: 1fr; gap: 12px; }
