@@ -1,7 +1,7 @@
 // Verifica della matematica dell'astrolabio contro astronomy-engine.
-// Uso: node check.mjs   (dalla cartella astro-lab; legge i sorgenti TS di /home/user/imad.chat/lib/astro)
+// Uso: npm run check:astro   (legge i sorgenti TS di lib/astro in questo repository)
 //
-// 1. Traspila lib/astro/*.ts in build/ con il compilatore TypeScript del progetto.
+// 1. Traspila lib/astro/*.ts in una cartella temporanea con il compilatore TypeScript del progetto.
 // 2. Per 3 stelle e 3 città a un istante UTC fisso: trova quando la stella, sulla rete ruotata
 //    da reteAngle(), attraversa il cerchio dell'orizzonte della piastra, e chiede ad astronomy-engine
 //    l'altezza in quell'istante (deve essere ~0). Trova quando attraversa il meridiano in alto
@@ -10,19 +10,19 @@
 // 3. Controlla che il codice inciso sul retro sia identico alla funzione vera.
 
 import { createRequire } from "node:module";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repo = "/home/user/imad.chat";
+const repo = join(here, "../..");   // questo repository (non una copia fissa altrove)
 const require = createRequire(join(repo, "package.json"));
 const ts = require("typescript");
 const aePath = require.resolve("astronomy-engine");
 const ae = require("astronomy-engine");
 
-const build = join(here, "build");
-mkdirSync(build, { recursive: true });
+const build = mkdtempSync(join(tmpdir(), "check-astro-"));
 const modules = ["types", "projection", "time", "sky", "plate", "rete", "qibla", "catalog", "engraving"];
 for (const m of modules) {
   const src = readFileSync(join(repo, "lib/astro", m + ".ts"), "utf8");

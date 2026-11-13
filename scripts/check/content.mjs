@@ -1,4 +1,4 @@
-// Validate content/astro/*.json and content/sezioni/*.md against the shared schema (lib/astro/types.ts).
+// Validate content/astro/*.json against the shared schema (lib/astro/types.ts). (content/sezioni went with the old site.)
 // Usage: node validate.mjs /home/user/imad.chat
 import fs from 'node:fs';
 import path from 'node:path';
@@ -6,7 +6,6 @@ import { createRequire } from 'node:module';
 
 const repo = path.resolve(process.argv[2] || '.');
 const require = createRequire(path.join(repo, 'package.json'));
-const matter = require('gray-matter');
 const errors = [];
 const fail = (where, msg) => errors.push(`${where}: ${msg}`);
 const load = (f) => JSON.parse(fs.readFileSync(path.join(repo, 'content/astro', f), 'utf8'));
@@ -147,34 +146,6 @@ for (const [file, d, allowed] of [['stars.json', stars, ['ar']], ['cities.json',
   });
 }
 
-// ---------- sezioni
-const dir = path.join(repo, 'content/sezioni');
-const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'));
-const ANCHORS = new Set(['cielo', 'tariq', 'qibla', 'retro', 'null']);
-const wanted = { 'Il cielo di adesso': 'cielo', 'At-Tariq': 'tariq', 'Verso la qibla': 'qibla', 'Palestina': 'citta:al-quds', 'Torino': 'citta:torino', 'Il retro: il codice': 'retro' };
-const seen = {};
-const orders = new Set();
-files.forEach((f) => {
-  const w = `sezioni/${f}`;
-  const { data, content } = matter(fs.readFileSync(path.join(dir, f), 'utf8'));
-  exactKeys(w, data, ['title', 'order', 'anchor', 'summary']);
-  if (!nonEmpty(data.title) || !nonEmpty(data.summary)) fail(w, 'title/summary empty');
-  if (!Number.isInteger(data.order) || orders.has(data.order)) fail(w, 'order must be a unique integer');
-  orders.add(data.order);
-  const a = data.anchor;
-  const cityOk = isStr(a) && a.startsWith('citta:') && CITY_ORDER.includes(a.slice(6));
-  if (!(a === null || ANCHORS.has(a) || cityOk)) fail(w, `bad anchor ${a}`);
-  seen[data.title] = a;
-  const refs = [...content.matchAll(/\{\{verse:([^}]+)\}\}/g)].map((m) => m[1]);
-  refs.forEach((r) => { if (!verseKeys.has(r)) fail(w, `verse placeholder ${r} not in verses.json`); });
-  if (/[؀-ۿ]/.test(content)) fail(w, 'Arabic script in body (verses must be placeholders)');
-  const text = content.replace(/\{\{verse:[^}]+\}\}/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-  const n = words(text);
-  if (n < 80 || n > 200) fail(w, `body has ${n} words`);
-  console.log(`  ${f}: order ${data.order}, anchor ${a}, ${n} words, verses [${refs}]`);
-});
-for (const [t, a] of Object.entries(wanted)) if (seen[t] !== a) fail('sezioni', `missing section "${t}" with anchor ${a}`);
-
-console.log(`verses ${verses.items.length}, stars ${stars.items.length} (${pointers} pointers), cities ${cities.items.length}, curiosities ${cur.items.length}, sezioni ${files.length}`);
+console.log(`verses ${verses.items.length}, stars ${stars.items.length} (${pointers} pointers), cities ${cities.items.length}, curiosities ${cur.items.length}`);
 if (errors.length) { console.error(errors.join('\n')); console.error(`FAILED: ${errors.length} problems`); process.exit(1); }
 console.log('ALL CHECKS PASSED');

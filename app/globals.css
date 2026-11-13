@@ -1,81 +1,63 @@
 @import "tailwindcss";
 
 /*
-  imad's world: ottone da museo in una notte di lapislazzuli.
-  La pagina nasce di notte (niente tema chiaro): notte, lapislazzuli, ottone, ottone chiaro, crema, grigio.
-  Un solo serif ovunque (Cormorant Garamond, lo stesso dell'intro), il monospace solo per i dati veri
-  e per "hello, world", Amiri per l'arabo. Niente vetri sfocati, niente neon, niente maiuscoletti urlati.
+  Ciò che rende Next (la pagina 404) con i colori della casa (docs/anteprime/casa/home/style.css): chiaro e scuro come il telefono.
+  Manrope per tutto, Geist Mono per la voce della macchina. Niente corsivo.
 */
 
 :root {
-  --night: #070a14;
-  --lapis: #14204a;
-  --lapis-deep: #0b1330;
-  --brass: #c9a25b;
-  --brass-light: #ead6a0;
-  --cream: #efe6d2;
-  --muted: #8a8fa3;
-  --hair: rgb(201 162 91 / 0.28);
-  --hair-strong: rgb(201 162 91 / 0.55);
-
-  /* le variabili di next/font (app/layout.tsx), con un ripiego sensato */
-  --font-serif: var(--font-serif-intro, "Cormorant Garamond"), "Cormorant Garamond", var(--font-amiri, "Amiri"), Garamond, "Iowan Old Style", Georgia, serif;
-  --font-mono: var(--font-mono-intro, "JetBrains Mono"), "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --font-arabic: var(--font-amiri, "Amiri"), "Amiri", "Noto Naskh Arabic", "Geeza Pro", serif;
-  /* le incisioni dell'astrolabio leggono il serif da qui (components/astrolabe/engine/fonts.ts) */
-  --font-cormorant: var(--font-serif-intro, "Cormorant Garamond");
-
-  color-scheme: dark;
+  --font-sans: var(--font-manrope, "Manrope"), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono, "Geist Mono"), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --cielo-alto: #eef0f8;
+  --cielo-mezzo: #e8e9f5;
+  --cielo-basso: #ece6f0;
+  --ink: #16171d;
+  --ink-2: rgba(22, 23, 29, 0.66);
+  --key: rgba(255, 255, 255, 0.86);
+  --key-2: rgba(255, 255, 255, 0.6);
+  --key-edge: rgba(30, 28, 70, 0.1);
+  --gold: #f3dfa8;
+  --gold-ink: #b98a2e;
+  --gold-glow: 243 223 168;
+  color-scheme: light dark;
 }
 
-@theme inline {
-  --color-night: var(--night);
-  --color-lapis: var(--lapis);
-  --color-brass: var(--brass);
-  --color-brass-light: var(--brass-light);
-  --color-cream: var(--cream);
-  --color-muted: var(--muted);
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cielo-alto: #070810;
+    --cielo-mezzo: #0b0e22;
+    --cielo-basso: #141a40;
+    --ink: #f4f5fa;
+    --ink-2: rgba(240, 242, 252, 0.66);
+    --key: rgba(255, 255, 255, 0.2);
+    --key-2: rgba(255, 255, 255, 0.11);
+    --key-edge: rgba(255, 255, 255, 0.12);
+    --gold-ink: #f3dfa8;
+  }
 }
 
 html {
-  background: var(--night);
-  color: var(--cream);
+  background: var(--cielo-alto);
+  color: var(--ink);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
   min-height: 100dvh;
-  background: var(--night);
-  color: var(--cream);
-  font-family: var(--font-serif);
-  font-weight: 500;
-  font-size: 1.1875rem;
+  background: linear-gradient(180deg, var(--cielo-alto) 0%, var(--cielo-mezzo) 56%, var(--cielo-basso) 100%);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 17px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
 }
 
-::selection {
-  background: rgb(201 162 91 / 0.35);
-  color: var(--cream);
-}
-
 :focus-visible {
-  outline: 1.5px solid var(--brass-light);
+  outline: 2px solid var(--gold-ink);
   outline-offset: 3px;
-}
-
-:lang(ar) {
-  font-family: var(--font-arabic);
-}
-
-code,
-kbd,
-samp,
-pre {
-  font-family: var(--font-mono);
 }

@@ -1,0 +1,5 @@
+Manrope (The Manrope Project Authors), SIL Open Font License 1.1: il testo è in manrope.LICENSE.
+- manrope-600.ttf, manrope-800.ttf: le istanze statiche di Google Fonts (fonts.gstatic.com, Manrope v23), scaricate il 2026-11-13.
+  Servono all'anteprima condivisa (app/opengraph-image.tsx): il disegno delle immagini non legge il woff2.
+- manrope-latin.woff2: la stessa copia di docs/anteprime/casa/tools/qr/vendor/manrope-latin.woff2 (latino, pesi 200-800),
+  per la pagina 404 (app/layout.tsx).
