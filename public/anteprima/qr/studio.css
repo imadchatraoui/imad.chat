@@ -1,0 +1,394 @@
+/* QR Studio — sopra il guscio comune (../../comune/pagina.css): stessi token, stessi materiali.
+   Sul telefono: il codice in una carta in cima che resta in vista e si stringe mentre si scorre (studio.js muove i pezzi con
+   transform: il posto della carta nella pagina non cambia mai, così i comandi non saltano); le azioni in una barra fissa in basso.
+   Da 900 px in su (o un telefono di lato): due colonne, i comandi a sinistra, il codice a destra con le azioni sotto.
+   Safari non recente: niente :has() in una lista, top/right/bottom/left al posto di inset, -webkit-backdrop-filter. Niente corsivo. */
+
+/* il carattere: una copia di Manrope accanto alla pagina (latino, pesi 400–800), così la pagina non chiede niente a Google */
+@font-face {
+  font-family: "Manrope"; font-style: normal; font-weight: 400 800; font-display: swap;
+  src: url("/anteprima/qr/vendor/manrope-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* la voce della macchina (i codici dei colori, cosa c'è nel codice) è Geist Mono 500: la sua copia è dichiarata nel guscio comune
+   (../../comune/pagina.css, comune/vendor/geist-mono-latin.woff2), come Manrope */
+
+/* sul telefono ciò che prende il fuoco (Tab, o un campo con la tastiera) non resta sotto la carta in cima né sotto la barra */
+html { scroll-padding-top: calc(var(--st-top) + 132px + 12px); scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 96px); }
+
+:root {
+  --st-top: 62px; --st-h0: 260px; --st-h: 260px;      /* studio.js: sotto la testa, l'altezza piena della carta, quella di adesso */
+  --st-ok: #1f7a43; --st-warn: #9a5b00; --st-bad: #b42318;
+  --st-in: rgba(30, 28, 70, .045); --st-in-2: rgba(30, 28, 70, .08);
+  --st-sel: #ffffff; --st-sel-sh: 0 1px 2px rgb(var(--sh) / .14), 0 6px 14px -8px rgb(var(--sh) / .45);
+  --st-ring: var(--ink);
+  --st-check: rgba(30, 28, 70, .08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --st-ok: #6fd69a; --st-warn: #f4bd5c; --st-bad: #ff8f86;
+    --st-in: rgba(255, 255, 255, .06); --st-in-2: rgba(255, 255, 255, .11);
+    --st-sel: rgba(255, 255, 255, .16); --st-sel-sh: inset 0 1px 0 rgba(255, 255, 255, .12);
+    --st-check: rgba(255, 255, 255, .1);
+  }
+}
+:root[data-theme="dark"] {
+  --st-ok: #6fd69a; --st-warn: #f4bd5c; --st-bad: #ff8f86;
+  --st-in: rgba(255, 255, 255, .06); --st-in-2: rgba(255, 255, 255, .11);
+  --st-sel: rgba(255, 255, 255, .16); --st-sel-sh: inset 0 1px 0 rgba(255, 255, 255, .12);
+  --st-check: rgba(255, 255, 255, .1);
+}
+
+/* ------------------------------------------------------------------ l'impianto: telefono */
+.st { max-width: 1080px; display: flex; flex-direction: column; gap: 12px; padding-top: 6px; padding-bottom: 28px; }
+.st-comandi { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.st-lato {
+  order: -1; position: -webkit-sticky; position: sticky; top: var(--st-top); z-index: 20;
+  height: var(--st-h0); pointer-events: none;
+}
+/* il vetro dietro la carta quando resta in cima: la testa continua fin sotto il codice, così ciò che scorre non si vede tra le due */
+.st-lato::before {
+  content: ""; position: absolute; top: -8px; left: calc(-1 * var(--gutter)); right: calc(-1 * var(--gutter)); height: calc(var(--st-h) * .5 + 8px);
+  background: var(--bar-glass); -webkit-backdrop-filter: saturate(1.8) blur(22px); backdrop-filter: saturate(1.8) blur(22px);
+  opacity: var(--st-velo, 0); pointer-events: none;
+}
+.st-carta {
+  position: absolute; top: 0; left: 0; right: 0; height: var(--st-h); overflow: hidden; pointer-events: auto;
+  border-radius: var(--r);
+  /* opaca e senza sfocatura dietro: ciò che scorre sotto non si intravede, e la tela che si ridisegna non chiede di rifare il vetro */
+  background: var(--grain, none) 0 0 / var(--gs) var(--gs), linear-gradient(180deg, #ffffff 0%, #fafafd 100%);
+  box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgb(var(--sh) / calc(var(--s1) * .35)), 0 12px 28px -12px rgb(var(--sh) / var(--s1)), 0 36px 64px -36px rgb(var(--sh) / var(--s2));
+}
+.st-carta::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 1px 0 var(--e2); }
+/* al buio la carta è lo stesso vetro grigio delle sezioni, ma pieno (ciò che scorre sotto non si vede), con la sua luce in alto */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .st-carta { background: var(--grain, none) 0 0 / var(--gs) var(--gs), radial-gradient(130% 58% at 50% -8%, rgba(255, 255, 255, .055) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, rgba(255, 255, 255, .05) 0%, rgba(255, 255, 255, .012) 100%), #26282f; } }
+:root[data-theme="dark"] .st-carta { background: var(--grain, none) 0 0 / var(--gs) var(--gs), radial-gradient(130% 58% at 50% -8%, rgba(255, 255, 255, .055) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, rgba(255, 255, 255, .05) 0%, rgba(255, 255, 255, .012) 100%), #26282f; }
+
+/* la superficie del codice: il fondo è quello del codice stesso; la scacchiera solo se il fondo è trasparente */
+.st-tela { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
+.st-tela__flip { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; transform-origin: 50% 0; }
+.st-cv {
+  display: block; border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(30, 28, 70, .08), 0 1px 2px rgba(30, 28, 70, .1), 0 12px 24px -16px rgb(var(--sh) / .6);
+}
+.st-tela.is-trasp .st-cv {
+  background-color: #fff;
+  background-image: linear-gradient(45deg, #e6e6ea 25%, transparent 25%, transparent 75%, #e6e6ea 75%), linear-gradient(45deg, #e6e6ea 25%, transparent 25%, transparent 75%, #e6e6ea 75%);
+  background-size: 10px 10px; background-position: 0 0, 5px 5px;
+}
+.st-tela.is-troppo .st-cv { opacity: .3; }
+.st-cv { transition: opacity 240ms ease; }
+
+/* la riga sotto il codice: lo stato (si legge, attenzione, non si legge) e accanto, piccolo, com'è fatto il codice */
+.st-stato, .st-info { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
+.st-stato {
+  display: block; width: var(--st-sw, 200px); padding-left: 25px;
+  font: 650 14px/19px var(--font-sans); letter-spacing: -.012em; color: var(--ink);
+}
+.st-stato__t { transition: opacity 160ms ease; }
+.st-stato.is-attesa .st-stato__t { opacity: .5; }
+/* mentre si ricontrolla restano le parole dell'ultimo verdetto: solo l'icona si fa tenue */
+.st-ico { transition: opacity 160ms ease; }
+.st-stato.is-dubbio .st-ico { opacity: .45; }
+.st-stato:focus { outline: none; }
+.st-stato:focus-visible { outline: 2.5px solid var(--focus); outline-offset: 4px; border-radius: 8px; }
+/* nella carta piccola: cosa c'è nel codice, nella voce della macchina */
+.st-cosa {
+  position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform, opacity; opacity: 0; pointer-events: none;
+  font: var(--f-mono); letter-spacing: .01em; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.st-ico { position: absolute; top: 0; left: 0; width: 19px; height: 19px; overflow: visible; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.st-ico__o { stroke: currentColor; opacity: .22; transition: opacity 200ms ease, stroke 200ms ease; }
+.st-ico__v, .st-ico__a, .st-ico__x { stroke: currentColor; }
+.st-ico__v { stroke-dasharray: 13; stroke-dashoffset: 13; transition: stroke-dashoffset 300ms cubic-bezier(.65, 0, .35, 1); }
+.st-ico__a, .st-ico__x { opacity: 0; stroke-dasharray: 9; stroke-dashoffset: 9; transition: stroke-dashoffset 240ms ease, opacity 120ms ease; }
+.st-stato[data-l="ok"] { color: var(--st-ok); }
+.st-stato[data-l="ok"] .st-ico__o { opacity: 1; }
+.st-stato[data-l="ok"] .st-ico__v { stroke-dashoffset: 0; transition-delay: 60ms; }
+.st-stato[data-l="avviso"] { color: var(--st-warn); }
+.st-stato[data-l="avviso"] .st-ico__o { opacity: 1; }
+.st-stato[data-l="avviso"] .st-ico__a { opacity: 1; stroke-dashoffset: 0; }
+.st-stato[data-l="errore"] { color: var(--st-bad); }
+.st-stato[data-l="errore"] .st-ico__o { opacity: 1; }
+.st-stato[data-l="errore"] .st-ico__x { opacity: 1; stroke-dashoffset: 0; }
+.st-stato[data-l="attesa"] { color: var(--ink-2); }
+.st-stato .st-stato__t b { font-weight: inherit; color: var(--ink-2); }
+.st-fix {
+  position: relative; display: inline; margin-left: 4px; padding: 0; font: 700 14px/19px var(--font-sans); letter-spacing: -.012em; color: var(--ink);
+  text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; text-decoration-color: currentColor;
+}
+.st-fix::before { content: ""; position: absolute; top: -13px; right: -10px; bottom: -13px; left: -10px; }
+.st-info { font: 600 12.5px/19px var(--font-sans); letter-spacing: -.004em; color: var(--ink-2); white-space: nowrap; }
+.st-info__n { display: inline-flex; }
+/* i numeri che rotolano: ogni cifra è una colonna 0-9 che scorre */
+.st-rot { display: inline-block; height: 19px; overflow: hidden; vertical-align: top; }
+.st-rot__c { display: block; transition: transform 420ms cubic-bezier(.2, .9, .25, 1); }
+.st-rot__c i { display: block; height: 19px; text-align: center; }
+.st-info__x { padding: 0 .28em; }
+
+/* ------------------------------------------------------------------ le sezioni dei comandi */
+.st-sez { padding: 18px 18px 20px; }
+.st-h2 { font: 750 18px/1.2 var(--font-sans); letter-spacing: -.03em; color: var(--ink); }
+.st-h3 { margin-top: 18px; margin-bottom: 8px; font: 650 13px/18px var(--font-sans); letter-spacing: -.004em; color: var(--ink-2); }
+.st-campi { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.st-campi[hidden] { display: none; }
+.st-sotto { margin-top: 4px; }
+#imgOpz { margin-top: 16px; }
+.st-sotto[hidden] { display: none; }
+
+/* le pastiglie di cosa ci metti: una riga che scorre di lato, la pillola scivola sotto quella scelta */
+.st-chips {
+  position: relative; display: flex; gap: 2px; margin: 14px -18px 0; padding: 4px 18px; overflow-x: auto; overflow-y: hidden;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-padding: 0 18px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+}
+.st-chips::-webkit-scrollbar { display: none; }
+.st-chip, .st-segb {
+  position: relative; z-index: 1; flex: none; height: 44px; padding: 0 16px; border-radius: 22px;
+  font: 650 15px/44px var(--font-sans); letter-spacing: -.014em; color: var(--ink-2); white-space: nowrap;
+  transition: color 220ms ease;
+}
+.st-chip[aria-checked="true"], .st-segb[aria-checked="true"] { color: var(--ink); }
+.st-chip:focus-visible, .st-segb:focus-visible { outline-offset: -3px; }
+.st-chips__pill, .st-seg__pill {
+  position: absolute; z-index: 0; top: 4px; left: 0; height: 44px; width: 60px; border-radius: 22px;
+  background: var(--st-sel); box-shadow: var(--st-sel-sh);
+  transition: transform 420ms cubic-bezier(.2, .9, .25, 1), width 420ms cubic-bezier(.2, .9, .25, 1);
+}
+.st-chips::after { content: ""; flex: none; width: 1px; }
+
+.st-seg { position: relative; display: flex; padding: 4px; border-radius: 26px; background: var(--st-in); box-shadow: inset 0 0 0 1px var(--hair); }
+.st-segb { flex: 1 1 0; min-width: 0; padding: 0 10px; text-align: center; }
+
+/* i campi: vetro inciso, testo a 16 px (il telefono non ingrandisce) */
+.st-campo { display: block; }
+.st-campo__t { display: block; margin-bottom: 6px; font: 650 13px/18px var(--font-sans); letter-spacing: -.004em; color: var(--ink-2); }
+.st-campo__t--riga { display: flex; justify-content: space-between; align-items: baseline; }
+.st-campo__in { position: relative; display: block; }
+.st-in {
+  display: block; width: 100%; height: 48px; margin: 0; padding: 0 14px; border: 0; border-radius: 15px;
+  font: 500 16px/48px var(--font-sans); letter-spacing: -.012em; color: var(--ink);
+  background: var(--st-in); box-shadow: inset 0 0 0 1px var(--hair);
+  -webkit-appearance: none; appearance: none; outline: none; caret-color: var(--gold-ink);
+  transition: box-shadow 200ms ease, background-color 200ms ease;
+}
+.st-in::placeholder { color: var(--ink-3); opacity: 1; }
+.st-in::-webkit-input-placeholder { color: var(--ink-3); opacity: 1; }
+.st-in:focus { background: var(--btn-glass); box-shadow: inset 0 0 0 1.5px var(--ink-2), 0 0 0 4px var(--fill); }
+.st-in:focus-visible { outline: none; }
+.st-in--area { height: auto; min-height: 96px; padding: 12px 14px; line-height: 22px; resize: none; overflow: hidden; }
+.st-campo__in .st-in { padding-right: 48px; }
+.st-campo__in .st-in--pw { padding-right: 92px; }
+.st-x { position: absolute; top: 2px; right: 2px; width: 44px; height: 44px; display: grid; place-items: center; color: var(--ink-2); border-radius: 14px; }
+.st-x svg { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+.st-x circle { fill: var(--fill-2); stroke: none; }
+.st-x:focus-visible { outline-offset: -4px; }
+.st-mostra { position: absolute; top: 2px; right: 2px; height: 44px; padding: 0 14px; border-radius: 14px; font: 650 14px/44px var(--font-sans); letter-spacing: -.01em; color: var(--ink-2); }
+.st-mostra:focus-visible { outline-offset: -4px; }
+.st-aiuto { margin-top: -4px; font: 500 13px/18px var(--font-sans); letter-spacing: -.004em; color: var(--ink-2); text-wrap: pretty; }
+.st-aiuto--conta { text-align: right; }
+.st-aiuto--ecc { margin-top: 14px; }
+.st-campo .st-aiuto { margin-top: 8px; }
+
+/* una riga con un titolo e un comando a destra */
+.st-riga { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; margin-top: 6px; }
+.st-riga + .st-riga, .st-sotto .st-riga { border-top: 1px solid var(--hair); }
+.st-coppie + .st-riga { margin-top: 12px; }
+.st-riga__t { font: 600 15px/20px var(--font-sans); letter-spacing: -.014em; color: var(--ink); }
+.st-sez > .st-seg { margin-top: 14px; }
+
+/* l'interruttore */
+.st-switch { position: relative; flex: none; width: 52px; height: 32px; border-radius: 16px; background: var(--fill-2); box-shadow: inset 0 0 0 1px var(--hair); transition: background-color 240ms ease; }
+.st-switch::before { content: ""; position: absolute; top: -6px; right: -4px; bottom: -6px; left: -4px; }
+.st-switch i { position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 13px; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .18), 0 3px 8px -2px rgba(0, 0, 0, .22); transition: transform 320ms cubic-bezier(.2, .9, .25, 1); }
+.st-switch[aria-checked="true"] { background: var(--ink); }
+.st-switch[aria-checked="true"] i { transform: translateX(20px); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .st-switch[aria-checked="true"] i { background: #16171d; } }
+:root[data-theme="dark"] .st-switch[aria-checked="true"] i { background: #16171d; }
+
+/* le tessere di forma e occhi: ogni scelta è un pezzetto di codice vero */
+.st-scelte { display: grid; gap: 8px; }
+.st-scelte--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.st-scelte--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.st-tess {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 92px; padding: 10px 4px 9px; border-radius: 20px;
+  background: var(--st-in); box-shadow: inset 0 0 0 1px var(--hair);
+  font: 600 12.5px/16px var(--font-sans); letter-spacing: -.008em; color: var(--ink-2); text-align: center;
+  transition: box-shadow 220ms ease, background-color 220ms ease, color 220ms ease, transform var(--d-press) var(--ease-out);
+}
+.st-tess canvas { display: block; width: 50px; height: 50px; }
+/* il nome sotto la tessera: su una riga quando ci sta, su due quando la tessera è stretta (mai tagliato) */
+.st-tess span { display: block; max-width: 100%; white-space: normal; text-wrap: balance; -webkit-hyphens: auto; hyphens: auto; }
+.st-scelte--4 .st-tess { padding-left: 2px; padding-right: 2px; }
+.st-scelte--4 .st-tess span { font-size: 11.5px; letter-spacing: -.025em; }
+.st-tess[aria-checked="true"] { color: var(--ink); background: var(--st-sel); box-shadow: inset 0 0 0 2px var(--st-ring), var(--st-sel-sh); }
+.st-tess:active { transform: scale(.96); }
+
+/* i colori pronti */
+.st-coppie {
+  display: flex; gap: 6px; margin: 14px -18px 0; padding: 2px 18px 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+}
+.st-coppie::-webkit-scrollbar { display: none; }
+.st-coppie::after { content: ""; flex: none; width: 1px; }
+/* le tessere si vedono in 4 e un pezzo della quinta, così si capisce che la riga continua */
+.st-coppia { flex: none; width: 76px; width: clamp(66px, calc((100% - 6px) / 4.4), 80px); min-height: 92px; padding-left: 3px; padding-right: 3px; }
+.st-coppia span { font-size: 12px; letter-spacing: -.02em; white-space: nowrap; }
+.st-coppia canvas { width: 48px; height: 48px; border-radius: 13px; box-shadow: 0 0 0 1px rgba(30, 28, 70, .1); }
+
+/* il pozzetto del colore: un cerchio che apre il selettore del telefono, e il codice esadecimale */
+.st-pozzo { position: relative; display: inline-flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.st-pozzo input {
+  width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
+  -webkit-appearance: none; appearance: none; box-shadow: 0 0 0 1px var(--hair), 0 2px 6px -2px rgb(var(--sh) / .4);
+}
+.st-pozzo input::-webkit-color-swatch-wrapper { padding: 0; }
+.st-pozzo input::-webkit-color-swatch { border: 0; border-radius: 50%; }
+.st-pozzo input::-moz-color-swatch { border: 0; border-radius: 50%; }
+.st-pozzo::before { content: ""; position: absolute; top: -4px; right: -6px; bottom: -4px; left: -6px; }
+.st-pozzo__hex { min-width: 64px; font: 500 12.5px/18px var(--font-mono); letter-spacing: .02em; color: var(--ink-2); text-transform: uppercase; text-align: right; }
+.st-riga.is-spento .st-pozzo { opacity: .38; pointer-events: none; }
+
+/* la direzione della sfumatura */
+.st-versi { display: flex; gap: 2px; padding: 2px; border-radius: 24px; background: var(--st-in); box-shadow: inset 0 0 0 1px var(--hair); }
+.st-verso { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 22px; color: var(--ink-2); transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease; }
+.st-verso svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.st-verso[aria-checked="true"] { color: var(--ink); background: var(--st-sel); box-shadow: var(--st-sel-sh); }
+.st-verso:focus-visible { outline-offset: -2px; }
+
+/* l'immagine al centro */
+.st-img { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.st-img__anteprima { flex: none; width: 44px; height: 44px; border-radius: 22px; background: var(--fill) center / cover no-repeat; box-shadow: 0 0 0 1px var(--hair); }
+.st-img__anteprima.is-quadrata { border-radius: 10px; }
+.st-img__scegli { cursor: pointer; }
+.st-img__scegli svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.st-img__scegli.is-focus { outline: 2.5px solid var(--focus); outline-offset: 3px; }
+.st-img__nota { margin-top: 10px; }
+.st-range { display: block; width: 100%; height: 44px; margin: 0; background: none; -webkit-appearance: none; appearance: none; cursor: pointer; }
+.st-range:focus { outline: none; }
+.st-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2.5px var(--focus), 0 0 0 5px var(--fill-2); }
+.st-range::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: var(--st-track, var(--fill-2)); }
+.st-range::-moz-range-track { height: 8px; border-radius: 4px; background: var(--st-track, var(--fill-2)); }
+.st-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; margin-top: -10px; border-radius: 14px; background: #fff; border: 0; box-shadow: 0 1px 2px rgba(0, 0, 0, .2), 0 4px 10px -3px rgba(0, 0, 0, .3); }
+.st-range::-moz-range-thumb { width: 28px; height: 28px; border-radius: 14px; background: #fff; border: 0; box-shadow: 0 1px 2px rgba(0, 0, 0, .2), 0 4px 10px -3px rgba(0, 0, 0, .3); }
+#scalaV { font-weight: 650; color: var(--ink); }
+
+.st-fine { margin: 6px 4px 0; font: 500 13.5px/19px var(--font-sans); letter-spacing: -.004em; color: var(--ink-2); text-align: center; text-wrap: balance; }
+/* i testi piccoli del guscio comune qui sono un passo più scuri: contrasto AA in tutti e due i temi */
+.st-sez .pg-nota, .st-piede, .st-piede span { color: var(--ink-2); }
+/* il piede passa sotto la barra (che sta dentro la pagina, z-index 1 come il piede): senza, in fondo alla pagina il piede
+   copriva la barra e Salva non rispondeva al tocco */
+.st-piede { z-index: 0; padding-bottom: calc(env(safe-area-inset-bottom) + 110px); }
+
+/* ------------------------------------------------------------------ le azioni: una barra fissa in basso sul telefono */
+.st-azioni {
+  position: fixed; z-index: 40; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 12px);
+  display: flex; gap: 6px; padding: 6px; border-radius: 30px; pointer-events: auto;
+  background: var(--bar-glass); -webkit-backdrop-filter: saturate(1.8) blur(22px); backdrop-filter: saturate(1.8) blur(22px);
+  box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--hair), 0 16px 34px -14px rgb(var(--sh) / .45);
+  max-width: 560px; margin: 0 auto;
+  transition: transform 220ms var(--ease-out), opacity 160ms ease;
+}
+/* con la tastiera su, la barra scivola via sotto il bordo (studio.js, suTastiera) */
+.st-azioni.is-via { transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom))); opacity: 0; pointer-events: none; }
+.st-salva { position: relative; flex: 1.35 1 0; display: flex; min-width: 0; }
+.st-b {
+  position: relative; flex: 1 1 0; min-width: 0; height: 48px; border-radius: 24px; padding: 0 12px;
+  font: 700 15px/48px var(--font-sans); letter-spacing: -.014em; color: var(--ink); white-space: nowrap;
+  background: var(--btn-glass); box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--ring);
+  transition: transform var(--d-press) var(--ease-out), opacity 220ms ease, background-color 220ms ease;
+}
+.st-b:active { transform: scale(.96); }
+.st-b[disabled] { opacity: .36; cursor: default; }
+.st-b[disabled]:active { transform: none; }
+.st-b:focus-visible { outline-offset: 2px; }
+.st-b--primo { color: var(--bg); background: var(--ink); box-shadow: 0 1px 2px rgb(var(--sh) / .2), 0 8px 16px -10px rgb(var(--sh) / .7); }
+.st-salva .st-b--primo:first-child { border-radius: 24px 6px 6px 24px; }
+.st-b--piu { flex: none; width: 46px; margin-left: 2px; padding: 0; border-radius: 6px 24px 24px 6px; }
+.st-b--piu svg { display: block; width: 20px; height: 20px; margin: 0 auto; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; transition: transform 260ms var(--ease-out); }
+.st-b--piu[aria-expanded="true"] svg { transform: rotate(180deg); }
+.st-b__in { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 100%; }
+.st-b__ico, .st-b__ok { flex: none; width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.st-b__ok { position: absolute; left: 0; top: 50%; margin-top: -9.5px; opacity: 0; }
+.st-b__ok path { stroke-dasharray: 14; stroke-dashoffset: 14; }
+.st-b__t { display: inline-block; transition: transform 260ms var(--ease-out); }
+.st-b__ico { transition: opacity 140ms ease, transform 260ms var(--ease-out); }
+.st-b.is-fatto .st-b__ico { opacity: 0; transform: scale(.6); }
+.st-b.is-fatto .st-b__ok { opacity: 1; }
+.st-b.is-fatto .st-b__ok path { stroke-dashoffset: 0; transition: stroke-dashoffset 300ms cubic-bezier(.65, 0, .35, 1) 40ms; }
+
+/* la barra stretta (Salva, Copia e Condividi su un telefono): Copia e Condividi solo icone, tonde; la parola della risposta
+   («Copiato», «Condiviso») sale in un'etichetta sopra il pulsante */
+.st-azioni.is-stretto .st-b:not(.st-b--primo) { flex: none; width: 48px; padding: 0; }
+.st-azioni.is-stretto .st-b:not(.st-b--primo) .st-b__in { display: flex; width: 100%; gap: 0; }
+.st-azioni.is-stretto .st-b:not(.st-b--primo) .st-b__ok { left: 50%; margin-left: -9.5px; }
+.st-azioni.is-stretto .st-b:not(.st-b--primo) .st-b__t { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.st-b__bolla { display: none; }
+.st-azioni.is-stretto .st-b__bolla {
+  display: block; position: absolute; bottom: calc(100% + 12px); left: 50%; z-index: 3; padding: 0 11px; border-radius: 13px;
+  font: 700 13px/26px var(--font-sans); letter-spacing: -.01em; white-space: nowrap; color: var(--bg); background: var(--ink);
+  box-shadow: 0 1px 2px rgb(var(--sh) / .2), 0 8px 18px -8px rgb(var(--sh) / .6);
+  opacity: 0; transform: translate(-50%, 6px) scale(.9); transform-origin: 50% 100%; pointer-events: none;
+  transition: opacity 160ms ease, transform 240ms cubic-bezier(.2, .9, .25, 1);
+}
+.st-azioni.is-stretto #bCondividi .st-b__bolla { left: auto; right: -6px; transform: translate(0, 6px) scale(.9); transform-origin: 80% 100%; }
+.st-azioni.is-stretto .st-b.is-fatto .st-b__bolla { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.st-azioni.is-stretto #bCondividi.is-fatto .st-b__bolla { transform: translate(0, 0) scale(1); }
+
+/* il menu degli altri formati: si apre sopra la barra. Una superficie piena e senza sfocatura: dentro la barra (che ha già la
+   sua) una sfocatura non sfocherebbe niente e sotto si leggerebbero le tessere */
+.st-menu {
+  position: absolute; left: 6px; bottom: calc(100% + 8px); width: min(300px, calc(100vw - 48px)); padding: 6px; border-radius: 22px; z-index: 2;
+  background: rgb(251, 251, 254);
+  box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--hair), 0 18px 40px -16px rgb(var(--sh) / .55);
+  transform-origin: 30px 100%; animation: st-menu 220ms cubic-bezier(.2, .9, .25, 1);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .st-menu { background: rgb(30, 32, 44); } }
+:root[data-theme="dark"] .st-menu { background: rgb(30, 32, 44); }
+@keyframes st-menu { from { transform: translateY(6px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.st-menu__v { display: block; width: 100%; padding: 10px 14px; border-radius: 16px; text-align: left; min-height: 52px; }
+.st-menu__v b { display: block; font: 700 15px/20px var(--font-sans); letter-spacing: -.014em; color: var(--ink); }
+.st-menu__v span { display: block; font: 500 13px/18px var(--font-sans); color: var(--ink-2); }
+.st-menu__v:focus-visible { outline-offset: -2px; }
+.st-menu__v[disabled] { opacity: .4; }
+
+/* un tablet in verticale: la colonna del telefono, al centro e non più larga di così (la carta non resta vuota ai lati) */
+@media (min-width: 600px) and (max-width: 899.98px) and (orientation: portrait) {
+  .st { max-width: 600px; margin-left: auto; margin-right: auto; }
+}
+
+/* ------------------------------------------------------------------ due colonne: computer, tablet largo, telefono di lato */
+@media (min-width: 900px), (min-width: 600px) and (max-height: 520px) and (orientation: landscape) {
+  /* la colonna del codice si stringe un po' su uno schermo basso e stretto (640 × 400, cioè 1280 × 800 al 200%): ai comandi resta
+     abbastanza posto perché i nomi delle tessere stiano interi */
+  .st { display: grid; grid-template-columns: minmax(0, 1fr) clamp(280px, 44vw, 372px); align-items: start; gap: 24px; padding-top: 22px; padding-bottom: calc(env(safe-area-inset-bottom) + 48px); }
+  .st-comandi { grid-column: 1; grid-row: 1; }
+  .st-lato { grid-column: 2; grid-row: 1; order: 0; align-self: start; top: calc(var(--st-top) + 14px); height: auto; pointer-events: auto; }
+  .st-lato::before { display: none; }
+  html { scroll-padding-top: calc(var(--st-top) + 12px); scroll-padding-bottom: 24px; }
+  .st-cosa { display: none; }
+  .st-carta { position: relative; top: auto; height: var(--st-h0); }
+  .st-azioni { position: relative; left: auto; right: auto; bottom: auto; margin-top: 12px; max-width: none; }
+  .st-piede { padding-bottom: calc(env(safe-area-inset-bottom) + 40px); }
+  .st-menu { bottom: auto; top: calc(100% + 8px); transform-origin: 30px 0; }
+  .st-fine { text-align: left; }
+}
+@media (min-width: 1100px) {
+  .st { grid-template-columns: minmax(0, 600px) 400px; justify-content: center; gap: 36px; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .st-chip:hover, .st-segb:hover, .st-verso:hover { color: var(--ink); }
+  .st-tess:hover { color: var(--ink); background: var(--st-in-2); }
+  .st-tess[aria-checked="true"]:hover { background: var(--st-sel); }
+  .st-b:not([disabled]):hover { transform: translateY(-1px); }
+  .st-menu__v:hover { background: var(--fill); }
+  .st-x:hover, .st-mostra:hover { color: var(--ink); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-chips__pill, .st-seg__pill, .st-switch, .st-switch i, .st-tess, .st-verso, .st-b, .st-b__t, .st-b__ico, .st-cv, .st-in,
+  .st-ico__o, .st-ico__v, .st-ico__a, .st-ico__x, .st-rot__c, .st-stato__t, .st-b--piu svg, .st-b__bolla, .st-ico, .st-azioni { transition: none !important; }
+  .st-b.is-fatto .st-b__ok path { transition: none !important; }
+  .st-menu { animation: none; }
+}
+.st.is-fermo .st-chips__pill, .st.is-fermo .st-seg__pill, .st.is-fermo .st-rot__c { transition: none !important; }

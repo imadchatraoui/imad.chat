@@ -211,7 +211,7 @@
     <!-- TOOLS: il mini QR che funziona davvero (lo mette vivi.js con QRCore). Niente velo di tocco su tutto il riquadro: dentro ci sono comandi -->
     <article class="tile tools" data-tile="tools" data-mat="glass">
       <div class="tile__in">
-        <header class="tile__head"><span class="label label--ink">Tools</span><span class="label">Codice QR</span></header>
+        <header class="tile__head"><a class="label label--ink qr__tutti" href="/anteprima/tools" aria-label="Tools: tutti gli strumenti">Tools</a><span class="label">Codice QR</span></header>
         <div class="vivo vivo--tocca qr" id="qrMini" data-jsqr="/anteprima/qr/vendor/jsQR.js">
           <div class="qr__campo">
             <label class="sr" for="qrIn">Un link o un testo da trasformare in codice QR</label>
@@ -227,7 +227,7 @@
               <button class="qr__salva" id="qrSalva" type="button" disabled><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg><span id="qrSalvaT">Salva</span></button>
             </div>
           </div>
-          <p class="qr__presto">Presto: QR Studio · Palette · Convertitore</p>
+          <p class="qr__presto"><a class="qr__apri" href="/anteprima/tools/qr">Apri QR Studio</a><span> · Presto: Palette · Convertitore</span></p>
         </div>
       </div>
     </article>

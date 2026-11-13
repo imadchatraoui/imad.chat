@@ -8,7 +8,9 @@
 // A case passes when both decoders return exactly the encoded text. A failure is acceptable only when
 // QRCore.scannable already says "errore" for those options (the rule catches it); every other failure
 // is a bug. It also checks: the module kinds of all 40 versions, that progress 1 is pixel-identical to
-// the plain render, that squares land on whole device pixels, the payload strings, and the SVG output.
+// the plain render, that squares land on whole device pixels, the payload strings, and the SVG output; and the motion
+// options of QR Studio (cells, morph, flow, logoIn, eyeScale, frame): each lands exactly on the still picture at its ends,
+// fixContrast reaches its target, maxLogoScale is the real limit, measure() matches what render draws.
 //
 // Usage (from the repo root):
 //   node docs/anteprime/casa/tools/qr/strumenti/qr-prova.mjs [--out DIR] [--python PY] [--port 4101] [--only GROUP]
@@ -84,8 +86,14 @@ window.runCase = function (cs) {
   if (opts.logo) opts.logo = Object.assign({}, opts.logo, { image: makeLogo(opts.logo.kind) });
   var cv = document.createElement('canvas');
   var info = QRCore.render(cv, qr, opts);
-  var v = QRCore.verify(cv, cs.text);
+  var v;
+  if (cs.studio) {
+    // as QR Studio checks it: only the code and its quiet zone (QRCore.codeBox), one scale at a time, 0.5 first
+    var box = QRCore.codeBox(qr, opts), sc0 = opts.size > 1024 ? [0.25, 0.5, 1] : [0.5, 1, 0.75];
+    for (var si = 0; si < sc0.length; si++) { v = QRCore.verify(cv, cs.text, { scales: [sc0[si]], crop: box }); if (v.ok) break; }
+  } else v = QRCore.verify(cv, cs.text);
   var sc = QRCore.scannable(opts, qr);
+  if (opts.frame && !(cv.height > cv.width)) v = { ok: false, text: 'cornice senza altezza', inverted: false, scale: 0 };
   return { version: qr.version, n: qr.n, mode: qr.mode, m: info.m, quiet: info.quiet, cleared: info.cleared,
     js: v.text, jsOk: v.ok, inv: v.inverted, level: sc.level, why: sc.why, codes: sc.problems.map(function (p) { return p.code + ':' + p.level; }).join(','),
     det: sc.details, scale: v.scale, png: cv.toDataURL('image/png'), ms: Math.round(performance.now() - t0) };
@@ -99,8 +107,8 @@ window.runSvg = function (cs) {
     var img = new Image();
     img.onload = function () {
       var px = Math.round(opts.size * (cs.scale || 2));
-      var cv = document.createElement('canvas'); cv.width = cv.height = px;
-      var x = cv.getContext('2d'); x.drawImage(img, 0, 0, px, px);
+      var cv = document.createElement('canvas'); cv.width = px; cv.height = Math.round(px * (img.naturalHeight || img.height) / (img.naturalWidth || img.width));
+      var x = cv.getContext('2d'); x.drawImage(img, 0, 0, cv.width, cv.height);
       var v = QRCore.verify(cv, cs.text);
       var sc = QRCore.scannable(Object.assign({}, opts, { dpr: cs.scale || 2, svg: true }), qr);
       resolve({ version: qr.version, n: qr.n, mode: qr.mode, m: px / (qr.n + 8), quiet: 4, cleared: 0, js: v.text, jsOk: v.ok, inv: v.inverted,
@@ -186,6 +194,23 @@ function matrix(P) {
   for (const shape of SHAPES) for (const dpr of [1.5, 2.625, 3.5]) add('frazionari', `url120 ${shape} 132px x${dpr}`, TEXTS.url120, { ecc: 'M' }, { size: 132, dpr, shape, eye: 'goccia' });
   for (const shape of SHAPES) for (const [k, t, ecc] of [['vcard', P.vcard, 'M'], ['url300', TEXTS.url300, 'Q']]) for (const scale of [1, 1.37])
     add('frazionari', `svg ${k} ${shape} x${scale}`, t, { ecc }, { size: 320, shape, eye: 'tondo', fg: { from: '#8a5a12', to: '#1d1b16' } }, { svg: true, scale });
+  // H. QR Studio: the frame with its caption (canvas and SVG), with gradients, a transparent ground and a picture
+  for (const shape of SHAPES) for (const eye of EYES) {
+    add('cornice', `cornice ${shape}/${eye} 1024px`, TEXTS.url120, { ecc: 'M' }, { size: 1024, dpr: 1, shape, eye, fg: '#221d14', bg: '#fbf6ea', frame: { text: 'Scansiona' } });
+  }
+  for (const shape of SHAPES) {
+    add('cornice', `cornice sfumata trasparente ${shape} 512px x2`, TEXTS.corto, { ecc: 'M' }, { size: 512, dpr: 2, shape, eye: 'tondo', bg: 'transparent', fg: { from: '#c6504a', to: '#9d6d28', angle: 45 }, frame: { text: 'Scansiona' } });
+    add('cornice', `cornice lunga logo ${shape} 1024px`, TEXTS.url120, { ecc: 'H' }, { size: 1024, dpr: 1, shape, eye: 'goccia', frame: { text: 'Inquadra e apri il menu della settimana' }, logo: { scale: 0.2, kind: 'scuro', round: true } });
+    add('cornice', `cornice senza scritta ${shape} 1024px`, TEXTS.corto, { ecc: 'M' }, { size: 1024, dpr: 1, shape, frame: { text: '' } });
+    add('cornice', `svg cornice ${shape}`, TEXTS.url120, { ecc: 'Q' }, { size: 512, shape, eye: 'tondo', fg: { from: '#172554', to: '#7a1f5c', angle: 90 }, frame: { text: 'Scansiona' } }, { svg: true, scale: 2 });
+  }
+  // H2. QR Studio's own check of a framed code, with everyday captions (it once refused 1 in 10 framed "uniti" codes
+  // that every reader read, because it decoded the ring and the caption too): the code inside the ring, 1024 and 2048 px
+  const CAPS = ['Scansiona', 'Ciao', 'Benvenuti', 'Inquadrami', 'Prenota un tavolo', 'Il nostro menù', 'Scansiona per il menù di', 'La carta dei vini'];
+  for (const shape of ['uniti', 'punti']) for (const cap of CAPS) for (const [t, k] of [[TEXTS.corto, 'corto'], ['https://www.esempio.it/menu?tavolo=12', 'menu']]) {
+    add('cornice-studio', `cornice "${cap}" ${shape} ${k} 1024px`, t, { ecc: 'M' }, { size: 1024, dpr: 1, shape, eye: 'tondo', fg: '#221d14', bg: '#fbf6ea', quiet: 4, frame: { text: cap } }, { studio: true });
+  }
+  for (const cap of ['Ciao', 'Il nostro menù']) add('cornice-studio', `cornice "${cap}" uniti 2048px`, TEXTS.corto, { ecc: 'M' }, { size: 2048, dpr: 1, shape: 'uniti', eye: 'tondo', fg: '#221d14', bg: '#fbf6ea', quiet: 4, frame: { text: cap } }, { studio: true });
   // G. SVG
   for (const shape of SHAPES) {
     add('svg', `svg ${shape} url120`, TEXTS.url120, { ecc: 'M' }, { size: 132, shape, eye: 'goccia' }, { svg: true, scale: 2 });
@@ -318,6 +343,69 @@ async function selfChecks(page) {
     ok(QRCore.verify(id, 'https://imad.chat/tools/qr').ok, 'verify ImageData');
     ok(!QRCore.verify(cv, 'https://imad.chat/altro').ok, 'verify testo diverso');
     ok(QRCore.svg(qr, { size: 100 }).indexOf('<svg') === 0, 'svg');
+
+    // QR Studio: the motion options land exactly on the still picture at their ends
+    const px = (c) => c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const same = (a, b) => { if (a.length !== b.length) return -1; let d = 0; for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) d++; return d; };
+    const draw = (q, o) => { const c = document.createElement('canvas'); QRCore.render(c, q, o); return c; };
+    const logo = document.createElement('canvas'); logo.width = logo.height = 64; const lx = logo.getContext('2d'); lx.fillStyle = '#c33'; lx.fillRect(0, 0, 64, 64);
+    for (const shape of ['quadrati', 'punti', 'tondi', 'uniti']) for (const eye of ['quadrato', 'tondo', 'goccia']) {
+      const base = { size: 188, dpr: 3, shape, eye, fg: '#222', bg: '#fbf6ea' };
+      const R = px(draw(qr, base));
+      const tg = QRCore.targets(qr, base), cells = new Float32Array(tg.length); for (let i = 0; i < tg.length; i++) cells[i] = tg[i];
+      ok(same(R, px(draw(qr, Object.assign({}, base, { cells })))) === 0, `cells a riposo ${shape}/${eye}`);
+      ok(same(R, px(draw(qr, Object.assign({}, base, { morph: { shape: 'punti', eye: 'goccia', t: 1 } })))) === 0, `morph t=1 ${shape}/${eye}`);
+      ok(same(R, px(draw(qr, Object.assign({}, base, { flow: { fg: '#f00', bg: '#000', t: 1 } })))) === 0, `flow t=1 ${shape}/${eye}`);
+      ok(same(R, px(draw(qr, Object.assign({}, base, { eyeScale: 1 })))) === 0, `eyeScale 1 ${shape}/${eye}`);
+      ok(same(R, px(draw(qr, Object.assign({}, base, { fg: '#f00', bg: '#000', flow: { fg: '#222', bg: '#fbf6ea', t: 0 } })))) === 0, `flow t=0 ${shape}/${eye}`);
+      for (const fs of ['quadrati', 'uniti']) for (const fe of ['quadrato', 'goccia']) {
+        if (fs === shape && fe === eye) continue;
+        const a = px(draw(qr, Object.assign({}, base, { shape: fs, eye: fe }))), b = px(draw(qr, Object.assign({}, base, { morph: { shape: fs, eye: fe, t: 0 } })));
+        ok(same(a, b) === 0, `morph t=0 da ${fs}/${fe} a ${shape}/${eye}`);
+      }
+      const L = Object.assign({}, base, { logo: { image: logo, scale: 0.2, round: true } });
+      const RL = px(draw(qr, L));
+      ok(same(RL, px(draw(qr, Object.assign({}, L, { logoIn: 1 })))) === 0, `logoIn 1 ${shape}/${eye}`);
+      ok(same(RL, px(draw(qr, Object.assign({}, L, { logoIn: 0.4 })))) > 0, `logoIn 0.4 diverso ${shape}/${eye}`);
+      // a frame in motion, a field half way, a morph and a flow together: no throw, a different picture
+      const half = new Float32Array(tg.length); for (let i = 0; i < tg.length; i++) half[i] = (i % 3) / 2;
+      ok(same(R, px(draw(qr, Object.assign({}, base, { cells: half, morph: { shape: 'punti', t: 0.4 }, flow: { fg: '#f00', t: 0.5 }, eyeScale: 0.5 })))) > 0, `tutto insieme ${shape}/${eye}`);
+    }
+    // the frame: taller than wide, measure() agrees, the caption is in the SVG and escaped
+    const fo = { size: 300, dpr: 2, frame: { text: 'Scansiona <&>' } };
+    const fc = draw(qr, fo), m = QRCore.measure(qr, fo);
+    ok(fc.height > fc.width && m.deviceWidth === fc.width && m.deviceHeight === fc.height, `cornice misura ${fc.width}x${fc.height} vs ${m.deviceWidth}x${m.deviceHeight}`);
+    ok(QRCore.verify(fc, 'https://imad.chat/tools/qr').ok, 'cornice si legge');
+    ok(/<text[^>]*>Scansiona &lt;&amp;&gt;<\/text>/.test(QRCore.svg(qr, fo)), 'cornice svg testo');
+    ok(QRCore.svg(qr, { size: 300, frame: { text: '' } }).indexOf('<text') < 0, 'cornice senza scritta');
+    ok(px(draw(qr, Object.assign({}, fo, { frame: { text: 'x', t: 0.3 } }))).length > 0, 'cornice a metà');
+    // the SVG with a frame has the PNG's geometry at the same size (dpr 1) and a whole number of px in height
+    const f1 = { size: 1024, dpr: 1, frame: { text: 'Scansiona' } }, sm = QRCore.svg(qr, f1).match(/width="([^"]+)" height="([^"]+)"/), m1 = QRCore.measure(qr, f1);
+    ok(sm && +sm[1] === m1.deviceWidth && +sm[2] === m1.deviceHeight && Number.isInteger(+sm[2]), `cornice svg misura ${sm && sm[1]}x${sm && sm[2]} vs ${m1.deviceWidth}x${m1.deviceHeight}`);
+    // codeBox: inside the ring with a frame, the whole picture without
+    const L1 = QRCore._layout(qr, f1), cb = QRCore.codeBox(qr, f1), cb0 = QRCore.codeBox(qr, { size: 300, dpr: 2 });
+    ok(cb.x > 0 && cb.x < L1.ox && cb.w > L1.side && cb.x + cb.w < L1.width && cb.w === cb.h, `codeBox cornice ${JSON.stringify(cb)}`);
+    ok(cb0.x === 0 && cb0.w === 600 && cb0.h === 600, `codeBox senza cornice ${JSON.stringify(cb0)}`);
+    // targets: exactly the modules a still picture draws as modules
+    const t0 = QRCore.targets(qr, {}); let k1 = 0; for (let i = 0; i < t0.length; i++) if (t0[i]) { k1++; if (qr.kinds[i] === QRCore.KIND.finder || !qr.modules[i]) { fails.push('targets ' + i); break; } }
+    ok(k1 > 0, 'targets vuoto');
+    // fixContrast: reaches the target, keeps the hue, leaves what passes alone; gradients end by end
+    for (const [f, bg] of [['#ff6961', '#ffffff'], ['#ffb347', '#ffffff'], ['#9a9a9a', '#fbf6ea'], ['#333333', '#111111'], ['#7cc68a', '#ffffff']]) {
+      const x = QRCore.fixContrast(f, bg, 4.5);
+      ok(QRCore.contrast(x, bg) >= 4.5, `fixContrast ${f} su ${bg} -> ${x} ${QRCore.contrast(x, bg)}`);
+    }
+    ok(QRCore.fixContrast('#000000', '#ffffff') === '#000000', 'fixContrast lascia stare');
+    const fg2 = QRCore.fixContrast({ from: '#ff6961', to: '#ffb347', angle: 45 }, '#ffffff', 4.5);
+    ok(fg2 && QRCore.contrast(fg2, '#ffffff') >= 4.5 && fg2.angle === 45, 'fixContrast sfumatura');
+    // maxLogoScale: the limit really is the limit
+    for (const t of ['https://imad.chat', 'https://www.esempio.it/articoli/2026/11/una-pagina-lunga?x=1']) for (const pad of [0, 1, 2]) {
+      const q2 = QRCore.encode(t, { ecc: 'H' }), mx = QRCore.maxLogoScale(q2, { pad });
+      const at = (sc) => QRCore.scannable({ size: 1024, dpr: 1, logo: { image: logo, scale: sc, pad } }, q2).problems.some(p => p.code === 'LOGO_GRANDE');
+      ok(mx > 0 && !at(mx), `maxLogoScale ${t.length} pad ${pad}: ${mx} non passa`);
+      if (mx > 0 && mx < 0.3) ok(at(Math.min(0.3, mx + 0.01)), `maxLogoScale ${t.length} pad ${pad}: ${mx} + 0.01 passa ancora`);
+    }
+    // verify takes its scales
+    ok(QRCore.verify(cv, 'https://imad.chat/tools/qr', { scales: [0.5] }).scale === 0.5, 'verify scales');
     return fails;
   }, [(await buildCases(page)).wifi, (await buildCases(page)).vcard, WIFI_IN, VCARD_IN]);
 }

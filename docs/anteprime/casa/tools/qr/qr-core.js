@@ -75,6 +75,22 @@
  *               modules are already drawn; each eases in (scale with a small overshoot, and alpha) over 30%
  *               of the run, the eyes as whole pieces, the logo over the last 30%. At 1 the picture is exactly
  *               the final one. The caller animates progress (and draws 1 at once with reduced motion).
+ *     frame     { text, t, font, weight, fontData } or null: a ring around the code (at the edge of the quiet zone) and
+ *               a caption under it, in the code's colour; the canvas becomes taller than wide (see measure). text is
+ *               squeezed to one line ("" = the ring alone); t 0..1 draws the ring along its length and lifts the caption
+ *               in (default 1). fontData: a data: URL of a woff2, used only by svg() so the caption keeps its font.
+ *   The moving pictures of QR Studio (each lands exactly on the still picture at its end; leave them out otherwise):
+ *     cells     Float32Array(n*n) or Uint8Array: the scale of every module now (0 nothing, 1 full; a little over 1 for an
+ *               overshoot). Modules at 1 next to each other still join; a field equal to targets(qr, opts) is the
+ *               still picture. Use it to move from one code to another of the same size (a ripple, a typed letter).
+ *     morph     { shape, eye, t }: the shape and eyes it comes FROM; at t 0..1 a diagonal wave turns each piece into
+ *               opts.shape / opts.eye (each piece over half of the run). Pieces really change shape, no cross-fade.
+ *     flow      { fg, bg, angle, t }: the old code colour and/or old background (null = unchanged) and a soft front
+ *               that sweeps across along angle (degrees, as fg.angle); behind the front the new colours of opts.
+ *     logoIn    0..1: the picture drops in (a short fall and a damped settle, its shadow sharpening where it lands)
+ *               instead of easing in with progress; its margin is already clear.
+ *     eyeScale  0..1: draws the three eyes and the alignment patterns at that scale (used while one code shrinks away
+ *               and another of a different size grows in; draw them in two layers).
  *   Modules land on whole device pixels: the module side is an integer number of device px and whatever does
  *   not divide goes to the margin, so the real quiet zone can be a little larger than asked.
  *   Needs `document` (it keeps an offscreen mask and small sprites). Cost measured in headless Chromium,
@@ -84,16 +100,23 @@
  *
  * QRCore.svg(qr, opts) -> string
  *   The same picture as an SVG document (opts as render; progress and dpr are ignored). viewBox in modules,
- *   width/height = size. A logo needs a data: URL: opts.logo.href, or a data: <img>, or a drawable image that
+ *   width/height = size. With a frame it has exactly the geometry of the PNG render draws at that size and dpr 1 (the
+ *   margin outside the ring, where whole modules leave some over, the caption band) and a whole number of px in height. A logo needs a data: URL: opts.logo.href, or a data: <img>, or a drawable image that
  *   is turned into a PNG (if that fails the logo is left out and its margin stays clear). An SVG is not snapped
  *   to pixels: check it with scannable(Object.assign({}, opts, { svg: true }), qr) for the size it is shown at.
  *
- * QRCore.verify(canvasOrImageData, expected?) -> { ok, text, inverted, scale }
+ * QRCore.verify(canvasOrImageData, expected?, { scales }?) -> { ok, text, inverted, scale }
  *   Reads the drawn pixels back with jsQR, flattened on white, dark-on-light first, then inverted; at the
  *   native size and then at 0.5, 0.75 and 0.33 (jsQR binarises in 8 px blocks and misses some perfectly good
- *   codes at one scale only). ok: a code was read and, if expected is given, its text equals expected.
+ *   codes at one scale only; scales replaces that list, e.g. [0.5, 1, 0.75] for a 1024 px export, where 0.5 is
+ *   both the fastest and the most reliable). ok: a code was read and, if expected is given, its text equals expected.
  *   text: what was read (null if nothing). scale: the scale that read it. 20 to 130 ms on a 400 to 1200 px
  *   canvas: run it once, when the drawing has finished, not on every frame.
+ *   crop { x, y, w, h } (source px): read only that rectangle, e.g. QRCore.codeBox(qr, opts). With a frame, check the
+ *   code inside the ring: the ring and the caption are decoration outside the quiet zone, and jsQR (not zxing-cpp)
+ *   sometimes misses a framed code at one scale because of them (1 in 10 framed "uniti" codes at 0.5). Smaller, faster.
+ * QRCore.codeBox(qr, opts) -> { x, y, w, h }: device px of the code and its quiet zone in what render draws (with a frame:
+ *   inside the ring, a pixel short of it; without: the whole picture).
  *
  * QRCore.suggestEcc(hasLogo) -> "H" with a logo, "M" without.
  * QRCore.contrast(fg, bg) -> WCAG contrast ratio (1..21). fg may be a gradient (the worse end counts);
@@ -115,6 +138,13 @@
  *   details = { contrast, moduleCss, moduleDev, logoShare, logoLoad } (logoLoad 1 = exactly at the limit of
  *   the correction; over 0.8 is LOGO_GRANDE). If a logo is too big, a higher ecc or a smaller scale helps;
  *   a higher minVersion alone rarely does. Always also run verify on the final canvas.
+ * QRCore.targets(qr, opts) -> Uint8Array(n*n): 1 where the still picture draws a module (dark, not under the
+ *   picture's margin), 0 elsewhere: the end state of a cells field.
+ * QRCore.measure(qr, opts) -> { width, height, deviceWidth, deviceHeight }: what render draws, in CSS and device px.
+ * QRCore.fixContrast(fg, bg, target = 4.5) -> a "#rrggbb" (or a gradient object) with the same hue and chroma ratio,
+ *   darkened on a light ground or lightened on a dark one just enough to reach target; fg itself when it already does.
+ * QRCore.maxLogoScale(qr, { pad, round }) -> the largest logo scale (0.12..0.3, steps of 0.005) that stays under the
+ *   LOGO_GRANDE limit for this code; 0 when even 0.12 is too much.
  * QRCore.KIND = { data: 0, finder: 1, align: 2, timing: 3, format: 4 }; QRCore.version.
  * ---------------------------------------------------------------------------------------------------------
  */
@@ -445,10 +475,18 @@
     var size = Math.max(16, num(o.size, 256));
     var quiet = Math.max(2, Math.round(num(o.quiet, 4)));
     var W = Math.round(size * dpr);
-    var m = Math.max(1, Math.floor(W / (n + 2 * quiet)));
+    var fr = o.frame ? frameOpts(o.frame) : null;
+    var edge = fr ? quiet + FR.sw + FR.om : quiet;          // modules from the code to the side of the picture
+    var m = Math.max(1, Math.floor(W / (n + 2 * edge)));
     var side = m * n;
     var ox = Math.floor((W - side) / 2);
-    return { dpr: dpr, size: size, W: W, m: m, side: side, ox: ox, oy: ox, quiet: quiet, realQuiet: ox / m };
+    var H = W, band = 0;
+    if (fr) {
+      band = fr.text ? FR.cap : 0;
+      var slack = ox - edge * m;                             // what whole modules leave over, on each side
+      H = Math.round(ox + side + (quiet + band + FR.pb + FR.sw + FR.om) * m + slack);
+    }
+    return { dpr: dpr, size: size, W: W, H: H, m: m, side: side, ox: ox, oy: ox, quiet: quiet, realQuiet: fr ? quiet : ox / m, frame: fr, band: band };
   }
 
   function logoOpts(logo) {
@@ -517,6 +555,40 @@
   // ------------------------------------------------------------------ shapes
 
   var DOT = 0.9, TILE = 0.9, TILE_R = 0.3, JOIN_R = 0.5, FILLET_R = 0.3;
+  var MORPH_W = 0.5;    // in a shape change each piece morphs over this part of the wave
+  var DIP = 0.18;       // ...and dips this much at the middle of its morph (the wave that passes)
+
+  // [side, tl, tr, br, bl] of a data module of a shape at scale 1, in modules (nb = neighbour bits, for "uniti")
+  function modGeom(shape, nb) {
+    if (shape === 'punti') return [DOT, DOT / 2, DOT / 2, DOT / 2, DOT / 2];
+    if (shape === 'tondi') return [TILE, TILE_R, TILE_R, TILE_R, TILE_R];
+    if (shape === 'uniti') {
+      var up = nb & 1, rt = nb & 2, dn = nb & 4, lf = nb & 8;
+      return [1, (!up && !lf) ? JOIN_R : 0, (!up && !rt) ? JOIN_R : 0, (!dn && !rt) ? JOIN_R : 0, (!dn && !lf) ? JOIN_R : 0];
+    }
+    return [1, 0, 0, 0, 0];
+  }
+  function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
+  // a module part way from shape a to shape b (u 0..1): side and corners in between, a small dip in the middle
+  function morphModule(p, a, b, u, nb, r, c, s) {
+    if (u <= 0) { moduleShape(p, a, nb, r, c, s); return; }
+    if (u >= 1) { moduleShape(p, b, nb, r, c, s); return; }
+    var ga = modGeom(a, nb), gb = modGeom(b, nb), e = easeInOut(u);
+    var k = s * (1 - DIP * Math.sin(Math.PI * u));
+    var side = (ga[0] + (gb[0] - ga[0]) * e) * k, h = side / 2, cx = c + 0.5, cy = r + 0.5, rad = [];
+    for (var i = 1; i < 5; i++) rad.push(Math.min(h, (ga[i] + (gb[i] - ga[i]) * e) * k));
+    if (nb && (a === 'uniti' || b === 'uniti') && a !== b) {
+      // from or to the joined shape: a side towards a joined neighbour keeps reaching it (a hair over, so no seam shows)
+      // for as long as the joined shape still counts, then lets go; the piece comes apart, it does not crack
+      // the join lets go early and quickly (from 12% to 40% of the piece's run; going to "uniti", it forms from 60% to 88%)
+      var w = a === 'uniti' ? 1 - smooth(0.12, 0.4, u) : smooth(0.6, 0.88, u), J = h + (0.5 + 0.02 - h) * w;
+      var hu = nb & 1 ? J : h, hr = nb & 2 ? J : h, hd = nb & 4 ? J : h, hl = nb & 8 ? J : h;
+      rrect(p, cx - hl, cy - hu, hl + hr, hu + hd, rad);
+      return;
+    }
+    rrect(p, cx - h, cy - h, side, side, rad);
+  }
 
   // neighbour bits of a module drawn as a module: 1 up, 2 right, 4 down, 8 left
   function bits(st, n, r, c) {
@@ -548,26 +620,29 @@
     return [all4(0), all4(0), all4(0)];
   }
   function scaleR(a, s) { return [a[0] * s, a[1] * s, a[2] * s, a[3] * s]; }
+  function lerpR(a, b, e) { return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e, a[2] + (b[2] - a[2]) * e, a[3] + (b[3] - a[3]) * e]; }
 
-  function eyeShape(p, eye, which, x, y, s) {
-    var rr = eyeRadii(eye, which);
+  // rr: optional radii [outer, hole, centre] (a morph between two eyes); round: optional roundness 0..1 of an alignment
+  function eyeShape(p, eye, which, x, y, s, rr) {
+    rr = rr || eyeRadii(eye, which);
     var cx = x + 3.5, cy = y + 3.5;
     var S = function (v, c0) { return c0 + (v - c0) * s; };
     rrect(p, S(x, cx), S(y, cy), 7 * s, 7 * s, scaleR(rr[0], s));
     rrect(p, S(x + 1, cx), S(y + 1, cy), 5 * s, 5 * s, scaleR(rr[1], s), true);
     rrect(p, S(x + 2, cx), S(y + 2, cy), 3 * s, 3 * s, scaleR(rr[2], s));
   }
-  function alignShape(p, eye, x, y, s) { // x, y = top-left of the 5x5
-    var round = eye !== 'quadrato';
+  function alignShape(p, eye, x, y, s, round) { // x, y = top-left of the 5x5
+    var k = typeof round === 'number' ? round : (eye !== 'quadrato' ? 1 : 0);
     var cx = x + 2.5, cy = y + 2.5;
     var S = function (v, c0) { return c0 + (v - c0) * s; };
-    rrect(p, S(x, cx), S(y, cy), 5 * s, 5 * s, all4(round ? 1.6 * s : 0));
-    rrect(p, S(x + 1, cx), S(y + 1, cy), 3 * s, 3 * s, all4(round ? 0.6 * s : 0), true);
-    rrect(p, S(x + 2, cx), S(y + 2, cy), s, s, all4(round ? 0.5 * s : 0));
+    rrect(p, S(x, cx), S(y, cy), 5 * s, 5 * s, all4(1.6 * k * s));
+    rrect(p, S(x + 1, cx), S(y + 1, cy), 3 * s, 3 * s, all4(0.6 * k * s), true);
+    rrect(p, S(x + 2, cx), S(y + 2, cy), s, s, all4(0.5 * k * s));
   }
 
-  // every drawable piece of the picture: { t: delay 0..1, draw(pen, s) }
-  function pieces(qr, o, pl) {
+  // every drawable piece of the picture: { d: delay 0..1, r, c, k: 0 module | 1 eye | 2 alignment | 3 fillet, ... }
+  // fil: also the fillets of the joined shape when the shape is another one (a morph from or to "uniti")
+  function pieces(qr, o, pl, fil) {
     var n = qr.n, st = pl.st, shape = o.shape, eye = o.eye, order = o.order;
     var out = [];
     var mid = (n - 1) / 2, maxD = Math.sqrt(2) * mid;
@@ -599,7 +674,7 @@
       out.push({ d: delay(ar, ac), r: ar - 2, c: ac - 2, k: 2 });
     }
     // fillets of the joined shape
-    if (shape === 'uniti') {
+    if (shape === 'uniti' || fil) {
       for (r = 0; r < n; r++) for (c = 0; c < n; c++) {
         var v = st[r * n + c];
         if (v !== 0) continue;
@@ -637,8 +712,28 @@
       fg: o.fg === undefined || o.fg === null ? '#111111' : o.fg,
       bg: o.bg === undefined || o.bg === null ? '#ffffff' : o.bg,
       logo: logoOpts(o.logo),
-      progress: clamp(num(o.progress, 1), 0, 1), order: pick(o.order, ORDERS, 'onda')
+      progress: clamp(num(o.progress, 1), 0, 1), order: pick(o.order, ORDERS, 'onda'),
+      frame: frameOpts(o.frame),
+      cells: o.cells || null,
+      morph: o.morph && (SHAPES.indexOf(o.morph.shape) >= 0 || EYES.indexOf(o.morph.eye) >= 0) && num(o.morph.t, 1) < 1
+        ? { shape: pick(o.morph.shape, SHAPES, null), eye: pick(o.morph.eye, EYES, null), t: clamp(num(o.morph.t, 1), 0, 1) } : null,
+      flow: o.flow && num(o.flow.t, 1) < 1
+        ? { fg: o.flow.fg === undefined || o.flow.fg === null ? null : o.flow.fg, bg: o.flow.bg === undefined || o.flow.bg === null ? null : o.flow.bg,
+          t: clamp(num(o.flow.t, 1), 0, 1), angle: num(o.flow.angle, 45) } : null,
+      logoIn: typeof o.logoIn === 'number' && isFinite(o.logoIn) ? clamp(o.logoIn, 0, 1) : null,
+      eyeScale: typeof o.eyeScale === 'number' && isFinite(o.eyeScale) && o.eyeScale < 1 ? Math.max(0, o.eyeScale) : null
     };
+  }
+
+  // ------------------------------------------------------------------ the frame: a ring around the code and a caption under it
+  // In modules: om outer margin, sw the ring, then the quiet zone, the code, the quiet zone, the caption band (cap, empty text: 0),
+  // pb the space under it, the ring, om. The ring is at the edge of the quiet zone, the caption at least `quiet` modules under the code.
+  var FR = { om: 1.1, sw: 0.9, cap: 3.6, pb: 1.4, rad: 3.4, font: 2.45 };
+  var FONT = 'Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+  function frameOpts(f) {
+    if (!f) return null;
+    var text = String(f.text === undefined || f.text === null ? '' : f.text).replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
+    return { text: text, t: clamp(num(f.t, 1), 0, 1), font: f.font || FONT, weight: num(f.weight, 700), fontData: f.fontData || null };
   }
 
   function gradientLine(x, y, side, angle) {
@@ -660,12 +755,12 @@
 
   // plan and pieces depend only on the code, the shape, the eyes, the order and the logo square:
   // they are kept on the qr object (a qr never changes) for the frames of an animation.
-  function prepared(qr, o, area) {
-    var key = o.shape + '|' + o.eye + '|' + o.order + '|' + (area ? area.start + ',' + area.c : '-');
+  function prepared(qr, o, area, fil) {
+    var key = o.shape + '|' + o.eye + '|' + o.order + '|' + (area ? area.start + ',' + area.c : '-') + (fil ? '|f' : '');
     var memo = qr._memo || (qr._memo = { keys: [], val: {} });
     if (memo.val[key]) return memo.val[key];
     var pl = plan(qr, area);
-    var v = { pl: pl, list: pieces(qr, o, pl) };
+    var v = { pl: pl, list: pieces(qr, o, pl, fil) };
     memo.keys.push(key); memo.val[key] = v;
     if (memo.keys.length > 6) delete memo.val[memo.keys.shift()];
     return v;
@@ -692,20 +787,36 @@
   }
 
   var masks = [];
-  function maskFor(W) {
-    for (var i = 0; i < masks.length; i++) if (masks[i].width === W) return masks[i];
+  function maskFor(W, H) {
+    H = H || W;
+    for (var i = 0; i < masks.length; i++) if (masks[i].width === W && masks[i].height === H) return masks[i];
     var c = root.document.createElement('canvas');
-    c.width = c.height = W;
+    c.width = W; c.height = H;
     masks.unshift(c);
-    if (masks.length > 3) masks.pop();
+    if (masks.length > 6) masks.pop();
     return c;
   }
 
-  var sprites = { m: 0, map: {}, count: 0 };
-  function sprite(m, shape, pc, s) {
-    s = s >= 1 ? 1 : Math.round(s * 32) / 32;
-    if (sprites.m !== m || sprites.count > 2000) sprites = { m: m, map: {}, count: 0 };
-    var key = shape + (pc.k === 3 ? 'f' + pc.q : 'm' + pc.nb) + '|' + s;
+  // sprites are kept for the last few module sizes (a page that draws its code at two densities, or small previews
+  // beside a big code, would otherwise throw them away at every switch)
+  var spriteSets = [];
+  function spriteSet(m) {
+    for (var i = 0; i < spriteSets.length; i++) if (spriteSets[i].m === m) {
+      var hitSet = spriteSets[i];
+      if (hitSet.count > 3000) { hitSet.map = {}; hitSet.count = 0; }
+      if (i) { spriteSets.splice(i, 1); spriteSets.unshift(hitSet); }
+      return hitSet;
+    }
+    var set = { m: m, map: {}, count: 0 };
+    spriteSets.unshift(set);
+    if (spriteSets.length > 4) spriteSets.pop();
+    return set;
+  }
+  // a module, a fillet or a morphing module, drawn once per module size and stamped (mo: { a, b, u } for a morph)
+  function sprite(m, shape, pc, s, mo) {
+    s = Math.abs(s - 1) < 1e-4 ? 1 : Math.round(s * 32) / 32;
+    var sprites = spriteSet(m);
+    var key = (mo ? 'M' + mo.a + '>' + mo.b + '@' + mo.u : shape) + (pc.k === 3 ? 'f' + pc.q : 'm' + pc.nb) + '|' + s;
     var hit = sprites.map[key];
     if (hit) return hit;
     var pad = Math.ceil(m * 0.15) + 1, S = m + 2 * pad;
@@ -718,11 +829,116 @@
     if (pc.k === 3) {
       var cs = [[-1, -1], [-1, 1], [1, 1], [1, -1]][pc.q];
       fillet(pen, cs[1] < 0 ? 0 : 1, cs[0] < 0 ? 0 : 1, -cs[1], -cs[0], FILLET_R * s);
-    } else moduleShape(pen, shape, pc.nb, 0, 0, s);
+    } else if (mo) morphModule(pen, mo.a, mo.b, mo.u, pc.nb, 0, 0, s);
+    else moduleShape(pen, shape, pc.nb, 0, 0, s);
     x.fill();
     hit = { cv: cv, pad: pad };
     sprites.map[key] = hit; sprites.count++;
     return hit;
+  }
+
+  // two scratch canvases for the colour flow
+  var scratch = [];
+  function scratchCanvas(i, W, H) {
+    var c = scratch[i] || (scratch[i] = root.document.createElement('canvas'));
+    if (c.width !== W) c.width = W;
+    if (c.height !== H) c.height = H;
+    return c;
+  }
+  // a fill style for a colour or a gradient over the code square
+  function paint(x, fg, L) {
+    if (fg && typeof fg === 'object') {
+      var g = gradientLine(L.ox, L.oy, L.side, fg.angle);
+      var gr = x.createLinearGradient(g[0], g[1], g[2], g[3]);
+      gr.addColorStop(0, fg.from || '#111111');
+      gr.addColorStop(1, fg.to || fg.from || '#111111');
+      return gr;
+    }
+    return fg;
+  }
+  // the front of a colour flow: alpha 1 behind it (the new colour), 0 ahead, a soft edge between; along angle, over W x H
+  var FLOW_SOFT = 0.3;
+  function frontGradient(x, W, H, angle, t) {
+    var a = angle * Math.PI / 180, dx = Math.cos(a), dy = Math.sin(a);
+    var Lh = (Math.abs(dx) * W + Math.abs(dy) * H) / 2;
+    var g = x.createLinearGradient(W / 2 - dx * Lh, H / 2 - dy * Lh, W / 2 + dx * Lh, H / 2 + dy * Lh);
+    var f = easeInOut(t) * (1 + FLOW_SOFT), g0 = f - FLOW_SOFT, g1 = f;
+    var al = function (pos) { return clamp((g1 - pos) / (g1 - g0), 0, 1); };
+    var st = [0, 1];
+    if (g0 > 0 && g0 < 1) st.push(g0);
+    if (g1 > 0 && g1 < 1) st.push(g1);
+    st.sort(function (p, q) { return p - q; });
+    for (var i = 0; i < st.length; i++) g.addColorStop(st[i], 'rgba(0,0,0,' + (Math.round(al(st[i]) * 1000) / 1000) + ')');
+    return g;
+  }
+  // old colour where the front has not passed, new colour where it has: exactly linear (the two parts are added)
+  function flowLayer(W, H, from, to, L, fl) {
+    var A = scratchCanvas(0, W, H), B = scratchCanvas(1, W, H);
+    var ax = A.getContext('2d'), bx = B.getContext('2d');
+    var grad = frontGradient(ax, W, H, fl.angle, fl.t);
+    ax.setTransform(1, 0, 0, 1, 0, 0); ax.globalAlpha = 1; ax.globalCompositeOperation = 'source-over'; ax.clearRect(0, 0, W, H);
+    if (from !== 'transparent') { ax.fillStyle = paint(ax, from, L); ax.fillRect(0, 0, W, H); }
+    ax.globalCompositeOperation = 'destination-out'; ax.fillStyle = grad; ax.fillRect(0, 0, W, H);
+    bx.setTransform(1, 0, 0, 1, 0, 0); bx.globalAlpha = 1; bx.globalCompositeOperation = 'source-over'; bx.clearRect(0, 0, W, H);
+    if (to !== 'transparent') { bx.fillStyle = paint(bx, to, L); bx.fillRect(0, 0, W, H); }
+    bx.globalCompositeOperation = 'destination-in'; bx.fillStyle = frontGradient(bx, W, H, fl.angle, fl.t); bx.fillRect(0, 0, W, H);
+    bx.globalCompositeOperation = 'source-over';
+    ax.globalCompositeOperation = 'lighter'; ax.drawImage(B, 0, 0);
+    ax.globalCompositeOperation = 'source-over';
+    return A;
+  }
+
+  // the picture's drop: scale from 1.14 with a damped settle, a short fall, alpha in the first quarter
+  function dropAt(t) {
+    if (t >= 1) return { s: 1, y: 0, a: 1, sh: 0 };
+    return { s: 1 + 0.14 * (1 - t) * (1 - t) * Math.cos(2.2 * Math.PI * t), y: -0.1 * (1 - easeOutCubic(t)), a: clamp(t / 0.25, 0, 1), sh: 1 - t };
+  }
+
+  // the frame's ring (a stroke along its middle line, drawn up to t of its length) and the caption
+  function frameRect(L) {
+    var m = L.m, q = L.quiet, e = (q + FR.sw / 2) * m;
+    return { x: L.ox - e, y: L.oy - e, w: L.side + 2 * e, h: L.side + 2 * e + (L.band + FR.pb) * m, r: (FR.rad - FR.sw / 2) * m };
+  }
+  function captionPx(x, L, fr) {
+    var m = L.m, px = FR.font * m, max = L.side + 2 * (L.quiet - 1) * m;
+    x.font = fr.weight + ' ' + px + 'px ' + fr.font;
+    var w = x.measureText(fr.text).width;
+    if (w > max) { px = Math.max(m * 1.2, px * max / w); x.font = fr.weight + ' ' + px + 'px ' + fr.font; }
+    return px;
+  }
+  function drawFrame(x, L, fr) {
+    var R = frameRect(L), m = L.m, t = fr.t;
+    x.save();
+    x.globalAlpha = 1;
+    x.lineWidth = FR.sw * m;
+    x.strokeStyle = '#000';
+    x.beginPath();
+    rrect(new CanvasPen(x, 0, 0, 1), R.x, R.y, R.w, R.h, all4(R.r));
+    if (t < 1) {
+      var per = 2 * (R.w + R.h) - (8 - 2 * Math.PI) * R.r;
+      if (x.setLineDash) { x.setLineDash([per * easeInOut(t), per + 1]); x.lineDashOffset = 0; }
+    }
+    if (t > 0) x.stroke();
+    if (x.setLineDash) x.setLineDash([]);
+    if (fr.text && t > 0) {
+      var ta = clamp((t - 0.35) / 0.65, 0, 1);
+      if (ta > 0) {
+        captionPx(x, L, fr);
+        x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#000';
+        x.globalAlpha = ta >= 1 ? 1 : easeOutCubic(ta);
+        x.fillText(fr.text, L.ox + L.side / 2, L.oy + L.side + (L.quiet + L.band / 2) * m + (1 - easeOutCubic(ta)) * 0.8 * m);
+      }
+    }
+    x.restore();
+  }
+
+  // the cells a still picture of qr draws as modules (1), for the caller's cells field: everything else is 0
+  function targets(qr, opts) {
+    var o = normOpts(opts);
+    var pl = plan(qr, logoArea(qr, o.logo));
+    var t = new Uint8Array(qr.n * qr.n);
+    for (var i = 0; i < t.length; i++) t[i] = pl.st[i] === 1 ? 1 : 0;
+    return t;
   }
 
   // ------------------------------------------------------------------ render
@@ -730,105 +946,224 @@
   function render(canvas, qr, opts) {
     var o = normOpts(opts);
     var L = layoutFor(qr.n, o);
-    if (canvas.width !== L.W) canvas.width = L.W;
-    if (canvas.height !== L.W) canvas.height = L.W;
+    var W = L.W, H = L.H;
+    if (canvas.width !== W) canvas.width = W;
+    if (canvas.height !== H) canvas.height = H;
     if (o.style !== false && canvas.style) {
       canvas.style.width = L.size + 'px';
-      canvas.style.height = L.size + 'px';
+      canvas.style.height = (H === W ? L.size : Math.round(H / L.dpr * 100) / 100) + 'px';
     }
     var ctx = canvas.getContext('2d');
-    var W = L.W;
     var area = logoArea(qr, o.logo);
-    var prep = prepared(qr, o, area);
-    var pl = prep.pl, list = prep.list;
     var n = qr.n, p = o.progress;
+    var mo = o.morph;
+    var fromShape = mo && mo.shape ? mo.shape : o.shape, fromEye = mo && mo.eye ? mo.eye : o.eye;
+    if (mo && fromShape === o.shape && fromEye === o.eye) mo = null;
+    var prep = prepared(qr, o, area, !!mo && fromShape === 'uniti' && o.shape !== 'uniti');
+    var pl = prep.pl, list = prep.list;
+    var cells = o.cells && o.cells.length === n * n ? o.cells : null;
+    if (cells && !mo) {                                     // a field at rest is the still picture: draw it the usual way
+      var rest = true;
+      for (var i0 = 0; i0 < cells.length && rest; i0++) if (cells[i0] !== (pl.st[i0] === 1 ? 1 : 0)) rest = false;
+      if (rest) cells = null;
+    }
 
     // The modules are drawn in black on a mask, then the colour (or gradient) goes in through the mask
     // and the mask onto the background. Rounded tiles, joined modules and fillets are stamped from
     // small sprites drawn once per module size: the same pixels as drawing each in place (modules sit
     // on whole device pixels) at a fraction of the cost.
-    var mk = maskFor(W);
+    var mk = maskFor(W, H);
     var mx = mk.getContext('2d');
     mx.setTransform(1, 0, 0, 1, 0, 0);
     mx.globalCompositeOperation = 'source-over';
     mx.globalAlpha = 1;
-    mx.clearRect(0, 0, W, W);
+    mx.clearRect(0, 0, W, H);
     mx.fillStyle = '#000';
     var pen = new CanvasPen(mx, L.ox, L.oy, L.m);
-    var stamp = o.shape === 'tondi' || o.shape === 'uniti';
-    var merge = o.shape === 'quadrati';
-    var full = merge ? new Uint8Array(n * n) : null;
-    var LEVELS = 12, buckets = [];
-    for (var b = 0; b <= LEVELS; b++) buckets.push([]);
-    for (var j = 0; j < list.length; j++) {
-      var pc = list[j];
-      var t = p >= 1 ? 1 : (p - pc.d * (1 - WINDOW)) / WINDOW;
-      if (t <= 0) continue;
-      if (t >= 1) {
-        if (merge && pc.k === 0) { full[pc.r * n + pc.c] = 1; continue; }
-        buckets[LEVELS].push(pc, 1);
-        continue;
+    if (!cells && !mo && o.eyeScale === null) {
+      var stamp = o.shape === 'tondi' || o.shape === 'uniti';
+      var merge = o.shape === 'quadrati';
+      var full = merge ? new Uint8Array(n * n) : null;
+      var LEVELS = 12, buckets = [];
+      for (var b = 0; b <= LEVELS; b++) buckets.push([]);
+      for (var j = 0; j < list.length; j++) {
+        var pc = list[j];
+        var t = p >= 1 ? 1 : (p - pc.d * (1 - WINDOW)) / WINDOW;
+        if (t <= 0) continue;
+        if (t >= 1) {
+          if (merge && pc.k === 0) { full[pc.r * n + pc.c] = 1; continue; }
+          buckets[LEVELS].push(pc, 1);
+          continue;
+        }
+        var al = easeOutCubic(Math.min(1, t * 1.5));
+        buckets[Math.round(al * LEVELS)].push(pc, t);
       }
-      var al = easeOutCubic(Math.min(1, t * 1.5));
-      buckets[Math.round(al * LEVELS)].push(pc, t);
-    }
-    for (var lv = 1; lv <= LEVELS; lv++) {
-      var bk = buckets[lv];
-      if (!bk.length && !(lv === LEVELS && merge)) continue;
-      mx.globalAlpha = lv / LEVELS;
-      mx.beginPath();
-      for (var q = 0; q < bk.length; q += 2) {
-        var it = bk[q], tt = bk[q + 1];
-        var sc = tt >= 1 ? 1 : 0.25 + 0.75 * easeOutBack(tt);
-        if (stamp && (it.k === 0 || it.k === 3)) {
-          var sp = sprite(L.m, o.shape, it, sc);
-          mx.drawImage(sp.cv, L.ox + it.c * L.m - sp.pad, L.oy + it.r * L.m - sp.pad);
-        } else drawPiece(pen, it, o, n, pl.st, sc);
+      for (var lv = 1; lv <= LEVELS; lv++) {
+        var bk = buckets[lv];
+        if (!bk.length && !(lv === LEVELS && merge)) continue;
+        mx.globalAlpha = lv / LEVELS;
+        mx.beginPath();
+        for (var q = 0; q < bk.length; q += 2) {
+          var it = bk[q], tt = bk[q + 1];
+          var sc = tt >= 1 ? 1 : 0.25 + 0.75 * easeOutBack(tt);
+          if (stamp && (it.k === 0 || it.k === 3)) {
+            var sp = sprite(L.m, o.shape, it, Math.min(1, sc));
+            mx.drawImage(sp.cv, L.ox + it.c * L.m - sp.pad, L.oy + it.r * L.m - sp.pad);
+          } else drawPiece(pen, it, o, n, pl.st, sc);
+        }
+        if (lv === LEVELS && merge) runs(pen, o.shape, pl.st, full, n);
+        mx.fill();
       }
-      if (lv === LEVELS && merge) runs(pen, o.shape, pl.st, full, n);
-      mx.fill();
-    }
+      mx.globalAlpha = 1;
+    } else drawMoving(mx, pen, L, qr, o, pl, list, cells, mo, fromShape, fromEye, p);
+    if (L.frame) drawFrame(mx, L, L.frame);
+
+    // colour: the code's fill through the mask, then the background, then the mask on it (a flow blends old and new)
     mx.globalAlpha = 1;
+    var fl = o.flow, fgNow = o.fg, bgNow = o.bg;
+    if (fl && fl.t <= 0) { if (fl.fg !== null) fgNow = fl.fg; if (fl.bg !== null) bgNow = fl.bg; fl = null; }
     mx.globalCompositeOperation = 'source-in';
-    if (o.fg && typeof o.fg === 'object') {
-      var g = gradientLine(L.ox, L.oy, L.side, o.fg.angle);
-      var gr = mx.createLinearGradient(g[0], g[1], g[2], g[3]);
-      gr.addColorStop(0, o.fg.from || '#111111');
-      gr.addColorStop(1, o.fg.to || o.fg.from || '#111111');
-      mx.fillStyle = gr;
-    } else mx.fillStyle = o.fg;
-    mx.fillRect(0, 0, W, W);
+    if (fl && fl.fg !== null) mx.drawImage(flowLayer(W, H, fl.fg, o.fg, L, fl), 0, 0);
+    else { mx.fillStyle = paint(mx, fgNow, L); mx.fillRect(0, 0, W, H); }
     mx.globalCompositeOperation = 'source-over';
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.clearRect(0, 0, W, W);
-    if (o.bg !== 'transparent') { ctx.fillStyle = o.bg; ctx.fillRect(0, 0, W, W); }
+    ctx.clearRect(0, 0, W, H);
+    if (fl && fl.bg !== null) ctx.drawImage(flowLayer(W, H, fl.bg, o.bg, L, fl), 0, 0);
+    else if (bgNow !== 'transparent') { ctx.fillStyle = bgNow; ctx.fillRect(0, 0, W, H); }
     ctx.drawImage(mk, 0, 0);
 
     if (area && o.logo.image && imageReady(o.logo.image)) {
-      var la = p >= 1 ? 1 : clamp((p - 0.7) / 0.3, 0, 1);
+      var drop = null, la;
+      if (o.logoIn !== null) { la = o.logoIn; drop = dropAt(la); }
+      else la = p >= 1 ? 1 : clamp((p - 0.7) / 0.3, 0, 1);
       if (la > 0) {
-        var e = easeOutCubic(la);
-        var box = Math.round(area.box * L.m * (0.85 + 0.15 * e));
-        var bx = Math.round(L.ox + (L.side - box) / 2), by = Math.round(L.oy + (L.side - box) / 2);
+        var e = drop ? 1 : easeOutCubic(la);
+        var box0 = area.box * L.m;
+        var box = Math.round(drop ? box0 * drop.s : box0 * (0.85 + 0.15 * e));
+        var bx = Math.round(L.ox + (L.side - box) / 2), by = Math.round(L.oy + (L.side - box) / 2 + (drop ? drop.y * box0 : 0));
         var sz = imageSize(o.logo.image);
         var k = Math.min(box / sz[0], box / sz[1]);
         var w = sz[0] * k, h = sz[1] * k;
+        var rr = o.logo.round > 0 ? o.logo.round * Math.min(w, h) / 2 : 0;
+        if (drop && drop.sh > 0.01) {
+          // the shadow stays where the picture lands and sharpens as it gets there (drawn far away, offset back)
+          var k0 = Math.min(box0 / sz[0], box0 / sz[1]), w0 = sz[0] * k0, h0 = sz[1] * k0, FAR = 4 * W + 1000;
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, drop.a * 1.2);
+          ctx.shadowColor = 'rgba(0, 0, 0, ' + (0.32 * drop.sh) + ')';
+          ctx.shadowBlur = Math.max(1, box0 * 0.16 * drop.sh);
+          ctx.shadowOffsetX = FAR; ctx.shadowOffsetY = box0 * 0.05 * drop.sh;
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          rrect(new CanvasPen(ctx, L.ox + (L.side - w0) / 2 - FAR, L.oy + (L.side - h0) / 2, 1), 0, 0, w0, h0, all4(o.logo.round > 0 ? o.logo.round * Math.min(w0, h0) / 2 : 0));
+          ctx.fill();
+          ctx.restore();
+        }
         ctx.save();
-        ctx.globalAlpha = e;
-        if (o.logo.round > 0) {
+        ctx.globalAlpha = drop ? drop.a : e;
+        if (rr > 0) {
           ctx.beginPath();
           var cp = new CanvasPen(ctx, bx + (box - w) / 2, by + (box - h) / 2, 1);
-          rrect(cp, 0, 0, w, h, all4(o.logo.round * Math.min(w, h) / 2));
+          rrect(cp, 0, 0, w, h, all4(rr));
           ctx.clip();
         }
         ctx.drawImage(o.logo.image, bx + (box - w) / 2, by + (box - h) / 2, w, h);
         ctx.restore();
       }
     }
-    return { dpr: L.dpr, width: L.W, height: L.W, m: L.m, ox: L.ox, oy: L.oy, side: L.side, quiet: L.realQuiet, cleared: pl.cleared };
+    return { dpr: L.dpr, width: W, height: H, m: L.m, ox: L.ox, oy: L.oy, side: L.side, quiet: L.realQuiet, cleared: pl.cleared };
+  }
+
+  // a frame in motion: a field of module scales (cells) and/or a morph between two shapes and eyes, drawn piece by piece
+  function drawMoving(mx, pen, L, qr, o, pl, list, cells, mo, fromShape, fromEye, p) {
+    var n = qr.n, st = pl.st, m = L.m, toShape = o.shape, toEye = o.eye;
+    var MT = mo ? mo.t : 1, span = Math.max(1, 2 * (n - 1));
+    var uAt = function (r, c) { return mo ? clamp((MT - ((r + c) / span) * (1 - MORPH_W)) / MORPH_W, 0, 1) : 1; };
+    var i, r, c, j, pc, sp;
+    var nbSrc = st, full = null, fullQ = new Uint8Array(n * n);
+    if (cells) {
+      full = new Uint8Array(n * n);
+      for (i = 0; i < n * n; i++) if (st[i] !== 2 && cells[i] >= 0.98) full[i] = 1;   // nearly full: joins its full neighbours
+      nbSrc = full;
+    }
+    var stampOf = function (sh) { return sh === 'tondi' || sh === 'uniti'; };
+    var at = function (cv, pad, rr, cc) { mx.drawImage(cv, L.ox + cc * m - pad, L.oy + rr * m - pad); };
+    mx.globalAlpha = 1;
+    mx.beginPath();
+    var mod = function (rr, cc, s, nb) {
+      if (s <= 0.002) return;
+      var u = uAt(rr, cc), uq = u <= 0 ? 0 : (u >= 1 ? 1 : Math.round(u * 24) / 24);
+      if (uq > 0 && uq < 1) { sp = sprite(m, null, { k: 0, nb: nb }, s, { a: fromShape, b: toShape, u: uq }); at(sp.cv, sp.pad, rr, cc); return; }
+      var sh = uq <= 0 ? fromShape : toShape;
+      if (stampOf(sh)) { sp = sprite(m, sh, { k: 0, nb: nb }, s); at(sp.cv, sp.pad, rr, cc); return; }
+      if (sh === 'quadrati' && Math.abs(s - 1) < 1e-4) { fullQ[rr * n + cc] = 1; return; }   // merged into runs, as in a still picture
+      if (sh === 'quadrati' && s > 1) { var hh = s / 2; rect(pen, cc + 0.5 - hh, rr + 0.5 - hh, s, s); return; }
+      moduleShape(pen, sh, nb, rr, cc, s);
+    };
+    var grow = function (d) {                              // the draw-in of the progress, for pieces without a field
+      var t = p >= 1 ? 1 : (p - d * (1 - WINDOW)) / WINDOW;
+      return t <= 0 ? 0 : (t >= 1 ? 1 : 0.25 + 0.75 * easeOutBack(t));
+    };
+    // eyes and alignment patterns: whole pieces; with a new eye their corners travel from the old radii to the new
+    var eyeMorph = !!mo && fromEye !== toEye;
+    for (j = 0; j < list.length; j++) {
+      pc = list[j];
+      if (pc.k !== 1 && pc.k !== 2) continue;
+      var sc = o.eyeScale !== null ? o.eyeScale : grow(pc.d);
+      if (sc <= 0.002) continue;
+      var u = eyeMorph ? uAt(pc.r + (pc.k === 1 ? 3 : 2), pc.c + (pc.k === 1 ? 3 : 2)) : 1;
+      var e = easeInOut(u), dip = eyeMorph && u > 0 && u < 1 ? 1 - DIP * 0.6 * Math.sin(Math.PI * u) : 1;
+      if (pc.k === 1) {
+        if (u < 1) {
+          var A = eyeRadii(fromEye, pc.w), B = eyeRadii(toEye, pc.w);
+          eyeShape(pen, toEye, pc.w, pc.c, pc.r, sc * dip, [lerpR(A[0], B[0], e), lerpR(A[1], B[1], e), lerpR(A[2], B[2], e)]);
+        } else eyeShape(pen, toEye, pc.w, pc.c, pc.r, sc);
+      } else {
+        var k0 = fromEye !== 'quadrato' ? 1 : 0, k1 = toEye !== 'quadrato' ? 1 : 0;
+        alignShape(pen, toEye, pc.c, pc.r, sc * dip, u < 1 ? k0 + (k1 - k0) * e : k1);
+      }
+    }
+    if (cells) {
+      for (r = 0; r < n; r++) for (c = 0; c < n; c++) {
+        i = r * n + c;
+        if (cells[i] <= 0.002 || st[i] === 2) continue;
+        var kd = qr.kinds[i];
+        if (kd === KIND.finder || kd === KIND.align) continue;
+        mod(r, c, cells[i], bits(nbSrc, n, r, c));
+      }
+    } else {
+      for (j = 0; j < list.length; j++) { pc = list[j]; if (pc.k === 0) mod(pc.r, pc.c, grow(pc.d), pc.nb); }
+    }
+    // fillets of the joined shape, growing or fading with the morph
+    if (toShape === 'uniti' || (mo && fromShape === 'uniti')) {
+      var wAt = function (rr, cc) {
+        if (!mo) return toShape === 'uniti' ? 1 : 0;
+        var ee = easeInOut(uAt(rr, cc));
+        return (toShape === 'uniti' ? ee : 0) + (fromShape === 'uniti' ? 1 - ee : 0);
+      };
+      var fil = function (rr, cc, qd, w) {
+        if (w <= 0.002) return;
+        sp = sprite(m, 'uniti', { k: 3, q: qd }, w); at(sp.cv, sp.pad, rr, cc);
+      };
+      if (cells) {
+        var CS = [[-1, -1], [-1, 1], [1, 1], [1, -1]];
+        for (r = 0; r < n; r++) for (c = 0; c < n; c++) {
+          i = r * n + c;
+          if (cells[i] > 0.002 || st[i] === 2 || st[i] === 3) continue;
+          for (var qd = 0; qd < 4; qd++) {
+            var a = CS[qd][0], bb = CS[qd][1];
+            if (on(full, n, r + a, c) && on(full, n, r, c + bb) && on(full, n, r + a, c + bb)) fil(r, c, qd, wAt(r, c));
+          }
+        }
+      } else {
+        for (j = 0; j < list.length; j++) { pc = list[j]; if (pc.k === 3 && p >= 1) fil(pc.r, pc.c, pc.q, wAt(pc.r, pc.c)); }
+      }
+    }
+    runs(pen, 'quadrati', st, fullQ, n);
+    mx.fill();
   }
 
   // ------------------------------------------------------------------ svg
@@ -852,16 +1187,26 @@
     } catch (e) { return null; }
   }
 
+  function txt(v) { return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
   function svg(qr, opts) {
     var o = normOpts(opts);
     o.progress = 1;
     var n = qr.n, quiet = Math.max(2, Math.round(num(o.quiet, 4)));
-    var T = n + 2 * quiet;
-    var size = Math.max(16, num(o.size, 256));
+    var fr = o.frame, band = fr && fr.text ? FR.cap : 0;
+    var edge = fr ? quiet + FR.sw + FR.om : quiet;
+    var T = n + 2 * edge, TH = fr ? edge + n + quiet + band + FR.pb + FR.sw + FR.om : T;
+    var size = Math.max(16, num(o.size, 256)), Wpx = size, Hpx = size * TH / T;
+    if (fr) {
+      // with a frame, the same geometry as the PNG of this size (render at dpr 1): the margin outside the ring, the ring
+      // and the caption band land where the canvas puts them, and the picture is a whole number of pixels high
+      var LF = layoutFor(n, Object.assign({}, o, { dpr: 1, size: size }));
+      edge = LF.ox / LF.m; T = LF.W / LF.m; TH = LF.H / LF.m; Wpx = LF.W; Hpx = LF.H;
+    }
     var area = logoArea(qr, o.logo);
     var prep = prepared(qr, o, area);
     var pl = prep.pl, list = prep.list;
-    var pen = new SvgPen(quiet, quiet);
+    var pen = new SvgPen(edge, edge);
     if (o.shape === 'quadrati' || o.shape === 'uniti') {
       // horizontal runs make a smaller file; the eyes, alignment and fillets stay pieces
       var full = new Uint8Array(n * n);
@@ -876,18 +1221,41 @@
     var id = 'qr' + (++svgId) + Math.floor(Math.random() * 1e6).toString(36);
     var defs = '', fill;
     if (o.fg && typeof o.fg === 'object') {
-      var g = gradientLine(quiet, quiet, n, o.fg.angle);
+      var g = gradientLine(edge, edge, n, o.fg.angle);
       defs += '<linearGradient id="' + id + 'g" gradientUnits="userSpaceOnUse" x1="' + fx(g[0]) + '" y1="' + fx(g[1]) + '" x2="' + fx(g[2]) + '" y2="' + fx(g[3]) + '">' +
         '<stop offset="0" stop-color="' + attr(o.fg.from || '#111111') + '"/><stop offset="1" stop-color="' + attr(o.fg.to || o.fg.from || '#111111') + '"/></linearGradient>';
       fill = 'url(#' + id + 'g)';
     } else fill = attr(o.fg);
     var body = '';
-    if (o.bg !== 'transparent') body += '<rect width="' + T + '" height="' + T + '" fill="' + attr(o.bg) + '"/>';
+    if (o.bg !== 'transparent') body += '<rect width="' + fx(T) + '" height="' + fx(TH) + '" fill="' + attr(o.bg) + '"/>';
     body += '<path d="' + pen.d.join('') + '" fill="' + fill + '"' + (o.shape === 'quadrati' && o.eye === 'quadrato' ? ' shape-rendering="crispEdges"' : '') + '/>';
+    if (fr) {
+      var e = quiet + FR.sw / 2, rp = new SvgPen(0, 0);
+      rrect(rp, edge - e, edge - e, n + 2 * e, n + 2 * e + band + FR.pb, all4(FR.rad - FR.sw / 2));
+      body += '<path d="' + rp.d.join('') + '" fill="none" stroke="' + fill + '" stroke-width="' + fx(FR.sw) + '"/>';
+      if (fr.text) {
+        // the caption's size: as on the canvas (measured there in pixels, here in modules)
+        var fs = FR.font;
+        if (root.document) {
+          try {
+            var mc = root.document.createElement('canvas').getContext('2d');
+            var Lm = { m: 100, side: n * 100, quiet: quiet };
+            fs = captionPx(mc, Lm, fr) / 100;
+          } catch (er) { fs = FR.font; }
+        }
+        var fam = fr.font;
+        if (fr.fontData) {
+          defs += '<style>@font-face{font-family:"QRCaption";src:url(' + fr.fontData + ') format("woff2");font-weight:200 800;font-style:normal;}</style>';
+          fam = '"QRCaption", ' + fam;
+        }
+        body += '<text x="' + fx(edge + n / 2) + '" y="' + fx(edge + n + quiet + band / 2) + '" text-anchor="middle" dominant-baseline="central" font-family="' + attr(fam) +
+          '" font-weight="' + fr.weight + '" font-size="' + fx(fs) + '" fill="' + fill + '">' + txt(fr.text) + '</text>';
+      }
+    }
     if (area) {
       var href = logoHref(o.logo);
       if (href) {
-        var box = area.box, bx = quiet + (n - box) / 2;
+        var box = area.box, bx = edge + (n - box) / 2;
         var w = box, h = box;
         if (o.logo.image && imageReady(o.logo.image)) {
           var sz = imageSize(o.logo.image), k = Math.min(box / sz[0], box / sz[1]);
@@ -904,7 +1272,7 @@
         body += '<image x="' + fx(x) + '" y="' + fx(y) + '" width="' + fx(w) + '" height="' + fx(h) + '" preserveAspectRatio="xMidYMid meet" href="' + attr(href) + '" xlink:href="' + attr(href) + '"' + clip + '/>';
       }
     }
-    return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + fx(size) + '" height="' + fx(size) + '" viewBox="0 0 ' + T + ' ' + T + '">' +
+    return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + fx(Wpx) + '" height="' + fx(Hpx) + '" viewBox="0 0 ' + fx(T) + ' ' + fx(TH) + '">' +
       (defs ? '<defs>' + defs + '</defs>' : '') + body + '</svg>';
   }
 
@@ -926,15 +1294,22 @@
     return src;
   }
 
-  function verify(src, expected) {
+  function verify(src, expected, vo) {
     var dec = root.jsQR;
     if (typeof dec !== 'function') throw fail('LIBRERIA', 'Manca jsQR: carica vendor/jsQR.js prima di qr-core.js.');
     var img = pixels(src);
     var w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
+    var cr = vo && vo.crop ? vo.crop : null, sx0 = 0, sy0 = 0, sw0 = w0, sh0 = h0;
+    if (cr) {                                              // only this rectangle of the source (the code and its quiet zone)
+      sx0 = clamp(Math.round(cr.x), 0, w0 - 1); sy0 = clamp(Math.round(cr.y), 0, h0 - 1);
+      sw0 = clamp(Math.round(cr.w), 1, w0 - sx0); sh0 = clamp(Math.round(cr.h), 1, h0 - sy0);
+      w0 = sw0; h0 = sh0;
+    }
     var want = expected === undefined || expected === null ? null : String(expected);
     var first = null;
-    for (var i = 0; i < SCALES.length; i++) {
-      var k = SCALES[i];
+    var scales = vo && vo.scales && vo.scales.length ? vo.scales : SCALES;
+    for (var i = 0; i < scales.length; i++) {
+      var k = scales[i];
       var w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
       if (k < 1 && Math.min(w, h) < 48) continue;
       var cv = root.document.createElement('canvas');
@@ -942,7 +1317,7 @@
       var cx = cv.getContext('2d');
       cx.imageSmoothingEnabled = true;
       cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, w, h); // flatten on white
-      cx.drawImage(img, 0, 0, w, h);
+      cx.drawImage(img, sx0, sy0, sw0, sh0, 0, 0, w, h);
       var data = cx.getImageData(0, 0, w, h).data;
       var res = null, inverted = false;
       try { res = dec(data, w, h, { inversionAttempts: 'dontInvert' }); } catch (e) { res = null; }
@@ -1034,6 +1409,74 @@
 
   function suggestEcc(hasLogo) { return hasLogo ? 'H' : 'M'; }
 
+  // OKLab (Björn Ottosson's matrices): to darken or lighten a colour keeping its hue
+  function lin(v) { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+  function gam(v) { v = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055; return Math.round(clamp(v, 0, 1) * 255); }
+  function toLab(c) {
+    var r = lin(c[0]), g = lin(c[1]), b = lin(c[2]);
+    var l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b),
+      s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+  }
+  function fromLab(L) {
+    var l = L[0] + 0.3963377774 * L[1] + 0.2158037573 * L[2], m = L[0] - 0.1055613458 * L[1] - 0.0638541728 * L[2], s = L[0] - 0.0894841775 * L[1] - 1.291485548 * L[2];
+    l = l * l * l; m = m * m * m; s = s * s * s;
+    return [gam(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s), gam(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), gam(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s)];
+  }
+  function hex2(c) { var s = '#'; for (var i = 0; i < 3; i++) { var h = Math.round(c[i]).toString(16); s += h.length < 2 ? '0' + h : h; } return s; }
+
+  // The nearest colour of the same hue with at least `target` contrast on bg (default 4.5): darker on a light ground,
+  // lighter on a dark one; the chroma follows the lightness so the colour stays in gamut. A gradient: each end on its own.
+  // Returns fg itself when it already passes, null when a colour cannot be read.
+  function fixContrast(fg, bg, target) {
+    target = num(target, 4.5);
+    if (fg && typeof fg === 'object') {
+      var a = fixContrast(fg.from, bg, target), b = fixContrast(fg.to, bg, target);
+      return a && b ? { from: a, to: b, angle: fg.angle } : null;
+    }
+    var f = parseColor(fg), g = (bg === undefined || bg === null) ? [255, 255, 255, 1] : parseColor(bg);
+    if (!f || !g) return null;
+    if (g[3] < 1) g = over(g, [255, 255, 255, 1]);
+    f = over(f, g);
+    if (ratio(f, g) >= target) return fg;
+    var L = toLab(f), C = Math.sqrt(L[1] * L[1] + L[2] * L[2]), h = Math.atan2(L[2], L[1]);
+    var dark = lum(g) > 0.18;
+    var at = function (l) { var k = dark ? (L[0] > 0 ? l / L[0] : 0) : (L[0] < 1 ? (1 - l) / (1 - L[0]) : 0); return fromLab([l, C * k * Math.cos(h), C * k * Math.sin(h)]); };
+    var lo = dark ? 0 : L[0], hi = dark ? L[0] : 1, best = dark ? [0, 0, 0] : [255, 255, 255];
+    for (var i = 0; i < 40; i++) {
+      var mid = (lo + hi) / 2, c = at(mid);
+      if (ratio(c, g) >= target) { best = c; if (dark) lo = mid; else hi = mid; } else if (dark) hi = mid; else lo = mid;
+    }
+    return hex2(best);
+  }
+
+  // The largest picture (scale, 0.12..0.3, in steps of 0.005) that leaves the code readable: its margin must use no more
+  // than LOGO_LOAD of the worst block's correction. 0 when even the smallest is too big (use ecc "H", or no picture).
+  function maxLogoScale(qr, logo) {
+    var lo = logoOpts(logo || {});
+    var ok = function (sc) { lo.scale = sc; return logoLoad(qr, plan(qr, logoArea(qr, lo)).st) <= LOGO_LOAD; };
+    if (!ok(0.12)) return 0;
+    if (ok(0.3)) return 0.3;
+    var a = 0.12, b = 0.3;
+    for (var i = 0; i < 12; i++) { var mid = (a + b) / 2; if (ok(mid)) a = mid; else b = mid; }
+    return Math.floor(a * 200 + 1e-6) / 200;
+  }
+
+  // where the code and its quiet zone are in what render draws (device px): with a frame, the square inside the ring,
+  // a pixel short of the ring's inner edge; without, the whole picture. The part a reader needs: verify it with { crop }.
+  function codeBox(qr, opts) {
+    var L = layoutFor(qr.n, normOpts(opts));
+    if (!L.frame) return { x: 0, y: 0, w: L.W, h: L.H };
+    var q = L.quiet * L.m - 1;
+    return { x: L.ox - q, y: L.oy - q, w: L.side + 2 * q, h: L.side + 2 * q };
+  }
+
+  // the size of what render draws, in CSS px (taller than wide with a frame)
+  function measure(qr, opts) {
+    var L = layoutFor(qr.n, normOpts(opts));
+    return { width: L.size, height: L.H / L.dpr, deviceWidth: L.W, deviceHeight: L.H };
+  }
+
   // Smallest module side for a phone camera reading the code off a screen, in CSS px (1 CSS px is about
   // 0.16 mm on a phone: 2 px = 0.33 mm, the usual minimum for print), and in device px for the shape to
   // exist at all (a dot of 0.86 px is a grey smudge). Both decoders of strumenti/qr-prova.mjs read even
@@ -1105,16 +1548,21 @@
   }
 
   root.QRCore = {
-    version: '1.0.0',
+    version: '1.1.0',
     KIND: KIND,
     payload: payload,
     encode: encode,
     render: render,
     svg: svg,
+    codeBox: codeBox,
     verify: verify,
     suggestEcc: suggestEcc,
     contrast: contrast,
     scannable: scannable,
+    targets: targets,
+    measure: measure,
+    fixContrast: fixContrast,
+    maxLogoScale: maxLogoScale,
     // for the test bench and QR Studio; not needed by most callers
     _layout: function (qr, opts) { var L = layoutFor(qr.n, normOpts(opts)); return { dpr: L.dpr, width: L.W, m: L.m, side: L.side, ox: L.ox, quiet: L.realQuiet }; },
     _parseColor: parseColor

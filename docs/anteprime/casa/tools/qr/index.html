@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>QR Studio — imad.chat</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="Fai un codice QR dal telefono: un link, un testo, il Wi-Fi, un contatto. Scegli forma, colori, un'immagine al centro. Niente viene caricato.">
+<meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
+<!-- QR STUDIO: il primo strumento. Tutto si calcola sul telefono di chi lo usa: la pagina non chiede niente a nessuno
+     (anche il carattere, Manrope, è un file di questa cartella: vendor/manrope-latin.woff2, licenza OFL).
+     Il motore è qr-core.js (window.QRCore); questa pagina è studio.js e studio.css sopra il guscio comune (../../comune/). -->
+<link rel="stylesheet" href="../../comune/pagina.css">
+<link rel="stylesheet" href="studio.css">
+</head>
+<body class="pg-corpo st-corpo">
+<div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
+
+<header class="pg-testa" id="testa">
+  <a class="pg-casa" href="../../home/index.html" aria-label="imad.chat, torna alla home"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <p class="pg-titolo">QR Studio</p>
+</header>
+
+<main class="pg st" id="st" data-font="./vendor/manrope-latin.woff2">
+  <h1 class="sr">QR Studio: fai un codice QR</h1>
+
+  <!-- i comandi: nell'ordine in cui si sceglie -->
+  <div class="st-comandi" id="comandi">
+
+    <section class="pg-card st-sez" aria-labelledby="tCosa">
+      <h2 class="st-h2" id="tCosa">Cosa ci metti</h2>
+      <div class="st-chips" id="tipi" role="radiogroup" aria-labelledby="tCosa">
+        <span class="st-chips__pill" aria-hidden="true"></span>
+        <button type="button" class="st-chip" role="radio" aria-checked="true" data-v="link">Link</button>
+        <button type="button" class="st-chip" role="radio" aria-checked="false" data-v="testo">Testo</button>
+        <button type="button" class="st-chip" role="radio" aria-checked="false" data-v="wifi">Wi-Fi</button>
+        <button type="button" class="st-chip" role="radio" aria-checked="false" data-v="contatto">Contatto</button>
+        <button type="button" class="st-chip" role="radio" aria-checked="false" data-v="email">E-mail</button>
+        <button type="button" class="st-chip" role="radio" aria-checked="false" data-v="telefono">Telefono</button>
+      </div>
+
+      <div class="st-campi" data-per="link">
+        <label class="st-campo"><span class="st-campo__t">Indirizzo</span>
+          <span class="st-campo__in"><input class="st-in" id="fLink" type="url" inputmode="url" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Incolla o scrivi un link" enterkeyhint="done"><button type="button" class="st-x" data-x="fLink" aria-label="Cancella l'indirizzo" hidden><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"/></svg></button></span></label>
+        <p class="st-aiuto" id="aLink" hidden>Non sembra un link: nel codice va come testo.</p>
+      </div>
+
+      <div class="st-campi" data-per="testo" hidden>
+        <label class="st-campo"><span class="st-campo__t">Testo</span>
+          <textarea class="st-in st-in--area" id="fTesto" rows="3" placeholder="Scrivi quello che vuoi"></textarea></label>
+        <p class="st-aiuto st-aiuto--conta num" id="aTesto" aria-live="off"></p>
+      </div>
+
+      <div class="st-campi" data-per="wifi" hidden>
+        <label class="st-campo"><span class="st-campo__t">Nome della rete</span>
+          <input class="st-in" id="fSsid" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Casa"></label>
+        <div class="st-campo" id="campoPw"><label class="st-campo__t" for="fPw">Password</label>
+          <span class="st-campo__in"><input class="st-in st-in--pw" id="fPw" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button type="button" class="st-mostra" id="bMostra" aria-controls="fPw" aria-pressed="false">Mostra</button></span></div>
+        <p class="st-h3" id="tProt">Protezione</p>
+        <div class="st-seg" id="prot" role="radiogroup" aria-labelledby="tProt">
+          <span class="st-seg__pill" aria-hidden="true"></span>
+          <button type="button" class="st-segb" role="radio" aria-checked="true" data-v="WPA">WPA</button>
+          <button type="button" class="st-segb" role="radio" aria-checked="false" data-v="WEP">WEP</button>
+          <button type="button" class="st-segb" role="radio" aria-checked="false" data-v="nopass">Nessuna</button>
+        </div>
+        <div class="st-riga"><span class="st-riga__t" id="tNasc">Rete nascosta</span><button type="button" class="st-switch" id="fNasc" role="switch" aria-checked="false" aria-labelledby="tNasc"><i></i></button></div>
+      </div>
+
+      <div class="st-campi" data-per="contatto" hidden>
+        <label class="st-campo"><span class="st-campo__t">Nome</span><input class="st-in" id="fNome" type="text" autocomplete="off" placeholder="Nome e cognome"></label>
+        <label class="st-campo"><span class="st-campo__t">Telefono</span><input class="st-in" id="fTel" type="tel" inputmode="tel" autocomplete="off" placeholder="+39 …"></label>
+        <label class="st-campo"><span class="st-campo__t">E-mail</span><input class="st-in" id="fMail" type="email" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="nome@esempio.it"></label>
+        <label class="st-campo"><span class="st-campo__t">Organizzazione</span><input class="st-in" id="fOrg" type="text" autocomplete="off"></label>
+        <label class="st-campo"><span class="st-campo__t">Sito</span><input class="st-in" id="fSito" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="esempio.it"></label>
+      </div>
+
+      <div class="st-campi" data-per="email" hidden>
+        <label class="st-campo"><span class="st-campo__t">A</span><input class="st-in" id="fA" type="email" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="nome@esempio.it"></label>
+        <label class="st-campo"><span class="st-campo__t">Oggetto</span><input class="st-in" id="fOgg" type="text" autocomplete="off"></label>
+        <label class="st-campo"><span class="st-campo__t">Testo</span><textarea class="st-in st-in--area" id="fCorpo" rows="3"></textarea></label>
+      </div>
+
+      <div class="st-campi" data-per="telefono" hidden>
+        <label class="st-campo"><span class="st-campo__t">Numero</span><input class="st-in" id="fNum" type="tel" inputmode="tel" autocomplete="off" placeholder="+39 …"></label>
+      </div>
+    </section>
+
+    <section class="pg-card st-sez" aria-labelledby="tForma">
+      <h2 class="st-h2" id="tForma">Forma</h2>
+      <p class="st-h3" id="tModuli">Moduli</p>
+      <div class="st-scelte st-scelte--4" id="forme" role="radiogroup" aria-labelledby="tModuli">
+        <button type="button" class="st-tess" role="radio" aria-checked="false" data-v="quadrati"><canvas aria-hidden="true"></canvas><span>Quadrati</span></button>
+        <button type="button" class="st-tess" role="radio" aria-checked="false" data-v="punti"><canvas aria-hidden="true"></canvas><span>Punti</span></button>
+        <button type="button" class="st-tess" role="radio" aria-checked="false" data-v="tondi"><canvas aria-hidden="true"></canvas><span>Arrotondati</span></button>
+        <button type="button" class="st-tess" role="radio" aria-checked="true" data-v="uniti"><canvas aria-hidden="true"></canvas><span>Uniti</span></button>
+      </div>
+      <p class="st-h3" id="tOcchi">Occhi</p>
+      <div class="st-scelte st-scelte--3" id="occhi" role="radiogroup" aria-labelledby="tOcchi">
+        <button type="button" class="st-tess" role="radio" aria-checked="false" data-v="quadrato"><canvas aria-hidden="true"></canvas><span>Quadrati</span></button>
+        <button type="button" class="st-tess" role="radio" aria-checked="true" data-v="tondo"><canvas aria-hidden="true"></canvas><span>Tondi</span></button>
+        <button type="button" class="st-tess" role="radio" aria-checked="false" data-v="goccia"><canvas aria-hidden="true"></canvas><span>A goccia</span></button>
+      </div>
+    </section>
+
+    <section class="pg-card st-sez" aria-labelledby="tColori">
+      <h2 class="st-h2" id="tColori">Colori</h2>
+      <div class="st-coppie" id="coppie" role="radiogroup" aria-label="Colori pronti"></div>
+      <div class="st-riga"><span class="st-riga__t" id="tFg">Colore del codice</span>
+        <label class="st-pozzo"><input type="color" id="cFg" value="#221d14" aria-labelledby="tFg"><span class="st-pozzo__hex num" aria-hidden="true"></span></label></div>
+      <div class="st-riga"><span class="st-riga__t" id="tGrad">Sfumatura</span><button type="button" class="st-switch" id="fGrad" role="switch" aria-checked="false" aria-labelledby="tGrad" aria-controls="gradOpz"><i></i></button></div>
+      <div class="st-sotto" id="gradOpz" hidden>
+        <div class="st-riga"><span class="st-riga__t" id="tFg2">Secondo colore</span>
+          <label class="st-pozzo"><input type="color" id="cFg2" value="#7f5810" aria-labelledby="tFg2"><span class="st-pozzo__hex num" aria-hidden="true"></span></label></div>
+        <div class="st-riga"><span class="st-riga__t" id="tVerso">Direzione</span>
+          <div class="st-versi" id="versi" role="radiogroup" aria-labelledby="tVerso">
+            <button type="button" class="st-verso" role="radio" aria-checked="false" data-v="0" aria-label="Da sinistra a destra"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13.5 7.5L18 12l-4.5 4.5"/></svg></button>
+            <button type="button" class="st-verso" role="radio" aria-checked="true" data-v="45" aria-label="In diagonale, verso il basso"><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(45deg)"><path d="M5 12h13M13.5 7.5L18 12l-4.5 4.5"/></svg></button>
+            <button type="button" class="st-verso" role="radio" aria-checked="false" data-v="90" aria-label="Dall'alto in basso"><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(90deg)"><path d="M5 12h13M13.5 7.5L18 12l-4.5 4.5"/></svg></button>
+            <button type="button" class="st-verso" role="radio" aria-checked="false" data-v="135" aria-label="In diagonale, dall'altro lato"><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(135deg)"><path d="M5 12h13M13.5 7.5L18 12l-4.5 4.5"/></svg></button>
+          </div></div>
+      </div>
+      <div class="st-riga"><span class="st-riga__t" id="tBg">Fondo</span>
+        <label class="st-pozzo"><input type="color" id="cBg" value="#fbf6ea" aria-labelledby="tBg"><span class="st-pozzo__hex num" aria-hidden="true"></span></label></div>
+      <div class="st-riga"><span class="st-riga__t" id="tTrasp">Fondo trasparente</span><button type="button" class="st-switch" id="fTrasp" role="switch" aria-checked="false" aria-labelledby="tTrasp"><i></i></button></div>
+    </section>
+
+    <section class="pg-card st-sez" aria-labelledby="tImg">
+      <h2 class="st-h2" id="tImg">Immagine al centro</h2>
+      <div class="st-img" id="imgRiga">
+        <span class="st-img__anteprima" id="imgThumb" aria-hidden="true" hidden></span>
+        <label class="pg-pill st-img__scegli" for="fImg"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="3.5"/><circle cx="9" cy="10" r="1.6"/><path d="M5 17.2l4.4-4.1 3.1 2.6 3-2.4 3.5 3"/></svg><span id="imgScegliT">Scegli un'immagine</span></label>
+        <input class="sr" type="file" id="fImg" accept="image/*">
+        <button type="button" class="pg-pill st-img__togli" id="bTogli" hidden>Togli</button>
+      </div>
+      <p class="pg-nota st-img__nota" id="imgNota">L'immagine resta sul tuo telefono.</p>
+      <div class="st-sotto" id="imgOpz" hidden>
+        <div class="st-campo"><label class="st-campo__t st-campo__t--riga" for="fScala"><span>Grandezza</span><span class="num" id="scalaV"></span></label>
+          <input class="st-range" id="fScala" type="range" min="12" max="30" step="1" value="22" aria-describedby="scalaAiuto">
+          <p class="st-aiuto" id="scalaAiuto">La parte chiara della barra si legge sempre.</p></div>
+        <p class="st-h3" id="tImgForma">Forma</p>
+        <div class="st-seg" id="imgForma" role="radiogroup" aria-labelledby="tImgForma">
+          <span class="st-seg__pill" aria-hidden="true"></span>
+          <button type="button" class="st-segb" role="radio" aria-checked="true" data-v="tonda">Tonda</button>
+          <button type="button" class="st-segb" role="radio" aria-checked="false" data-v="quadrata">Quadrata</button>
+        </div>
+        <p class="st-h3" id="tImgMarg">Margine pulito</p>
+        <div class="st-seg" id="imgMarg" role="radiogroup" aria-labelledby="tImgMarg">
+          <span class="st-seg__pill" aria-hidden="true"></span>
+          <button type="button" class="st-segb" role="radio" aria-checked="false" data-v="0">Nessuno</button>
+          <button type="button" class="st-segb" role="radio" aria-checked="true" data-v="1">Sottile</button>
+          <button type="button" class="st-segb" role="radio" aria-checked="false" data-v="2">Ampio</button>
+        </div>
+        <p class="st-aiuto st-aiuto--ecc">Con un'immagine il codice diventa più fitto e più robusto: si ripara da solo dove è coperto.</p>
+      </div>
+    </section>
+
+    <section class="pg-card st-sez" aria-labelledby="tCornice">
+      <h2 class="st-h2" id="tCornice">Cornice</h2>
+      <div class="st-seg" id="cornice" role="radiogroup" aria-labelledby="tCornice">
+        <span class="st-seg__pill" aria-hidden="true"></span>
+        <button type="button" class="st-segb" role="radio" aria-checked="true" data-v="no">Nessuna</button>
+        <button type="button" class="st-segb" role="radio" aria-checked="false" data-v="si">Con una scritta</button>
+      </div>
+      <div class="st-sotto" id="scrittaOpz" hidden>
+        <label class="st-campo"><span class="st-campo__t">Scritta sotto il codice</span>
+          <input class="st-in" id="fScritta" type="text" maxlength="24" autocomplete="off" placeholder="Scansiona" value="Scansiona"></label>
+      </div>
+    </section>
+
+    <p class="st-fine">Tutto resta sul tuo telefono: niente viene caricato.</p>
+  </div>
+
+  <!-- il codice: sul telefono resta in cima mentre i comandi scorrono sotto; dal computer a destra -->
+  <div class="st-lato" id="lato">
+    <section class="st-carta" id="carta" aria-labelledby="tCodice">
+      <h2 class="sr" id="tCodice">Il tuo codice</h2>
+      <div class="st-tela" id="tela"><div class="st-tela__flip" id="flip"><canvas class="st-cv" id="cv" role="img" aria-label="Codice QR dell'esempio https://imad.chat"></canvas></div></div>
+      <p class="st-stato" id="stato" data-l="attesa" tabindex="-1">
+        <svg class="st-ico" viewBox="0 0 20 20" aria-hidden="true"><circle class="st-ico__o" cx="10" cy="10" r="8.2"/><path class="st-ico__v" d="M6 10.4l2.7 2.7L14.2 7.4"/><path class="st-ico__a" d="M10 5.6v5.2M10 14.1v.1"/><path class="st-ico__x" d="M7.2 7.2l5.6 5.6M12.8 7.2l-5.6 5.6"/></svg>
+        <span class="st-stato__t" id="statoT">Controllo…</span>
+        <button type="button" class="st-fix" id="bFix" hidden></button>
+      </p>
+      <p class="st-info num" id="info" aria-hidden="true"><span class="st-info__n" id="infoN"></span></p>
+      <p class="st-cosa" id="cosa" aria-hidden="true">imad.chat</p>
+      <p class="sr" id="annuncio" aria-live="polite"></p>
+    </section>
+
+    <div class="st-azioni" id="azioni" role="group" aria-label="Salva il codice">
+      <div class="st-salva">
+        <button type="button" class="st-b st-b--primo" id="bSalva"><span class="st-b__in"><svg class="st-b__ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5v9M6.3 9.2L10 12.9l3.7-3.7M4.5 15.8h11"/></svg><svg class="st-b__ok" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.6 10.4l2.9 2.9 5.9-6.2"/></svg><span class="st-b__t">Salva</span></span></button>
+        <button type="button" class="st-b st-b--primo st-b--piu" id="bAltro" aria-haspopup="menu" aria-expanded="false" aria-controls="menu" aria-label="Altri formati"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 8.2l4 4 4-4"/></svg></button>
+      </div>
+      <div class="st-menu" id="menu" role="menu" aria-label="Altri formati" hidden>
+        <button type="button" class="st-menu__v" role="menuitem" data-fmt="png2048"><b>PNG grande</b><span>2048 px, per stampare</span></button>
+        <button type="button" class="st-menu__v" role="menuitem" data-fmt="svg"><b>SVG</b><span>a qualsiasi misura, per chi stampa</span></button>
+      </div>
+      <button type="button" class="st-b" id="bCopia" hidden><span class="st-b__in"><svg class="st-b__ico" viewBox="0 0 20 20" aria-hidden="true"><rect x="6.5" y="6.5" width="9.5" height="10" rx="2.4"/><path d="M13.5 4.4c-.3-.6-.9-.9-1.6-.9H6.2c-1.4 0-2.5 1.1-2.5 2.5v6.2c0 .7.4 1.3.9 1.6"/></svg><svg class="st-b__ok" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.6 10.4l2.9 2.9 5.9-6.2"/></svg><span class="st-b__t">Copia</span></span><span class="st-b__bolla" aria-hidden="true"></span></button>
+      <button type="button" class="st-b" id="bCondividi" hidden><span class="st-b__in"><svg class="st-b__ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12.2V3.4M6.8 6.4L10 3.2l3.2 3.2M6.5 9H5.6c-.9 0-1.6.7-1.6 1.6v4.8c0 .9.7 1.6 1.6 1.6h8.8c.9 0 1.6-.7 1.6-1.6v-4.8c0-.9-.7-1.6-1.6-1.6h-.9"/></svg><svg class="st-b__ok" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.6 10.4l2.9 2.9 5.9-6.2"/></svg><span class="st-b__t">Condividi</span></span><span class="st-b__bolla" aria-hidden="true"></span></button>
+    </div>
+  </div>
+</main>
+
+<footer class="pg-piede st-piede"><a href="../../home/index.html">Torna alla home</a><span>«QR Code» è un marchio registrato di DENSO WAVE.</span></footer>
+
+<script src="../../../shared/astro-lite.js"></script>
+<script src="../../comune/pagina.js"></script>
+<script src="vendor/qrcode-generator.js"></script>
+<script src="vendor/jsQR.js"></script>
+<script src="qr-core.js"></script>
+<script src="studio.js"></script>
+</body>
+</html>

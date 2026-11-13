@@ -94,6 +94,27 @@
   var head = doc.querySelector(".pg-testa"), stuck = false;
   if (head) window.addEventListener("scroll", function () { var s = window.pageYOffset > 4; if (s !== stuck) { stuck = s; head.classList.toggle("is-stuck", s); } }, { passive: true });
 
+  /* tornare alla casa senza rifare l'intro (CASA.md 6): il logo e «Torna alla home» (ogni link a casa, senza ? e senza #).
+     Se si è arrivati qui dalla casa si torna indietro: la casa ritrova lo scorrimento e, tornando indietro, non rifà l'intro.
+     Altrimenti si va alla casa con #casa: con un # la casa si apre già pronta (nessun riquadro si chiama «casa»).
+     Gli indirizzi nell'HTML restano puliti (la build li riscrive; tenendo premuto si copia l'indirizzo vero). */
+  (function () {
+    var logo = doc.querySelector(".pg-casa"); if (!logo || !window.URL) return;
+    function chiave(u) { return u.origin + u.pathname.replace(/\/index\.html$/, "").replace(/\/+$/, ""); }
+    var casa; try { casa = chiave(new URL(logo.getAttribute("href"), location.href)); } catch (e) { return; }
+    var daCasa = false; try { daCasa = !!doc.referrer && chiave(new URL(doc.referrer)) === casa; } catch (e) { daCasa = false; }
+    doc.addEventListener("click", function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+      if (!a || (a.target && a.target !== "_self") || a.hasAttribute("download")) return;
+      var u; try { u = new URL(a.getAttribute("href"), location.href); } catch (er) { return; }
+      if (u.search || u.hash || chiave(u) !== casa) return;
+      e.preventDefault();
+      if (daCasa && history.length > 1) { history.back(); return; }
+      location.href = u.href + "#casa";
+    });
+  })();
+
   var cache = {};
   window.PAGINA = {
     now: now,
