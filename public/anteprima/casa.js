@@ -183,7 +183,9 @@
   if (Q.get("primo") === "1") first = true;
   /* dove sta la scatola sull'hero: la regola di DOT (homePoint in dot-brain.js), con questo numero passato come homeX */
   var HOME_X = 0.58, started = false;
-  function dotOk() { var D = window.DOT; return !!(D && D.start && D.looks && clip && Q.get("dot") !== "no"); }
+  /* tutti gli script di Dot ci sono? Senza dot-fx.js (o dot-rig.js, o un aspetto) DOT.start non partirebbe: allora niente promesse, né la
+     scenetta dell'intro né il passaggio (DOT.ready, se dot-brain.js lo dice, vale più di tutto) */
+  function dotOk() { var D = window.DOT; return !!(D && D.ready !== false && D.start && D.makeRig && D.fx && D.fx.css && D.looks && (D.looks.manifesto || D.looks.base) && clip && Q.get("dot") !== "no"); }
   function startDot(keysFormed) {
     var DOT = window.DOT;
     if (started || !dotOk()) return; started = true;
@@ -220,7 +222,8 @@
      sullo stesso fotogramma. L'intro legge passage e anchor(); se fa il passaggio mette wait = true e alla fine chiama handover(formed):
      formed = i tasti sono già fermi ai loro posti (l'apertura parte da lì); false = un giro rotto (rotazione): l'apertura intera */
   window.__niDot = {
-    passage: first && dotOk() && !!(window.DOT && window.DOT.stage && window.DOT.stage.paint),
+    dot: dotOk(),                                                       /* Dot partirà davvero: l'intro fa la scenetta solo allora */
+    passage: first && dotOk() && !!(window.DOT && window.DOT.stage && window.DOT.stage.paint && window.DOT.looks.manifesto),
     wait: false,
     layerTop: function () { return clip ? clip.getBoundingClientRect().top + (window.pageYOffset || 0) : 0; },   /* dove comincia lo strato di Dot (la sua tela dei tasti si allinea a quello) */
     anchor: function () { var h = $("#hero"); if (!h) return null; var r = h.getBoundingClientRect(); return { x: r.left + (window.pageXOffset || 0) + (r.width > 220 ? r.width * HOME_X : r.width / 2), y: r.top + (window.pageYOffset || 0) }; },

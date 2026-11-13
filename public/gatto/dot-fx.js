@@ -139,8 +139,14 @@
     o.draw = function (x, y, a, sc, press, dark) {
       var on = a > 0.004; sp.show(on); if (!on) return;
       sp.place(x, y); sp.clear(); c.setTransform(sp.dpr, 0, 0, sp.dpr, sp.dpr * S / 2, sp.dpr * S / 2);
-      var r = 12 * sc * (1 - 0.1 * press), g;
+      var r = 12 * sc, g, qx = 1 + 0.08 * press, qy = 1 - 0.12 * press;   /* premendo il polpastrello si schiaccia: più largo, più basso (1.08 x 0.88) */
       c.save(); c.globalAlpha = clamp(a, 0, 1);
+      if (press > 0.02) {                                             /* l'ombra di contatto, due pixel sotto, morbida: tocca davvero */
+        var cg = c.createRadialGradient(0, r * qy * 0.72 + 2, 0, 0, r * qy * 0.72 + 2, r * 0.95);
+        cg.addColorStop(0, "rgba(0,0,8," + (0.3 * press).toFixed(3) + ")"); cg.addColorStop(1, "rgba(0,0,8,0)");
+        c.fillStyle = cg; c.beginPath(); c.ellipse(0, r * qy * 0.72 + 2, r * 0.95, r * 0.42, 0, 0, PI * 2); c.fill();
+      }
+      c.scale(qx, qy);
       if (!dark) { c.shadowColor = "rgba(8,10,24," + (0.26 * (1 - 0.5 * press)).toFixed(3) + ")"; c.shadowBlur = (9 - 4.5 * press) * sp.dpr; c.shadowOffsetY = (2.8 - 1.8 * press) * sp.dpr; }   /* sul chiaro un'ombra morbida: il dito sta sopra il vetro */
       g = c.createRadialGradient(-r * 0.22, -r * 0.3, 0, 0, 0, r);
       g.addColorStop(0, dark ? "rgba(255,255,255,.64)" : "rgba(255,255,255,.9)"); g.addColorStop(1, dark ? "rgba(255,255,255," + (0.34 + 0.08 * press).toFixed(3) + ")" : "rgba(244,245,249," + (0.62 + 0.1 * press).toFixed(3) + ")");

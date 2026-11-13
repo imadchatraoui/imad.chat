@@ -178,20 +178,24 @@
       if (B) { s.sx *= 1 + 0.07 * B; s.sy *= 1 - 0.09 * B; s.light = 0.25 * B; }
       var at = col === 0 ? TS.fl : col === 2 ? TS.fr : row === 0 ? TS.ft : row === 2 ? TS.fb : -1, w, th, cs, sn, big, sink;
       if (at >= 0 && ts >= at) {
+        /* il lembo si piega all'indietro, DIETRO la colonna (o il tasto) su cui si piega: un filo verso chi guarda (la carica), poi cade
+           indietro sempre più svelto; se ne vede la faccia, con la lettera, che si allontana finché è di taglio; poi è dietro e non si vede.
+           Mai un retro bianco sopra le lettere, niente che debba sparire: sparisce di taglio, a grandezza zero (CASA.md 2c B, i giudici) */
         w = seg(ts, at, at + TS.fd);
-        if (w >= 1) { s.alpha = 0; out.push(s); continue; }
-        th = PI * eIO(sat(w / 0.8)); cs = Math.cos(th); sn = Math.sin(th); sink = seg(w, 0.8, 1); big = (1 + 0.1 * sn) * (1 - 0.1 * eIO(sat(sink / 0.65)));
-        s.flap = true; s.z = hp * sn; s.back = cs < 0; s.alpha = w < 0.93 ? 1 : 0;
+        var u0 = sat(w / 0.74);
+        th = w < 0.74 ? -0.12 * Math.sin(PI * sat(u0 / 0.3)) * (1 - u0) + (PI / 2) * u0 * u0 : PI / 2 + (PI / 2) * eOut(sat((w - 0.74) / 0.12));
+        cs = Math.cos(th); sn = Math.sin(th); big = 1 - 0.06 * Math.max(0, sn);
+        s.flap = true; s.z = -hp * sn; s.back = false;
         if (col !== 1) {                                  /* piega di lato: la cerniera sta tra le colonne */
           var sg = col === 0 ? -1 : 1;
-          s.x = sg * hp + sg * hp * cs; s.sx = cs * big; s.sy = big; s.y += 2.5 * sn; s.side = true; s.sideX = sg * THICK * sn; s.sideY = 0;   /* il dietro della lastra scappa verso l'esterno */
-          if (!s.back) shade(s, lum(-sg * sn, 0, cs)); else shade(s, lum(sg * sn, 0, -cs));
+          s.x = sg * hp + sg * hp * cs; s.sx = Math.max(0, cs) * big; s.sy = big; s.y -= 1.5 * Math.max(0, sn); s.side = sn > 0.02; s.sideX = -sg * THICK * Math.max(0, sn) * 0.6; s.sideY = 0;   /* lo spessore si vede dalla parte della cerniera */
+          shade(s, lum(sg * sn, 0, cs)); s.alpha = cs > 0.002 ? 1 : 0;
         } else {                                          /* piega in alto o in basso: la cerniera sta tra le righe */
           var sv = row === 0 ? -1 : 1, hinge = yMid + sv * hp;
-          /* la cinepresa sta un filo in alto: la faccia che viene verso di noi si vede anche un po' da sopra */
-          var m = cs + sv * 0.35 * sn; s.back = m < 0;
-          s.y = hinge + sv * hp * m + 2.5 * sn; s.sy = m * big; s.sx = big; s.side = true; s.sideX = 0; s.sideY = sv * THICK * sn * 0.8;
-          if (!s.back) shade(s, lum(0, row === 0 ? -sn : sn, cs)); else shade(s, lum(0, row === 0 ? sn : -sn, -cs));
+          /* la cinepresa sta un filo in alto: la faccia che va indietro in alto si vede più a lungo, quella in basso meno */
+          var m = cs - sv * 0.35 * sn;
+          s.y = hinge + sv * hp * Math.max(0, m) - 1.5 * Math.max(0, sn); s.sy = Math.max(0, m) * big; s.sx = big; s.side = sn > 0.02; s.sideX = 0; s.sideY = -sv * THICK * Math.max(0, sn) * 0.5;
+          shade(s, lum(0, row === 0 ? sn : -sn, cs)); s.alpha = m > 0.002 ? 1 : 0;
         }
         s.ground = false;
       }
@@ -231,18 +235,10 @@
     return order;
   }
   function drawKeys(c, ts) {
-    var st = keysState(ts), sp = S.sp, i, s, order = paintKeys(c, st, sp);
-    var flaps = []; for (i = 0; i < 9; i++) if (st[i].flap && st[i].alpha > 0.01) flaps.push(st[i]);
-    if (flaps.length) {
-      /* l'ombra del lembo cade solo sui tasti che stanno sotto */
-      c.save(); c.beginPath(); var any = false;
-      for (i = 0; i < order.length; i++) { s = order[i]; if (s.alpha <= 0.01) continue; any = true; var w2 = KEY * s.sx, h2 = (KEY + BAND) * s.sy; rrSub(c, s.x - w2 / 2, s.y - KEY / 2 * s.sy - BAND, w2, h2, KR); }
-      if (any) { c.clip();
-        for (i = 0; i < flaps.length; i++) { s = flaps[i]; var z = s.z, wsh = KEY * Math.max(Math.abs(s.sx), 0.3) + z * 0.6, hsh = KEY * Math.max(Math.abs(s.sy), 0.3) + z * 0.4;
-          c.globalAlpha = 0.3 * (z / (PITCH / 2)) * s.alpha; c.drawImage(sp.soft.cv, s.x + z * 0.5 - wsh / 2 - 5, s.y + z * 0.62 - hsh / 2 - 5, wsh + 10, hsh + 10); } }
-      c.restore(); c.globalAlpha = 1;
-      for (i = 0; i < flaps.length; i++) drawKey(c, flaps[i].i, flaps[i], sp);
-    }
+    var st = keysState(ts), sp = S.sp, i;
+    /* i lembi vanno dietro i tasti su cui si piegano: si disegnano prima, poi i tasti fermi (con le loro ombre) sopra */
+    for (i = 0; i < 9; i++) if (st[i].flap && st[i].alpha > 0.01) drawKey(c, st[i].i, st[i], sp);
+    paintKeys(c, st, sp);
     S.geo = { mode: "keys", x0: -PITCH * 1.5, x1: PITCH * 1.5, y0: -KEY - 2 * PITCH - BAND - 4, y1: 2 };
   }
   function rrSub(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.arcTo(x + w, y, x + w, y + r, r); c.lineTo(x + w, y + h - r); c.arcTo(x + w, y + h, x + w - r, y + h, r); c.lineTo(x + r, y + h); c.arcTo(x, y + h, x, y + h - r, r); c.lineTo(x, y + r); c.arcTo(x, y, x + r, y, r); c.closePath(); }

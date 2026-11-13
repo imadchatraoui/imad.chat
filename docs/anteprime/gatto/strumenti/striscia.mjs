@@ -15,7 +15,7 @@ await new Promise((r) => server.listen(+(process.env.PORT || 0), "127.0.0.1", r)
 
 /* le scene: setup (nella pagina, con D = DOT.debug e P = i bordi) restituisce { pre, T } (secondi: prima di cominciare, durata) */
 const SCENES = {
-  opening: { primo: 1, js: `return { pre: 3.45, T: 5.2 };` },
+  opening: { primo: 1, js: `return { pre: 3.95, T: 3.3 };` },   // dagli occhi nel buio al saluto (tempi del 2026-11-13: dagli occhi al salto 1.84 s)
   "opening-keys": { primo: 1, js: `return { pre: 0.05, T: 3.4 };` },
   walk: { js: `D.place(P[0].a + 30, 0); D.tick(0.5); D.walkTo(P[0].a + 190); return { pre: 0.1, T: 2.6 };` },
   turn: { js: `D.place(P[0].a + 120, 0); D.set("pause", { pose: "stand", dur: 99, face: "side" }); D.cat.dir = 1; D.tick(0.8); D.at(0.15, function () { D.cat.dir = -1; }); return { pre: 0, T: 1.1 };` },
