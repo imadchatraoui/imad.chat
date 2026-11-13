@@ -1,0 +1,64 @@
+/* imad.chat — il tasto del tema e i fili di gomitolo (CASA.md 2f A e B). Va con filo.js e con ../comune/tema.js; viene dopo moto.css.
+   Usa i token di style.css e casa.css. Safari non recente: niente :has(), posizioni scritte per esteso, -webkit- accanto.
+   Si muovono solo transform e opacity (il disco del tema: una traslazione dentro il suo cerchio). Con «meno movimento»: niente. */
+
+/* ------------------------------------------------------------------ il tasto del tema, a sinistra dei suoni */
+/* la riga è space-between: il margine automatico tiene il tema accanto ai suoni, a 4 px (lo stesso vetro, 44 px da toccare, 36 da vedere) */
+.bar .tema { margin-left: auto; margin-right: 4px; }
+/* il disegno, 20 px: un anello (raggio 6.4, tratto 1.6) e dentro un riempimento che scorre da sinistra. Vuoto = chiaro, metà = come il
+   telefono, pieno = scuro. Il bordo tra pieno e vuoto è sempre una retta (una corda del cerchio): mai una mezzaluna. filo.js lo muove
+   con una molla; qui c'è il posto giusto prima di ogni script (html[data-theme] lo scrive tema.js prima del primo disegno) */
+.tema__i {
+  position: relative; display: block; width: 14.4px; height: 14.4px; border-radius: 50%; overflow: hidden;
+  box-shadow: inset 0 0 0 1.6px currentColor;
+}
+.tema__f { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: currentColor; transform: translateX(-50%); }
+:root[data-theme="dark"] .tema__f { transform: none; }
+:root[data-theme="light"] .tema__f { transform: translateX(-104%); }
+/* la pressione: come il disegno del tasto dei suoni (moto.css 2) */
+.tema__i { transition: transform var(--d-su, 460ms) var(--molla, cubic-bezier(.34, 1.36, .64, 1)); }
+.iconbtn.is-premuto .tema__i { transform: scale(.9); transition-duration: var(--d-giu, 110ms); transition-timing-function: var(--premi, cubic-bezier(.3, .7, .4, 1)); }
+.iconbtn.is-sfugge .tema__i { transition-duration: 200ms; transition-timing-function: var(--ease-out, cubic-bezier(.22, 1, .36, 1)); }
+
+/* l'etichetta: una pillola di vetro di 30 px esce da sotto il tasto verso sinistra, resta 1,2 s, rientra. filo.js la mette accanto al tasto */
+.tema__hud {
+  position: absolute; z-index: 1; top: 7px; right: 100px; height: 30px; padding: 0 12px; border-radius: 15px;
+  display: flex; align-items: center; white-space: nowrap; pointer-events: none;
+  font: 600 13px/1 var(--font-sans); letter-spacing: -.01em; color: var(--ink);
+  background: var(--btn-glass); box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--ring), 0 8px 18px -12px rgb(var(--sh) / .5);
+  -webkit-backdrop-filter: saturate(1.6) blur(16px); backdrop-filter: saturate(1.6) blur(16px);
+  opacity: 0; transform: translateX(8px); transform-origin: 100% 50%;
+  transition: opacity 200ms var(--ease-out, ease-out), transform 200ms cubic-bezier(.5, 0, .75, 0);
+}
+.tema__hud.is-on { opacity: 1; transform: none; transition: opacity 160ms var(--ease-out, ease-out), transform 320ms var(--molla, cubic-bezier(.34, 1.36, .64, 1)); }
+
+/* il cambio di tema (tema.js): il nuovo tema si apre in un cerchio che cresce dal tasto, il vecchio resta fermo sotto. Toglie le animazioni
+   delle transizioni tra documenti (moto.css 7, html:not(.is-pagina)): :root.tema-vt pesa di più */
+:root.tema-vt::view-transition-old(root), :root.tema-vt::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+:root.tema-vt::view-transition-group(root) { animation-duration: 560ms; }
+/* il Corano non è mai attraversato dal bordo del cerchio (metà versetto in un tema, metà nell'altro): il suo riquadro cambia tutto e
+   subito, sopra il cerchio. Il nome c'è solo durante il cambio di tema (tema-vt), così non tocca le altre transizioni */
+:root.tema-vt .tile.corano { view-transition-name: tema-corano; }
+:root.tema-vt::view-transition-old(tema-corano) { display: none; }
+:root.tema-vt::view-transition-new(tema-corano) { animation: none; }
+:root.tema-vt::view-transition-group(tema-corano) { animation: none; }
+
+/* ------------------------------------------------------------------ i fili */
+/* la tela: sopra la riga in alto e l'hero, sotto gli strati di Dot (che stanno fuori da .home); non si tocca mai */
+.filo { position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; }
+/* la presa: una striscia stretta intorno al filo e basta (13 px per lato, almeno 30 di larghezza), sotto il nodo: mai sopra un tasto */
+.filo__presa {
+  position: absolute; z-index: 4; touch-action: none; cursor: grab;
+  -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+}
+.filo__presa.is-preso, html.filo-preso, html.filo-preso * { cursor: grabbing; }
+.ni-on .filo__presa { display: none; }
+/* il tasto strappato: cade, rotola e torna da solo (filo.js lo muove con translate e rotate); intanto non si preme */
+.iconbtn.is-strappato { pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tema__i, .tema__hud, .tema__hud.is-on { transition: none; }
+  .tema__hud { transform: none; }
+  .iconbtn.is-premuto .tema__i { transform: none; }
+}
+.is-shot .tema__hud { transition: none; }

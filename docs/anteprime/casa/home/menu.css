@@ -1,0 +1,157 @@
+/* imad.chat — il menu dal logo 3x3 (CASA.md 2f D; lo apre e lo chiude menu.js).
+   Il logo in alto a sinistra è una faccia del cubo: toccato, i suoi nove quadratini volano fuori e diventano nove tasti grandi, nella
+   stessa griglia 3x3. Otto posti della casa, il punto d'oro al centro che chiude; sotto, la capsula d'oro «Lascia un saluto» e la
+   pillola di vetro «La scatola dei tasti».
+   I tasti hanno il materiale del loro riquadro (2d C): il Corano carta, Le città notte, Su di me la sua foto, gli altri vetro; con il
+   filo di luce dal lato del sole vero e l'ombra in tre strati (--sun-ang, --shx, --shy di vivo.js). Le ombre sono ferme: nei voli si
+   muovono solo transform e opacity (menu.js).
+   Il velo è opaco del tutto (alfa 1) e senza sfocatura: a .9, e ancora a .975, la capsula della casa e il Corano si vedevano sotto
+   (la capsula si raddoppiava, il versetto restava velato: un effetto sul Corano); una sfocatura costerebbe e deformerebbe il Corano.
+   Per Safari non recente: niente :has(), top/right/bottom/left per esteso accanto a ogni posizione piena. */
+
+.menu {
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 65;
+  /* il lato di un tasto: tre tasti e due spazi da 10 px nella larghezza del telefono meno i margini (113 px a 390, 103 a 360) */
+  --mk: calc((min(100vw, 460px) - 2 * var(--gutter) - 20px) / 3);
+  --mtop: calc(env(safe-area-inset-top) + 64px);
+  --mgx: var(--gutter);
+  /* sotto il menu la pagina non scorre: niente overflow sulla pagina (la barra di scorrimento sparirebbe e la casa si sposterebbe di
+     mezza barra sotto i tasti che tornano nel logo); qui basta che il dito non trascini niente (lo zoom resta) */
+  touch-action: pinch-zoom; overscroll-behavior: contain;
+  -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+}
+.menu[hidden] { display: none !important; }
+/* consegnato a una sezione: il menu scende sotto di lei (la sezione sta a 62) e se ne va da sotto */
+.menu.is-sotto { z-index: 61; pointer-events: none; }
+.menu.is-via { pointer-events: none; }
+@media (min-width: 700px) { .menu { --mgx: calc(50% - (3 * var(--mk) + 20px) / 2); } }
+
+/* ------------------------------------------------------------------ il velo */
+.menu__velo { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: linear-gradient(180deg, #eef0f8 0%, #e8e9f5 100%); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .menu__velo { background: linear-gradient(180deg, #050710 0%, #0a0c1a 100%); }
+}
+:root[data-theme="dark"] .menu__velo { background: linear-gradient(180deg, #050710 0%, #0a0c1a 100%); }
+
+/* ------------------------------------------------------------------ la griglia */
+.menu__g {
+  position: absolute; left: var(--mgx); top: var(--mtop); margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(3, var(--mk)); grid-auto-rows: var(--mk); gap: 10px;
+}
+.menu__c { position: relative; z-index: 1; display: block; }
+/* il punto parte dal centro del logo per ultimo e passa sotto i tasti già usciti: viene da dietro, non li attraversa */
+.menu__c--dot { z-index: 0; }
+
+/* un tasto: il materiale sta sul tasto stesso (sezioni.js ne copia il fondo per la «pelle» quando il tasto diventa la sezione) */
+.menu__k {
+  --t-ink: var(--ink); --t-ink-2: var(--ink-2); --mat: var(--vetro);
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: block; overflow: hidden; isolation: isolate;
+  border-radius: 26px; text-align: left; color: var(--t-ink);
+  background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--mat);
+  background-color: var(--tile-solid);
+  box-shadow: 0 0 0 .5px rgb(var(--ombra) / calc(var(--o1) * .45)), 0 1px 2px rgb(var(--ombra) / var(--o1)),
+    var(--shx, 0px) var(--shy, 12px) 26px -12px rgb(var(--ombra) / var(--o2)), calc(var(--shx, 0px) * 2.4) calc(var(--shy, 12px) * 2.8) 72px -30px rgb(var(--ombra) / var(--o3));
+  transform-origin: 50% 50%; will-change: transform;
+  /* la pressione: giù con --premi, su con la molla viva (2d E); durante i voli comanda l'animazione di menu.js */
+  transition: transform var(--d-su, 460ms) var(--molla, cubic-bezier(.34, 1.36, .64, 1));
+  -webkit-tap-highlight-color: transparent; cursor: pointer;
+}
+.menu__k.is-giu { transform: scale(.97); transition: transform var(--d-giu, 110ms) var(--premi, cubic-bezier(.3, .7, .4, 1)); }
+.menu__k.is-scelto { transform: scale(.95); transition: transform var(--d-giu, 110ms) var(--premi, cubic-bezier(.3, .7, .4, 1)); }
+/* il filo di luce: lo stesso di .tile::after (style.css, casa.css), dal lato del sole */
+.menu__k::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 5; border-radius: inherit; pointer-events: none; box-shadow: inset 0 1px 0 var(--filo-2); }
+@supports ((-webkit-mask-composite: xor) or (mask-composite: exclude)) {
+  .menu__k::after {
+    box-shadow: none; padding: 1px;
+    background: linear-gradient(var(--sun-ang, 180deg), var(--filo-1) 0%, var(--filo-2) 38%, var(--filo-3) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
+  }
+  @media (min-resolution: 2dppx) { .menu__k::after { padding: .5px; } }
+}
+.menu__k:focus { outline: none; }
+.menu__k:focus-visible { outline: 2.5px solid var(--focus); outline-offset: 3px; }
+
+/* i materiali dei riquadri (2d C; i valori sono quelli di style.css per .tile[data-mat]) */
+.menu__k[data-mat="glass"] { --t-ink: var(--ink); --t-ink-2: var(--ink-2); }
+.menu__k[data-mat="paper"] { --mat: var(--paper-mat); --t-ink: var(--paper-ink); --t-ink-2: var(--paper-ink-2); background-color: var(--paper);
+  --filo-1: rgba(255, 255, 255, .95); --filo-2: rgba(255, 255, 255, .55); --filo-3: rgba(255, 255, 255, .25); --ombra: 92 66 26; --o1: .13; --o2: .16; --o3: .12; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .menu__k[data-mat="paper"] { --filo-1: rgba(255, 234, 196, .28); --filo-2: rgba(255, 234, 196, .085); --filo-3: rgba(255, 234, 196, .045); --ombra: 0 0 0; --o1: .55; --o2: .5; --o3: .55; }
+}
+:root[data-theme="dark"] .menu__k[data-mat="paper"] { --filo-1: rgba(255, 234, 196, .28); --filo-2: rgba(255, 234, 196, .085); --filo-3: rgba(255, 234, 196, .045); --ombra: 0 0 0; --o1: .55; --o2: .5; --o3: .55; }
+.menu__k[data-mat="night"] { --mat: var(--notte); --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .72); background-color: #151d47;
+  --filo-1: rgba(255, 255, 255, .36); --filo-2: rgba(255, 255, 255, .11); --filo-3: rgba(255, 255, 255, .05); --ombra: 4 6 34; --o1: .42; --o2: .4; --o3: .5; }
+.menu__k[data-mat="photo"] { --mat: none; --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .8); background-color: #1a1d2e;
+  --filo-1: rgba(255, 255, 255, .36); --filo-2: rgba(255, 255, 255, .11); --filo-3: rgba(255, 255, 255, .05); --ombra: 4 6 34; --o1: .42; --o2: .4; --o3: .5; }
+/* la foto di Su di me (quella del riquadro, coperta) con la velatura del riquadro (casa.css, .me .win__scrim), un orlo bianco di mezzo pixel */
+.menu__ph { position: absolute; top: 0; left: 0; z-index: 0; display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.menu__scr { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 1; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(180deg, rgba(6, 8, 20, .6) 0%, rgba(6, 8, 20, .16) 22%, rgba(6, 8, 20, 0) 34%, rgba(6, 8, 20, .1) 46%, rgba(6, 8, 20, .82) 100%);
+  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .1); }
+
+/* il nome in basso a sinistra, il disegnino in alto a sinistra (40 px, nel secondo inchiostro del materiale) */
+.menu__in { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 2; pointer-events: none; }
+.menu__gl { position: absolute; left: 14px; top: 14px; width: 40px; height: 40px; color: var(--t-ink-2); }
+.menu__gl svg { display: block; width: 40px; height: 40px; overflow: visible; }
+.menu__n { position: absolute; left: 14px; right: 12px; bottom: 14px; font: 650 15px/18px var(--font-sans); letter-spacing: -.014em; color: var(--t-ink); }
+/* sul telefono «Sto imparando» non sta in una riga (87 px a 390): va su due, più strette (17 px), e l'ultima riga resta sulla linea
+   dei vicini (il nome sta in basso, bottom: 14px) */
+@media (max-width: 459px) { .menu__n { line-height: 17px; } }
+/* sotto i 375 px il tasto è 103 px: un filo più piccolo */
+@media (max-width: 374px) { .menu__n { left: 12px; bottom: 12px; font-size: 14px; letter-spacing: -.02em; } .menu__gl { left: 12px; top: 12px; } }
+/* la heatmap del tasto: le ultime quattro settimane vere, nelle cinque tinte d'oro della heatmap (menu.js copia --hm-0..4 dal riquadro) */
+.menu__hm .l0 { fill: var(--hm-0, rgba(30, 28, 70, .07)); }
+.menu__hm .l1 { fill: var(--hm-1, #e7cea4); }
+.menu__hm .l2 { fill: var(--hm-2, #dbb573); }
+.menu__hm .l3 { fill: var(--hm-3, #cc9e4a); }
+.menu__hm .l4 { fill: var(--hm-4, #b98a2e); }
+.menu__hm .dopo { opacity: .45; }
+.menu__gold { fill: var(--accent); }
+
+/* il punto al centro: il tasto color crema della scena di Dot (dot-stage.js: il filo di sopra chiaro, la faccia in ceramica opaca), con la
+   stella-punto d'oro e il suo alone a .45. È un oggetto: uguale nei due temi. Chiude il menu */
+.menu__k--dot {
+  --filo-1: rgba(255, 255, 255, .95); --filo-2: rgba(255, 255, 255, .6); --filo-3: rgba(255, 255, 255, .3); --ombra: 70 50 22; --o1: .16; --o2: .2; --o3: .14;
+  background: linear-gradient(180deg, #fffdf8 0%, #f1e9da 12.5%, #f8f4eb 13.2%, #efe8da 52%, #e2d9c8 100%);
+  background-color: #f3ede0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .menu__k--dot { --ombra: 0 0 0; --o1: .5; --o2: .5; --o3: .55; }
+}
+:root[data-theme="dark"] .menu__k--dot { --ombra: 0 0 0; --o1: .5; --o2: .5; --o3: .55; }
+/* la riga dove il filo di sopra incontra la faccia: una piega appena scura, come nella scena */
+.menu__k--dot::before { content: ""; position: absolute; left: 0; right: 0; top: 12.8%; height: 1px; background: rgba(120, 92, 52, .14); pointer-events: none; }
+.menu__dot {
+  position: absolute; left: 50%; top: 56.5%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, #fffaf0 0 12%, #fbe0a0 22%, #f0b54c 58%, #e9a93c 100%);
+  box-shadow: 0 0 0 4px rgba(240, 181, 76, .14), 0 0 16px 4px rgba(240, 181, 76, .45);
+}
+
+/* ------------------------------------------------------------------ sotto la griglia: le due pillole */
+.menu__piede {
+  position: absolute; left: var(--mgx); top: calc(var(--mtop) + 3 * var(--mk) + 20px + 22px); width: calc(3 * var(--mk) + 20px);
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 8px; margin: 0;
+}
+.menu__pill { min-height: 40px; padding: 0 16px 0 15px; border-radius: 20px; gap: 7px; font: 700 15px/1 var(--font-sans); letter-spacing: -.016em; }
+.menu__pill::before { content: ""; position: absolute; top: -2px; right: 0; bottom: -2px; left: 0; }   /* 40 da vedere, 44 da toccare */
+/* la pillola di vetro: il vetro dei tasti, senza sfocatura (sotto c'è il velo, niente da sfocare) */
+.menu__pill--vetro { color: var(--ink); background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--vetro); background-color: var(--tile-solid);
+  box-shadow: inset 0 1px 0 var(--filo-2), 0 0 0 .5px rgb(var(--ombra) / calc(var(--o1) * .6)), 0 1px 2px rgb(var(--ombra) / var(--o1)), 0 8px 18px -10px rgb(var(--ombra) / var(--o2));
+  -webkit-backdrop-filter: none; backdrop-filter: none; }
+.menu__pill--vetro svg { width: 15px; height: 15px; margin-left: -2px; opacity: .72; }
+.menu__pill:focus { outline: none; }
+.menu__pill:focus-visible { outline: 2.5px solid var(--focus); outline-offset: 3px; }
+
+/* il logo mentre i suoi quadratini sono fuori: niente passaggio del mouse che lo schiarisca */
+html.is-menu .logo:hover { opacity: 1; }
+
+/* meno movimento: il menu appare e sparisce, i tasti si premono senza molla */
+@media (prefers-reduced-motion: reduce) {
+  .menu__k, .menu__k.is-giu, .menu__k.is-scelto { transition: none; }
+}
+/* colori forzati: i tasti restano riconoscibili come pulsanti */
+@media (forced-colors: active) {
+  .menu__velo { background: Canvas; }
+  .menu__k { border: 1px solid ButtonText; }
+}

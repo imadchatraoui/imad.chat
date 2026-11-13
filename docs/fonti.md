@@ -300,3 +300,11 @@ La pagina `/anteprima/progetti/cubo` (sorgente `docs/anteprime/casa/progetti/cub
 - **three.js r95** (il file minimizzato che il gioco usa, intestazione `// threejs.org/license`): licenza MIT, https://github.com/mrdoob/three.js . `vendor/three.LICENSE` riporta il testo MIT di three.js (dal pacchetto npm `three` del progetto) con il copyright «2010-2018 three.js authors», gli anni dell'r95.
 - **Bungee** di David Jonathan Ross, il carattere del gioco, sta dentro `styles.css` come dati base64: SIL Open Font License 1.1 (https://github.com/djrrb/Bungee). Come nell'originale, il testo della licenza non viaggia con il file.
 - **UpUp** di Tal Ater (MIT), il service worker del suo repository: non è copiato, il sito non installa service worker.
+
+## Il menu, il cursore, la scatola dei tasti (CASA.md 2f C, D, F)
+
+Nessuna libreria aggiunta alla pagina: `docs/anteprime/casa/home/menu.js`, `cursore.js` e `scatola.js` sono scritti da noi. Due idee vengono da altri, e si dicono qui.
+
+- **Il cursore, «Magnet»**: il tasto che si sposta di poco verso il mouse (al più 3 px, forza 0,18) è l'idea del componente «Magnet» di **React Bits** (https://reactbits.dev, di David Haz). Solo l'idea: nessuna riga di codice copiata, il movimento è una molla scritta in `cursore.js`. La licenza di React Bits, come è scritta in `components/reactbits/LICENSE-reactbits.txt`: «MIT + Commons Clause License Condition v1.0», «Copyright (c) 2026 David Haz» (si può usare dentro un sito o un prodotto; non si può rivendere o ridistribuire come libreria).
+- **La scatola dei tasti, la fisica**: il solutore è quello di **Box2D Lite** di Erin Catto (https://github.com/erincatto/box2d-lite, licenza zlib): impulsi sequenziali accumulati con il «warm start», attrito con il tetto di Coulomb, correzione delle posizioni di Baumgarte, la molla morbida del dito (il «mouse joint»). Il contatto tra due poligoni (la faccia di riferimento, il lato incidente tagliato sui due lati, fino a due punti) segue l'algoritmo di `b2CollidePolygons` di **Box2D** (Erin Catto, https://github.com/erincatto/box2d, licenza MIT), perché i tasti qui sono ottagoni (il quadrato con gli angoli smussati a 45°) e non rettangoli. Algoritmi riscritti in `scatola.js`, nessun file copiato.
+- I tasti della scatola li dipinge il pittore della scena di Dot (`docs/anteprime/gatto/dot-stage.js`, nostro).

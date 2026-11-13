@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="../comune/tema.js"></script>
+<title>Il filo e un peso — prova</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#eef0f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
+<!-- Pagina di prova per chi fa il lato di Dot (CASA.md 2f H): la riga in alto della casa con i due tasti e i loro fili (filo.js vero),
+     la mensola (un hero finto con gli stessi angoli), e una sagoma di 24 × 52 px, massa 42, appesa con FILO.hang e disegnata da
+     FILO.drawWeight. Non va online (la build non pubblica strumenti/). Si apre da casa/strumenti/servi.mjs:
+     http://localhost:<porta>/casa/strumenti/filo-peso.html (?theme=light|dark, ?filo=suono per l'altro filo) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..600&family=Manrope:wght@400..800&display=swap">
+<link rel="stylesheet" href="../home/style.css">
+<link rel="stylesheet" href="../home/casa.css">
+<link rel="stylesheet" href="../home/moto.css">
+<link rel="stylesheet" href="../home/filo.css">
+<style>
+  body { background: linear-gradient(180deg, var(--cielo-alto, #eef0f8), var(--cielo-basso, #e2e3f0)); min-height: 100vh; }
+  .hero { background: linear-gradient(180deg, #1f4290, #5a55a0); }
+  .prova { padding: 18px var(--gutter) 40px; display: grid; gap: 14px; }
+  .prova__b { display: flex; flex-wrap: wrap; gap: 8px; }
+  .prova__b button, .prova__b select { min-height: 44px; padding: 0 16px; border-radius: 22px; font: 600 15px/1 var(--font-sans); color: var(--ink); background: var(--btn-glass); box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--ring); }
+  .prova__b select { font-size: 16px; }
+  .prova__log { font: var(--f-mono); color: var(--ink-2); white-space: pre-wrap; max-height: 46vh; overflow: auto; padding: 12px 14px; border-radius: 18px; background: var(--fill, rgba(120, 120, 160, .08)); }
+  .prova__s { font: var(--f-mono); color: var(--ink-3); }
+</style>
+</head>
+<body>
+<main class="home" id="home">
+  <header class="bar" id="bar">
+    <a class="logo" href="#" id="logo" aria-label="Logo (prova)"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+    <button class="iconbtn tema" id="tema" type="button" data-dot-keep aria-label="Tema: come il telefono"><span class="tema__i" aria-hidden="true"><i class="tema__f"></i></span></button>
+    <button class="iconbtn" id="sound" type="button" aria-pressed="false" aria-label="Suoni spenti (prova)">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.5 9.75h2.75L11.5 6.2v11.6l-4.25-3.55H4.5z"/>
+        <g class="snd-on"><path d="M15 9.4a3.7 3.7 0 0 1 0 5.2"/><path d="M17.6 6.9a7.2 7.2 0 0 1 0 10.2"/></g>
+        <g class="snd-off"><path d="M15.4 9.6l4.8 4.8"/><path d="M20.2 9.6l-4.8 4.8"/></g>
+      </svg>
+    </button>
+  </header>
+  <div class="testa">
+    <section class="tile hero" id="hero" aria-label="La mensola (prova)"></section>
+  </div>
+  <section class="prova" aria-label="Comandi della prova">
+    <div class="prova__b">
+      <select id="quale" aria-label="Quale filo"><option value="tema">filo del tema</option><option value="suono">filo dei suoni</option></select>
+      <button type="button" data-f="appendi">Appendi</button>
+      <button type="button" data-f="scivola">Scivola</button>
+      <button type="button" data-f="tira">Tira</button>
+      <button type="button" data-f="lascia">Lascia</button>
+      <button type="button" data-f="strappa">Strappa</button>
+      <button type="button" data-f="torna">Torna</button>
+      <button type="button" data-f="pulisci">Pulisci</button>
+    </div>
+    <p class="prova__s" id="stato" aria-live="off"></p>
+    <pre class="prova__log" id="log" aria-live="polite"></pre>
+  </section>
+</main>
+<script>
+/* il tasto dei suoni di questa pagina (nella casa lo fa app.js): solo acceso/spento, senza suoni */
+(function () {
+  var b = document.getElementById("sound");
+  b.addEventListener("click", function () { var on = b.getAttribute("aria-pressed") !== "true"; b.setAttribute("aria-pressed", on ? "true" : "false"); b.setAttribute("aria-label", on ? "Suoni accesi (prova)" : "Suoni spenti (prova)"); });
+})();
+</script>
+<script src="../home/filo.js"></script>
+<script>
+/* la prova: Appendi (s 10, massa 42, 24 × 52 px), Scivola (90 px/s), Tira (tug 1,6), Lascia, Strappa, Torna; il registro degli eventi */
+(function () {
+  var F = window.FILO, log = document.getElementById("log"), st = document.getElementById("stato"), sel = document.getElementById("quale"), t0 = performance.now(), h = null;
+  try { var q = new URLSearchParams(location.search).get("filo"); if (q === "suono") sel.value = "suono"; } catch (e) { }
+  function say(s) { log.textContent = ((performance.now() - t0) / 1000).toFixed(3).padStart(8, " ") + "  " + s + "\n" + log.textContent; }
+  if (!F) { say("FILO non c'è"); return; }
+  ["grab", "pull", "release", "hang", "slip", "feet", "torn", "landed", "return", "returned", "let"].forEach(function (n) {
+    F.on(n, function (e) { say(n + " " + JSON.stringify(e || {}, function (k, v) { return typeof v === "number" ? Math.round(v * 10) / 10 : v; })); });
+  });
+  /* come farà Dot: strappato il tasto, smette di tirare (resta appeso finché non lo si lascia) */
+  F.on("torn", function () { if (h && !h.free) h.tug(0); });
+  var lastS = -1;
+  F.on("strain", function (e) { var s = Math.round(e.strain * 10) / 10; if (s !== lastS) { lastS = s; } });
+  F.on("frame", function () {
+    var r = F.rope(sel.value); if (!r) return;
+    st.textContent = sel.value + " · " + r.state + " · tensione " + r.strain.toFixed(2) + (h && !h.free ? " · peso a " + h.pos().s.toFixed(1) + " px" + (h.pos().onGround ? ", piedi giù" : "") : "");
+  });
+  var act = {
+    appendi: function () { h = F.hang(sel.value, { s: 10, mass: 42, h: 52, w: 24, draw: true }); if (!h) say("hang → null (meno movimento, tasto via o un dito sul filo)"); },
+    scivola: function () { if (h && !h.free) h.slide(90); },
+    tira: function () { if (h && !h.free) h.tug(1.6); },
+    lascia: function () { if (h && !h.free) h.release(0, 0); },
+    strappa: function () { F.tear(sel.value); },
+    torna: function () { F.goHome(sel.value); },
+    pulisci: function () { log.textContent = ""; }
+  };
+  document.querySelector(".prova__b").addEventListener("click", function (e) { var b = e.target.closest("button[data-f]"); if (b && act[b.dataset.f]) act[b.dataset.f](); });
+  window.__prova = act;
+})();
+</script>
+</body>
+</html>

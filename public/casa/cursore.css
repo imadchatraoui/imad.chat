@@ -1,0 +1,39 @@
+/* imad.chat — il cursore (CASA.md 2f C; lo muove cursore.js). Solo con un mouse: (hover: hover) and (pointer: fine), mai a tocco; spento
+   con i colori forzati e con «più contrasto» (resta la freccia del sistema).
+   Un dischetto d'oro di 7 px, quello della stella-punto, esattamente dove punta il mouse (si mira come con la freccia), e intorno un
+   alone, un anello sottile che lo segue con una molla. La classe è .pnt: .cur è il cursore del marchio imad.chat_.
+   La freccia del sistema si nasconde solo mentre il dischetto è acceso (html.pnt-on) e non nei campi né su ciò che si afferra
+   (html.pnt-sys: lì il cursore del sistema, il testo o la mano, fa meglio di qualunque disegno). */
+
+.pnt { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 2147483000; pointer-events: none; opacity: 1; transition: opacity 120ms ease; }
+.pnt.is-fuori { opacity: 0; }
+/* il dischetto: --accent-ink sulla luce, --accent nel buio, un orlo di mezzo pixel (--hair) che lo stacca dal vetro chiaro */
+.pnt__d {
+  position: absolute; left: -3.5px; top: -3.5px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent-ink, #b98a2e); box-shadow: 0 0 0 .5px var(--hair, rgba(30, 28, 70, .09));
+  will-change: transform; transition: opacity 120ms ease;
+}
+/* nel buio il dischetto chiaro ha un orlo scuro di 1 px: sulla capsula d'oro «Lascia un saluto» (oro su oro) resta visibile, sul cielo
+   scuro l'orlo non si vede */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pnt__d { background: var(--accent, #f3dfa8); box-shadow: 0 0 0 1px rgba(22, 18, 8, .62); } }
+:root[data-theme="dark"] .pnt__d { background: var(--accent, #f3dfa8); box-shadow: 0 0 0 1px rgba(22, 18, 8, .62); }
+/* l'alone: un anello di 1,25 px nell'oro degli aloni. Sulla luce il bagliore pallido (243 223 168) a .55 sparirebbe sul cielo chiaro
+   (1,2 : 1): lì l'anello prende il segno d'oro del sito, --accent-ink, a .5 */
+.pnt__h {
+  position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-radius: 7px; box-sizing: border-box;
+  border: 1.25px solid rgb(185 138 46 / .5);
+  will-change: transform; contain: layout paint style;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pnt__h { border-color: rgb(var(--accent-glow, 243 223 168) / .55); } }
+:root[data-theme="dark"] .pnt__h { border-color: rgb(var(--accent-glow, 243 223 168) / .55); }
+
+/* la freccia del sistema: nascosta mentre c'è il dischetto (in ogni elemento, anche quelli con un loro cursore), tranne nei campi e su
+   ciò che si afferra, dove torna il cursore del sistema (pnt-sys: lo mette cursore.js) */
+html.pnt-on:not(.pnt-sys), html.pnt-on:not(.pnt-sys) * { cursor: none !important; }
+/* il globo delle città si gira trascinando: la mano */
+html.pnt-on .citta .tile__hit { cursor: grab; }
+html.pnt-on .citta .tile__hit:active { cursor: grabbing; }
+
+@media (forced-colors: active) { .pnt { display: none !important; } }
+@media (prefers-contrast: more) { .pnt { display: none !important; } }
+@media (prefers-reduced-motion: reduce) { .pnt, .pnt__d { transition: none; } }
