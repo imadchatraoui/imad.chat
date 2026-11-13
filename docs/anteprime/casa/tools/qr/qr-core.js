@@ -75,6 +75,22 @@
  *               modules are already drawn; each eases in (scale with a small overshoot, and alpha) over 30%
  *               of the run, the eyes as whole pieces, the logo over the last 30%. At 1 the picture is exactly
  *               the final one. The caller animates progress (and draws 1 at once with reduced motion).
+ *     frame     { text, t, font, weight, fontData } or null: a ring around the code (at the edge of the quiet zone) and
+ *               a caption under it, in the code's colour; the canvas becomes taller than wide (see measure). text is
+ *               squeezed to one line ("" = the ring alone); t 0..1 draws the ring along its length and lifts the caption
+ *               in (default 1). fontData: a data: URL of a woff2, used only by svg() so the caption keeps its font.
+ *   The moving pictures of QR Studio (each lands exactly on the still picture at its end; leave them out otherwise):
+ *     cells     Float32Array(n*n) or Uint8Array: the scale of every module now (0 nothing, 1 full; a little over 1 for an
+ *               overshoot). Modules at 1 next to each other still join; a field equal to targets(qr, opts) is the
+ *               still picture. Use it to move from one code to another of the same size (a ripple, a typed letter).
+ *     morph     { shape, eye, t }: the shape and eyes it comes FROM; at t 0..1 a diagonal wave turns each piece into
+ *               opts.shape / opts.eye (each piece over half of the run). Pieces really change shape, no cross-fade.
+ *     flow      { fg, bg, angle, t }: the old code colour and/or old background (null = unchanged) and a soft front
+ *               that sweeps across along angle (degrees, as fg.angle); behind the front the new colours of opts.
+ *     logoIn    0..1: the picture drops in (a short fall and a damped settle, its shadow sharpening where it lands)
+ *               instead of easing in with progress; its margin is already clear.
+ *     eyeScale  0..1: draws the three eyes and the alignment patterns at that scale (used while one code shrinks away
+ *               and another of a different size grows in; draw them in two layers).
  *   Modules land on whole device pixels: the module side is an integer number of device px and whatever does
  *   not divide goes to the margin, so the real quiet zone can be a little larger than asked.
  *   Needs `document` (it keeps an offscreen mask and small sprites). Cost measured in headless Chromium,
@@ -88,10 +104,11 @@
  *   is turned into a PNG (if that fails the logo is left out and its margin stays clear). An SVG is not snapped
  *   to pixels: check it with scannable(Object.assign({}, opts, { svg: true }), qr) for the size it is shown at.
  *
- * QRCore.verify(canvasOrImageData, expected?) -> { ok, text, inverted, scale }
+ * QRCore.verify(canvasOrImageData, expected?, { scales }?) -> { ok, text, inverted, scale }
  *   Reads the drawn pixels back with jsQR, flattened on white, dark-on-light first, then inverted; at the
  *   native size and then at 0.5, 0.75 and 0.33 (jsQR binarises in 8 px blocks and misses some perfectly good
- *   codes at one scale only). ok: a code was read and, if expected is given, its text equals expected.
+ *   codes at one scale only; scales replaces that list, e.g. [0.5, 1, 0.75] for a 1024 px export, where 0.5 is
+ *   both the fastest and the most reliable). ok: a code was read and, if expected is given, its text equals expected.
  *   text: what was read (null if nothing). scale: the scale that read it. 20 to 130 ms on a 400 to 1200 px
  *   canvas: run it once, when the drawing has finished, not on every frame.
  *
@@ -115,6 +132,13 @@
  *   details = { contrast, moduleCss, moduleDev, logoShare, logoLoad } (logoLoad 1 = exactly at the limit of
  *   the correction; over 0.8 is LOGO_GRANDE). If a logo is too big, a higher ecc or a smaller scale helps;
  *   a higher minVersion alone rarely does. Always also run verify on the final canvas.
+ * QRCore.targets(qr, opts) -> Uint8Array(n*n): 1 where the still picture draws a module (dark, not under the
+ *   picture's margin), 0 elsewhere: the end state of a cells field.
+ * QRCore.measure(qr, opts) -> { width, height, deviceWidth, deviceHeight }: what render draws, in CSS and device px.
+ * QRCore.fixContrast(fg, bg, target = 4.5) -> a "#rrggbb" (or a gradient object) with the same hue and chroma ratio,
+ *   darkened on a light ground or lightened on a dark one just enough to reach target; fg itself when it already does.
+ * QRCore.maxLogoScale(qr, { pad, round }) -> the largest logo scale (0.12..0.3, steps of 0.005) that stays under the
+ *   LOGO_GRANDE limit for this code; 0 when even 0.12 is too much.
  * QRCore.KIND = { data: 0, finder: 1, align: 2, timing: 3, format: 4 }; QRCore.version.
  * ---------------------------------------------------------------------------------------------------------
  */

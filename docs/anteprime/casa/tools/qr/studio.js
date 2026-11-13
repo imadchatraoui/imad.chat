@@ -149,7 +149,7 @@
     regole: null, letto: null
   };
   var L = { wide: false, cardW: 0, box: 188, cbox: 104, H0: 262, Hmin: 132, startY: 0, top: 62, sw: 200, dpr: 2, k: -1, size: 188, cw: 188, ch: 188 };
-  var WAVE = 220, GROW = 240, SHRINK = 170, MORPH = 540, FLOW = 480, DROP = 400, FRAME = 440, SNAP = 460, FIRST = 620;
+  var WAVE = 220, GROW = 240, SHRINK = 170, MORPH = 540, FLOW = 480, DROP = 340, FRAME = 440, SNAP = 460, FIRST = 540;
   var layer = doc.createElement("canvas"), snapC = doc.createElement("canvas");
 
   function dprOra() { return clamp(Math.round((win.devicePixelRatio || 1) * 100) / 100, 1, 3); }
@@ -270,7 +270,9 @@
       if (OD.field && campoPassoF(OD.field, t)) r.busy = true;
       if (ot < 1) r.busy = true;
       var bg = o.bg;
-      Q.render(snapC, OD.qr, Object.assign(conMisura(OD.look, L.size, o.dpr), { bg: "transparent", cells: OD.field.cells, eyeScale: clamp(1 - eo / 0.45, 0, 1) }));
+      /* la cornice del vecchio resta nella misura (stesso posto per il codice) ma non si disegna: l'anello è quello del nuovo */
+      var olook = OD.look.frame ? Object.assign({}, OD.look, { frame: Object.assign({}, OD.look.frame, { t: 0 }) }) : OD.look;
+      Q.render(snapC, OD.qr, Object.assign(conMisura(olook, L.size, o.dpr), { bg: "transparent", cells: OD.field.cells, eyeScale: clamp(1 - eo / 0.45, 0, 1) }));
       Q.render(layer, G.qr, Object.assign({}, o, { bg: "transparent", eyeScale: clamp((eo - 0.4) / 0.5, 0, 1) }));
       if (cv.width !== layer.width) cv.width = layer.width;
       if (cv.height !== layer.height) cv.height = layer.height;
@@ -280,7 +282,8 @@
       if (bg !== "transparent") { x.fillStyle = bg; x.fillRect(0, 0, W, H); }
       x.drawImage(snapC, 0, 0, W, H);
       x.drawImage(layer, 0, 0);
-      if (!r.busy) G.old = null;
+      /* finito: l'ultimo fotogramma è il disegno fermo, pulito, alla densità dello schermo */
+      if (!r.busy) { G.old = null; Q.render(cv, G.qr, opzioni(t, true).o); }
     } else {
       Q.render(cv, G.qr, o);
     }
@@ -348,7 +351,7 @@
       var ang = typeof look.fg === "object" ? look.fg.angle : 45;
       G.flow = { fg: colore(pl) !== colore(look) ? pl.fg : null, bg: fondo(pl) !== fondo(look) ? pl.bg : null, angle: ang, t0: t };
     }
-    if (look.logo && (!pl.logo || pl.logo.image !== look.logo.image)) G.drop = { t0: t + (pq.n !== qr.n ? 250 : 170) };
+    if (look.logo && (!pl.logo || pl.logo.image !== look.logo.image)) G.drop = { t0: t + (pq.n !== qr.n ? 220 : 140) };
     G.look = look;
     if (!G.fr) misuraTela(look);
     avvia();
@@ -450,16 +453,22 @@
   /* quando il disegno è fermo: si rilegge il PNG che si salverebbe */
   var controlloT = 0, pronto = null;
   function controllaPresto() { clearTimeout(controlloT); if (G.err || !G.qr) return; controlloT = setTimeout(controlla, fermo() ? 0 : 90); }
+  /* in due compiti brevi (il disegno a 1024 px, poi la lettura), così chi riprende a scrivere non aspetta: se nel frattempo
+     qualcosa cambia, la lettura non si fa */
   function controlla() {
     if (G.loop || G.err || !G.qr) return;
     var my = ver, t0 = now();
-    var exp = esporta(1024), v = null;
-    try { v = Q.verify(exp, G.text, { scales: [0.5, 1, 0.75] }); } catch (e) { v = { ok: false }; }
-    T.controlli++; T.ultimoControllo = now() - t0;
-    if (my !== ver) return;
-    G.letto = !!v.ok;
-    mostra();
-    if (v.ok && exp.toBlob) exp.toBlob(function (b) { if (my === ver && b) pronto = { ver: my, blob: b }; }, "image/png");
+    var exp = esporta(1024), t1 = now();
+    controlloT = setTimeout(function () {
+      if (my !== ver || G.loop) return;
+      var t2 = now(), v = null;
+      try { v = Q.verify(exp, G.text, { scales: [0.5, 1, 0.75] }); } catch (e) { v = { ok: false }; }
+      T.controlli++; T.ultimoControllo = (t1 - t0) + (now() - t2);
+      if (my !== ver) return;
+      G.letto = !!v.ok;
+      mostra();
+      if (v.ok && exp.toBlob) exp.toBlob(function (b) { if (my === ver && b) pronto = { ver: my, blob: b }; }, "image/png");
+    }, 0);
   }
 
   /* ================================================================== i numeri che rotolano: «25 × 25» */
@@ -545,44 +554,66 @@
   function ridisegna() {
     misura(); misure.testo = null;
     if (G.qr) { tuttoFermo(); misuraTela(G.look); disegna(now()); controllaPresto(); tessFatte = {}; tessere(true); }
-    posa(); pillole();
+    posa(); pillole(); barra();
   }
   win.addEventListener("resize", function () { clearTimeout(resizeT); resizeT = setTimeout(ridisegna, 80); });
   if (mqWide.addEventListener) mqWide.addEventListener("change", ridisegna); else if (mqWide.addListener) mqWide.addListener(ridisegna);
 
   /* ================================================================== le tessere: pezzetti di codice vero */
-  /* Tutte le tessere ritagliano lo stesso disegno del codice, fatto una volta per gruppo a una sola misura di modulo e in una
-     sola tela (niente tele nuove a ogni pausa), solo quando ciò che mostrano è cambiato, un gruppo per volta. */
-  var tessT = 0, tessFatte = {}, grande = doc.createElement("canvas");
+  /* Le tessere ritagliano un codice vero, sempre lo stesso (quello di https://imad.chat, versione 2): scrivere non le fa
+     ridisegnare, e il disegno costa poco. Si rifanno solo quando cambia ciò che mostrano (forma, occhi, tema, densità), un
+     gruppo per volta e mai mentre il codice si muove. I colori pronti: un solo disegno in nero, che ogni tessera tinge con la
+     sua coppia (la sfumatura attraversa la tessera nella sua direzione). */
+  var tessT = 0, tessFatte = {}, grande = doc.createElement("canvas"), tinta = doc.createElement("canvas"), TQ = null;
   function tessereDopo() { clearTimeout(tessT); tessT = setTimeout(function () { tessere(false); }, 80); }
   function inchiostro() { var c = win.getComputedStyle(doc.body).color; return c || "#16171d"; }
-  function ritaglio(btn, opts, r0, c0, span, bg, M) {
-    var c = btn.querySelector("canvas"); if (!c || !G.qr) return;
-    var px = Math.round(50 * L.dpr), n = G.qr.n;
-    var o = Object.assign({}, opts, { size: (n + 4) * M, dpr: 1, quiet: 2, style: false });
-    Q.render(grande, G.qr, o);
-    var ox = Math.floor((grande.width - M * n) / 2);
+  function disegnaGrande(opts, M) {
+    if (!TQ) TQ = Q.encode(ESEMPIO, { ecc: "M" });
+    Q.render(grande, TQ, Object.assign({}, opts, { size: (TQ.n + 4) * M, dpr: 1, quiet: 2, style: false }));
+    return Math.floor((grande.width - M * TQ.n) / 2);
+  }
+  function tela50(btn) {
+    var c = btn.querySelector("canvas"); if (!c) return null;
+    var px = Math.round(50 * L.dpr);
     if (c.width !== px) { c.width = px; c.height = px; }
-    var x = c.getContext("2d");
-    x.clearRect(0, 0, px, px);
-    if (bg) { x.fillStyle = bg; x.fillRect(0, 0, px, px); }
-    x.imageSmoothingEnabled = true;
-    var sw = span * M;
-    x.drawImage(grande, ox + c0 * M, ox + r0 * M, sw, sw, 0, 0, px, px);
+    return c;
+  }
+  function ritaglio(btn, opts, r0, c0, span, M) {
+    var c = tela50(btn); if (!c) return;
+    var ox = disegnaGrande(opts, M), px = c.width, x = c.getContext("2d");
+    x.clearRect(0, 0, px, px); x.imageSmoothingEnabled = true;
+    x.drawImage(grande, ox + c0 * M, ox + r0 * M, span * M, span * M, 0, 0, px, px);
+  }
+  function coppieTessere(M) {
+    var span = 10, ox = disegnaGrande({ shape: S.forma, eye: S.occhi, fg: "#000000", bg: "transparent" }, M);
+    qsa("#coppie .st-tess").forEach(function (b) {
+      var p = COPPIE.filter(function (x) { return x.id === b.getAttribute("data-v"); })[0], c = tela50(b); if (!p || !c) return;
+      var px = c.width;
+      if (tinta.width !== px) { tinta.width = px; tinta.height = px; }
+      var tx = tinta.getContext("2d");
+      tx.globalCompositeOperation = "source-over"; tx.clearRect(0, 0, px, px); tx.imageSmoothingEnabled = true;
+      tx.drawImage(grande, ox - M, ox - M, span * M, span * M, 0, 0, px, px);
+      tx.globalCompositeOperation = "source-in";
+      if (p.grad) {
+        var a = p.ang * Math.PI / 180, dx = Math.cos(a), dy = Math.sin(a), h = (Math.abs(dx) + Math.abs(dy)) * px / 2;
+        var g = tx.createLinearGradient(px / 2 - dx * h, px / 2 - dy * h, px / 2 + dx * h, px / 2 + dy * h);
+        g.addColorStop(0, p.fg); g.addColorStop(1, p.fg2); tx.fillStyle = g;
+      } else tx.fillStyle = p.fg;
+      tx.fillRect(0, 0, px, px);
+      tx.globalCompositeOperation = "source-over";
+      var x = c.getContext("2d");
+      x.globalCompositeOperation = "source-over"; x.fillStyle = p.bg; x.fillRect(0, 0, px, px);
+      x.drawImage(tinta, 0, 0);
+    });
   }
   function tessere(subito) {
     if (!G.qr) return;
-    var ink = inchiostro(), n = G.qr.n, base = G.qr.text + "|" + G.qr.ecc + "|" + L.dpr + "|";
-    var M = Math.max(4, Math.ceil(Math.round(50 * L.dpr) / 6)), r0 = Math.min(9, n - 7);
+    var ink = inchiostro(), base = L.dpr + "|", px = Math.round(50 * L.dpr);
+    var M6 = Math.max(4, Math.ceil(px / 6)), M9 = Math.max(4, Math.ceil(px / 9)), M10 = Math.max(4, Math.ceil(px / 10));
     var gruppi = [
-      ["forme", base + S.occhi + ink, function () { qsa("#forme .st-tess").forEach(function (b) { ritaglio(b, { shape: b.getAttribute("data-v"), eye: S.occhi, fg: ink, bg: "transparent" }, r0, r0, 6, null, M); }); }],
-      ["occhi", base + S.forma + ink, function () { qsa("#occhi .st-tess").forEach(function (b) { ritaglio(b, { shape: S.forma, eye: b.getAttribute("data-v"), fg: ink, bg: "transparent" }, -1, -1, 9, null, M); }); }],
-      ["coppie", base + S.forma + S.occhi, function () {
-        qsa("#coppie .st-tess").forEach(function (b) {
-          var p = COPPIE.filter(function (x) { return x.id === b.getAttribute("data-v"); })[0]; if (!p) return;
-          ritaglio(b, { shape: S.forma, eye: S.occhi, fg: p.grad ? { from: p.fg, to: p.fg2, angle: p.ang } : p.fg, bg: p.bg }, -1, -1, 10, p.bg, M);
-        });
-      }]
+      ["forme", base + ink, function () { qsa("#forme .st-tess").forEach(function (b) { ritaglio(b, { shape: b.getAttribute("data-v"), eye: S.occhi, fg: ink, bg: "transparent" }, 9, 9, 6, M6); }); }],
+      ["occhi", base + S.forma + ink, function () { qsa("#occhi .st-tess").forEach(function (b) { ritaglio(b, { shape: S.forma, eye: b.getAttribute("data-v"), fg: ink, bg: "transparent" }, -1, -1, 9, M9); }); }],
+      ["coppie", base + S.forma + S.occhi, function () { coppieTessere(M10); }]
     ].filter(function (g) { return tessFatte[g[0]] !== g[1]; });
     var i = 0;
     (function uno() {
@@ -848,12 +879,29 @@
     T.salvati.push({ name: name, size: blob.size, type: blob.type });
   }
   var fattoT = {};
+  /* la risposta di un pulsante: la parola nuova e la spunta che disegna il suo tratto, per 1,25 s; nella barra stretta (solo
+     icone per Copia e Condividi) la parola sale in una piccola etichetta sopra il pulsante. Si annuncia anche a voce. */
   function fatto(btn, parola) {
-    var t = btn.querySelector(".st-b__t"), id = btn.id, prima = btn.getAttribute("data-t") || t.textContent;
+    var t = btn.querySelector(".st-b__t"), bolla = btn.querySelector(".st-b__bolla"), id = btn.id, prima = btn.getAttribute("data-t") || t.textContent;
     btn.setAttribute("data-t", prima);
+    /* una risposta per volta: quella di un altro pulsante finisce subito */
+    [bSalva, bCopia, bCondividi].forEach(function (o) {
+      if (o === btn || !o.classList.contains("is-fatto")) return;
+      clearTimeout(fattoT[o.id]); o.classList.remove("is-fatto");
+      o.querySelector(".st-b__t").textContent = o.getAttribute("data-t") || o.querySelector(".st-b__t").textContent;
+    });
     clearTimeout(fattoT[id]);
+    btn.classList.remove("is-fatto"); void btn.offsetWidth;
     btn.classList.add("is-fatto"); t.textContent = parola;
+    if (bolla) bolla.textContent = parola;
+    annuncio.textContent = parola + "."; ultimoAnnuncio = "";
     fattoT[id] = setTimeout(function () { btn.classList.remove("is-fatto"); t.textContent = prima; }, 1250);
+  }
+  /* la barra: con Salva, Copia e Condividi tutti e tre non ci stanno le parole su un telefono; allora Copia e Condividi
+     restano solo icone (il nome resta per chi legge con la voce) */
+  function barra() {
+    var tre = !bCopia.hidden && !bCondividi.hidden;
+    $("azioni").classList.toggle("is-stretto", tre && $("azioni").clientWidth < 440);
   }
   function nota(msg) { G.nota = msg; statoT.textContent = msg; setTimeout(function () { G.nota = null; mostra(); }, 2600); }
   bSalva.addEventListener("click", function () {
@@ -946,7 +994,7 @@
     var b = pngOra(1024); if (!b) return;
     var f = null; try { f = new File([b], G.nome + ".png", { type: "image/png" }); } catch (e) { f = null; }
     if (!f) { scarica(b, G.nome + ".png"); fatto(bSalva, "Salvato"); return; }
-    navigator.share({ files: [f] }).then(function () { fatto(bCondividi, "Fatto"); }, function (e) { if (!e || e.name !== "AbortError") nota("Non si è aperta la condivisione: usa Salva."); });
+    navigator.share({ files: [f] }).then(function () { fatto(bCondividi, "Condiviso"); }, function (e) { if (!e || e.name !== "AbortError") nota("Non si è aperta la condivisione: usa Salva."); });
   });
 
   /* ================================================================== all'inizio */
@@ -961,6 +1009,7 @@
   qsa(".st-in").forEach(function (el) { var x = doc.querySelector('[data-x="' + el.id + '"]'); if (x) x.hidden = !el.value; if (el.tagName === "TEXTAREA" && el.value) cresci(el); });
   misura();
   posa();
+  barra();
   aggiorna("tutto");
   if (fermo()) main.classList.add("is-fermo");
   if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(function () { misura(); pillole(); posa(); if (S.cornice && G.qr && !G.loop) { misuraTela(G.look); disegna(now()); } });

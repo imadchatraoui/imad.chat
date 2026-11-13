@@ -50,13 +50,13 @@
 .st-carta {
   position: absolute; top: 0; left: 0; right: 0; height: var(--st-h); overflow: hidden; pointer-events: auto;
   border-radius: var(--r);
-  /* quasi opaca e senza sfocatura dietro: la tela si ridisegna spesso e il vetro sfocato andrebbe rifatto a ogni fotogramma */
-  background: var(--grain, none) 0 0 / var(--gs) var(--gs), linear-gradient(180deg, rgba(255, 255, 255, .96) 0%, rgba(250, 250, 253, .93) 100%);
+  /* opaca e senza sfocatura dietro: ciò che scorre sotto non si intravede, e la tela che si ridisegna non chiede di rifare il vetro */
+  background: var(--grain, none) 0 0 / var(--gs) var(--gs), linear-gradient(180deg, #ffffff 0%, #fafafd 100%);
   box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgb(var(--sh) / calc(var(--s1) * .35)), 0 12px 28px -12px rgb(var(--sh) / var(--s1)), 0 36px 64px -36px rgb(var(--sh) / var(--s2));
 }
 .st-carta::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 1px 0 var(--e2); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .st-carta { background: var(--grain, none) 0 0 / var(--gs) var(--gs), linear-gradient(180deg, rgba(36, 38, 58, .92) 0%, rgba(24, 26, 42, .9) 100%); } }
-:root[data-theme="dark"] .st-carta { background: var(--grain, none) 0 0 / var(--gs) var(--gs), linear-gradient(180deg, rgba(36, 38, 58, .92) 0%, rgba(24, 26, 42, .9) 100%); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .st-carta { background: var(--grain, none) 0 0 / var(--gs) var(--gs), linear-gradient(180deg, #24263a 0%, #181a2a 100%); } }
+:root[data-theme="dark"] .st-carta { background: var(--grain, none) 0 0 / var(--gs) var(--gs), linear-gradient(180deg, #24263a 0%, #181a2a 100%); }
 
 /* la superficie del codice: il fondo è quello del codice stesso; la scacchiera solo se il fondo è trasparente */
 .st-tela { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
@@ -293,6 +293,24 @@
 .st-b.is-fatto .st-b__ok { opacity: 1; }
 .st-b.is-fatto .st-b__ok path { stroke-dashoffset: 0; transition: stroke-dashoffset 300ms cubic-bezier(.65, 0, .35, 1) 40ms; }
 
+/* la barra stretta (Salva, Copia e Condividi su un telefono): Copia e Condividi solo icone, tonde; la parola della risposta
+   («Copiato», «Condiviso») sale in un'etichetta sopra il pulsante */
+.st-azioni.is-stretto .st-b:not(.st-b--primo) { flex: none; width: 48px; padding: 0; }
+.st-azioni.is-stretto .st-b:not(.st-b--primo) .st-b__in { display: flex; width: 100%; gap: 0; }
+.st-azioni.is-stretto .st-b:not(.st-b--primo) .st-b__ok { left: 50%; margin-left: -9.5px; }
+.st-azioni.is-stretto .st-b:not(.st-b--primo) .st-b__t { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.st-b__bolla { display: none; }
+.st-azioni.is-stretto .st-b__bolla {
+  display: block; position: absolute; bottom: calc(100% + 12px); left: 50%; z-index: 3; padding: 0 11px; border-radius: 13px;
+  font: 700 13px/26px var(--font-sans); letter-spacing: -.01em; white-space: nowrap; color: var(--bg); background: var(--ink);
+  box-shadow: 0 1px 2px rgb(var(--sh) / .2), 0 8px 18px -8px rgb(var(--sh) / .6);
+  opacity: 0; transform: translate(-50%, 6px) scale(.9); transform-origin: 50% 100%; pointer-events: none;
+  transition: opacity 160ms ease, transform 240ms cubic-bezier(.2, .9, .25, 1);
+}
+.st-azioni.is-stretto #bCondividi .st-b__bolla { left: auto; right: -6px; transform: translate(0, 6px) scale(.9); transform-origin: 80% 100%; }
+.st-azioni.is-stretto .st-b.is-fatto .st-b__bolla { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.st-azioni.is-stretto #bCondividi.is-fatto .st-b__bolla { transform: translate(0, 0) scale(1); }
+
 /* il menu degli altri formati: si apre sopra la barra */
 .st-menu {
   position: absolute; left: 6px; bottom: calc(100% + 8px); width: min(300px, calc(100vw - 48px)); padding: 6px; border-radius: 22px; z-index: 2;
@@ -306,6 +324,11 @@
 .st-menu__v span { display: block; font: 500 13px/18px var(--font-sans); color: var(--ink-2); }
 .st-menu__v:focus-visible { outline-offset: -2px; }
 .st-menu__v[disabled] { opacity: .4; }
+
+/* un tablet in verticale: la colonna del telefono, al centro e non più larga di così (la carta non resta vuota ai lati) */
+@media (min-width: 600px) and (max-width: 899.98px) and (orientation: portrait) {
+  .st { max-width: 600px; margin-left: auto; margin-right: auto; }
+}
 
 /* ------------------------------------------------------------------ due colonne: computer, tablet largo, telefono di lato */
 @media (min-width: 900px), (min-width: 600px) and (max-height: 520px) and (orientation: landscape) {
@@ -333,7 +356,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .st-chips__pill, .st-seg__pill, .st-switch, .st-switch i, .st-tess, .st-verso, .st-b, .st-b__t, .st-b__ico, .st-cv, .st-in,
-  .st-ico__o, .st-ico__v, .st-ico__a, .st-ico__x, .st-rot__c, .st-stato__t, .st-b--piu svg { transition: none !important; }
+  .st-ico__o, .st-ico__v, .st-ico__a, .st-ico__x, .st-rot__c, .st-stato__t, .st-b--piu svg, .st-b__bolla { transition: none !important; }
   .st-b.is-fatto .st-b__ok path { transition: none !important; }
   .st-menu { animation: none; }
 }
