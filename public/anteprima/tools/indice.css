@@ -3,10 +3,10 @@
    Safari non recente: niente :has() in una lista, top/right/bottom/left scritti per esteso. */
 
 /* ------------------------------------------------------------------ le famiglie */
-.ti-famiglie { margin-top: 8px; }
-.ti-fam { margin-top: 34px; }
-.ti-fam__t { font: 700 22px/1.15 var(--font-sans); letter-spacing: -.032em; }
-.ti-lista { margin-top: 14px; display: grid; grid-template-columns: 1fr; gap: 12px; }
+/* il nome della famiglia è un'intestazione di sezione come quelle di Progetti (SU GITHUB, FORK): la voce della macchina, maiuscola */
+.ti-fam { margin-top: 40px; }
+.ti-fam__t { font: var(--f-meta); letter-spacing: var(--ls-meta); text-transform: uppercase; color: var(--ink-2); }
+.ti-lista { margin-top: 12px; display: grid; grid-template-columns: 1fr; gap: 12px; }
 
 /* ------------------------------------------------------------------ la scheda */
 .ti-card { display: flex; flex-direction: column; padding: 8px 8px 18px; transition: transform 240ms var(--ease-out), opacity 460ms var(--ease-out); }
@@ -52,9 +52,8 @@
    scritti da indice.js), così due famiglie piccole stanno sulla stessa riga e una grande va a capo da sola */
 @media (min-width: 700px) {
   .ti-famiglie { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; }
-  .ti-fam { margin-top: 40px; grid-column: span var(--n2, 1); display: flex; flex-direction: column; }
+  .ti-fam { grid-column: span var(--n2, 1); display: flex; flex-direction: column; }
   .ti-fam .ti-lista { flex: 1 1 auto; }          /* le schede di una riga sono alte uguali, anche di famiglie diverse */
-  .ti-fam__t { font-size: 24px; }
   .ti-lista { grid-template-columns: repeat(var(--n2, 1), minmax(0, 1fr)); gap: 14px; }
   .ti-scena { height: 172px; }
 }

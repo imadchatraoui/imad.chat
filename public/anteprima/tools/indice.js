@@ -165,11 +165,25 @@
   };
 
   /* ---------------------------------------------------------------- Palette: cinque colori che cambiano e si rimettono in fila */
-  var ARMONIE = ["analoghi", "complementari", "triade", "toni"];
+  /* Palette scelte, non a caso (la scheda promette «colori che stanno bene insieme»): in OKLCH, cinque gradini di luce uguali per tutte
+     (.32 .46 .60 .74 .88), croma al più .12, la tinta che scivola appena da un gradino all'altro; un giallo (tinta 80–110) mai sotto
+     L .78, così non diventa oliva. Si passano in ordine, la prima è quella ferma (con «meno movimento» o ?shot=1). [croma, tinta] */
+  var LUCI = [0.32, 0.46, 0.6, 0.74, 0.88];
+  var PALETTE = [
+    ["crepuscolo", [[0.085, 270], [0.095, 295], [0.1, 335], [0.09, 25], [0.06, 60]]],
+    ["bosco", [[0.055, 170], [0.07, 160], [0.08, 145], [0.075, 125], [0.055, 105]]],
+    ["terracotta", [[0.06, 30], [0.1, 35], [0.11, 45], [0.085, 60], [0.045, 80]]],
+    ["mare", [[0.075, 255], [0.08, 240], [0.08, 225], [0.065, 210], [0.035, 200]]],
+    ["lavanda", [[0.075, 285], [0.095, 292], [0.1, 298], [0.075, 305], [0.035, 310]]],
+    ["salvia e pesca", [[0.045, 180], [0.05, 165], [0.05, 140], [0.07, 55], [0.045, 75]]],
+    ["notte e oro", [[0.075, 268], [0.085, 262], [0.06, 255], [0.065, 65], [0.085, 88]]],
+    ["rosa antico", [[0.06, 350], [0.08, 0], [0.09, 10], [0.07, 20], [0.035, 40]]],
+    ["inchiostro e sabbia", [[0.035, 265], [0.03, 260], [0.02, 250], [0.03, 70], [0.035, 85]]]
+  ].map(function (q) { return q[1].map(function (c, k) { return lch(LUCI[k], Math.min(0.12, c[0]), c[1]); }); });
   DISEGNI.palette = function (p) {
-    /* il seme viene dal nome dello strumento: due schede con cinque colori non mostrano mai gli stessi */
+    /* il seme viene dal nome dello strumento: l'ordine in cui i chip si scambiano è sempre lo stesso, la palette dopo è sempre quella */
     var R = rng(7 + String(p.id).split("").reduce(function (h, ch) { return (h * 31 + ch.charCodeAt(0)) | 0; }, 0)), N = 5;
-    var chips = [], i;
+    var chips = [], i, giro = -1;
     function grigi() {
       var out = [];
       for (var k = 0; k < N; k++) out.push(TOK.dark ? [0.3 + k * 0.045, -0.003, -0.012] : [0.83 + k * 0.03, -0.002, -0.008]);
@@ -177,20 +191,17 @@
     }
     var g0 = grigi();
     for (i = 0; i < N; i++) chips.push({ from: g0[i], to: g0[i], col: g0[i], s0: i, s1: i, delay: 0, c1: 1.2, lift: 0, over: 4 });
+    /* la palette dopo, già data ai chip: il chip che ora sta al posto j va al posto sig[j] e prende il colore di quel gradino. Gli scambi
+       sono veri (almeno tre chip cambiano posto), così rimettersi in fila dal più scuro al più chiaro si vede */
     function nuova() {
-      var h0 = R() * 360, kind = ARMONIE[Math.floor(R() * ARMONIE.length)], hues;
-      if (kind === "analoghi") hues = [h0 - 40, h0 - 20, h0, h0 + 20, h0 + 40];
-      else if (kind === "complementari") hues = [h0, h0 + 12, h0 + 180, h0 + 192, h0 + 6];
-      else if (kind === "triade") hues = [h0, h0 + 120, h0 + 240, h0 + 8, h0 + 128];
-      else hues = [h0, h0 + 4, h0 - 4, h0 + 8, h0 - 8];
-      var Ls = [0.3, 0.46, 0.61, 0.75, 0.9], cBase = 0.06 + R() * 0.07, out = [];
-      for (var k = 0; k < N; k++) {
-        var Lv = clamp(Ls[k] + (R() - 0.5) * 0.05, 0.22, 0.95), C = cBase * (1.15 - Math.abs(Lv - 0.62) * 1.3) * (0.8 + R() * 0.4);
-        out.push(lch(Lv, Math.max(0.02, C), ((hues[k] % 360) + 360) % 360));
-      }
-      /* le tinte non vanno con l'ordine della luce: si mescolano, così rimettersi in fila si vede */
-      for (k = N - 1; k > 0; k--) { var j = Math.floor(R() * (k + 1)), tmp = out[k]; out[k] = out[j]; out[j] = tmp; }
-      return out;
+      giro = (giro + 1) % PALETTE.length;
+      var pal = PALETTE[giro], sig, mossi, k, j, tmp;
+      do {
+        sig = [0, 1, 2, 3, 4];
+        for (k = N - 1; k > 0; k--) { j = Math.floor(R() * (k + 1)); tmp = sig[k]; sig[k] = sig[j]; sig[j] = tmp; }
+        mossi = 0; for (k = 0; k < N; k++) if (sig[k] !== k) mossi++;
+      } while (mossi < 3);
+      return chips.map(function (c) { return pal[sig[c.s1]]; });
     }
     function geo() {
       var gap = p.W < 330 ? 7 : 8, cw = clamp(Math.floor((Math.min(p.W - 56, 250) - gap * (N - 1)) / N), 24, 42), ch = Math.min(p.H - 46, 100);
@@ -205,8 +216,11 @@
       rr(ctx, (cx - w / 2) * d, (cy - h / 2) * d, w * d, h * d, G.r * sc * d);
       ctx.fillStyle = labCss(c); ctx.fill();
       ctx.restore();
-      ctx.save(); rr(ctx, (cx - w / 2) * d + 0.5, (cy - h / 2) * d + 0.5, w * d - 1, h * d - 1, G.r * sc * d);
-      ctx.strokeStyle = TOK.dark ? "rgba(255,255,255,.07)" : "rgba(30,28,70,.07)"; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+      /* un filo di mezzo pixel dentro il bordo (come inset 0 0 0 .5px var(--hair)): il più scuro sul tema scuro e il più chiaro sul
+         chiaro restano visibili */
+      var hl = 0.5 * d;
+      ctx.save(); rr(ctx, (cx - w / 2) * d + hl / 2, (cy - h / 2) * d + hl / 2, w * d - hl, h * d - hl, Math.max(0, G.r * sc * d - hl / 2));
+      ctx.strokeStyle = TOK["--hair"]; ctx.lineWidth = hl; ctx.stroke(); ctx.restore();
     }
     var COL = 300, VIAGGIO = 360;
     return {
@@ -273,68 +287,76 @@
     function () { return [num(180) + " cm", num(180 / 30.48, 2) + " ft"]; }
   ];
   DISEGNI.converti = function (p) {
+    /* due righe senza campo intorno (la scheda non si tocca come un modulo): sopra il valore di partenza nella voce della macchina
+       (Geist Mono maiuscolo, ink-3, come le intestazioni di sezione), sotto il risultato grande */
     var ix = -1, A0 = "", A1 = "", B0 = "", B1 = "", misure = null;
-    var ROLL = 320, PASSO = 18, RITARDO_B = 110;
+    var ROLL = 380, PASSO = 18, RITARDO_B = 70, TETTO = 590;
+    var META = '500 11px "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace';
     var ST = {
-      an: { font: "600 16px Manrope, -apple-system, sans-serif", track: -0.16, col: "--ink-2" },
-      au: { font: "600 16px Manrope, -apple-system, sans-serif", track: -0.16, col: "--ink-3" },
+      an: { font: META, track: 0.66, col: "--ink-3" },
+      au: { font: META, track: 0.66, col: "--ink-3" },
       bn: { font: "700 30px Manrope, -apple-system, sans-serif", track: -0.9, col: "--ink" },
       bu: { font: "600 19px Manrope, -apple-system, sans-serif", track: -0.3, col: "--ink-2" }
     };
-    function ruoli(s, riga) { var cs = chars(s), sp = cs.indexOf(" "); return cs.map(function (ch, k) { return { ch: ch, st: riga + (sp >= 0 && k >= sp ? "u" : "n") }; }); }
+    function testo(s, riga) { return riga === "a" ? s.toUpperCase() : s; }
+    function ruoli(s, riga) { var cs = chars(testo(s, riga)), sp = cs.indexOf(" "); return cs.map(function (ch, k) { return { ch: ch, st: riga + (sp >= 0 && k >= sp ? "u" : "n") }; }); }
     function largo(ctx, list) {
-      var x = 0, xs = [];
-      list.forEach(function (o) { xs.push(x); var S = ST[o.st]; ctx.font = S.font; x += ctx.measureText(o.ch).width + S.track; });
-      return { xs: xs, w: x };
+      var x = 0, xs = [], last = 0;
+      list.forEach(function (o) { xs.push(x); var S = ST[o.st]; ctx.font = S.font; x += ctx.measureText(o.ch).width + S.track; last = S.track; });
+      return { xs: xs, w: x - last };
     }
+    /* la distanza tra un carattere e il dopo: tutti partono entro TETTO ms, anche le righe lunghe */
+    function passo(n, t0) { return n > 1 ? Math.min(PASSO, (TETTO - ROLL - t0) / (n - 1)) : 0; }
     function geo(ctx) {
       if (misure && misure.W === p.W && misure.H === p.H) return misure;
-      /* la larghezza del blocco: la più larga di tutte le coppie, così il blocco non si sposta da una all'altra */
-      var wa = 0, wb = 0;
-      CONVERSIONI.forEach(function (f) { var c = f(); if (!c) return; wa = Math.max(wa, largo(ctx, ruoli(c[0], "a")).w); wb = Math.max(wb, largo(ctx, ruoli(c[1], "b")).w); });
-      var pad = 16, bw = Math.min(p.W - 36, Math.ceil(Math.max(wa + pad * 2 + 8, wb + pad + 10, 170))), fh = 38, gap = 14, bh = fh + gap + 30;
-      var top = Math.round((p.H - bh) / 2);
-      misure = { W: p.W, H: p.H, x0: Math.round((p.W - bw) / 2), bw: bw, fh: fh, top: top, tx: Math.round((p.W - bw) / 2) + pad, ya: top + fh / 2 + 6, yb: top + fh + gap + 25, la: 22, lb: 36 };
+      /* ogni riga sta in mezzo alla scena, come il codice e i colori delle altre schede; in altezza, a occhio: dalla cima delle
+         maiuscole piccole (8 px sopra la loro base) alla base delle cifre grandi */
+      var la = 16, lb = 36, dy = 36, top = Math.round((p.H - (8 + dy)) / 2);
+      misure = { W: p.W, H: p.H, ya: top + 8, yb: top + 8 + dy, la: la, lb: lb };
       return misure;
     }
-    /* tutto in px CSS: la tela è scalata (setTransform), così le misure dei caratteri sono quelle vere */
-    function campo(ctx, G) {
-      var hp = 0.5 / p.dpr;
-      rr(ctx, G.x0, G.top, G.bw, G.fh, G.fh / 2); ctx.fillStyle = TOK["--fill-2"]; ctx.fill();
-      rr(ctx, G.x0 + hp, G.top + hp, G.bw - 2 * hp, G.fh - 2 * hp, G.fh / 2); ctx.strokeStyle = TOK["--hair"]; ctx.lineWidth = 2 * hp; ctx.stroke();
-    }
-    /* una riga che rotola: ogni carattere che cambia sale ed esce, il nuovo entra da sotto; chi resta uguale scivola al suo posto */
+    /* una riga che rotola, carattere per carattere (PASSO ms l'uno dall'altro, ROLL ms ciascuno, eOut): quello di prima sale di una riga
+       intera ed esce dalla sua fascia, il nuovo sale da sotto quando il vecchio è già uscito, così nella fascia non stanno mai due valori.
+       La fascia è alta una riga e taglia tutto quello che ne esce: le righe non si toccano. */
     function riga(ctx, G, s0, s1, nome, y, lh, t0, t) {
       var a = ruoli(s0, nome), b = ruoli(s1, nome), la = largo(ctx, a), lb = largo(ctx, b), n = Math.max(a.length, b.length), busy = false;
+      var ps = passo(n, t0), xa = (p.W - la.w) / 2, xb = (p.W - lb.w) / 2;
       ctx.save();
-      ctx.beginPath(); ctx.rect(0, y - lh * 0.86, p.W, lh * 1.12); ctx.clip();
+      ctx.beginPath(); ctx.rect(0, y - lh * 0.8, p.W, lh); ctx.clip();
       ctx.textBaseline = "alphabetic";
       for (var k = 0; k < n; k++) {
-        var u = clamp((t - t0 - k * PASSO) / ROLL, 0, 1), o = a[k], q = b[k];
+        var u = clamp((t - t0 - k * ps) / ROLL, 0, 1), o = a[k], q = b[k];
         if (u < 1) busy = true;
-        if (o && q && o.ch === q.ch && o.st === q.st) {
+        /* un carattere uguale nello stesso posto resta fermo (come in un contachilometri); se la riga cambia larghezza e lui dovrebbe
+           scivolare, rotola come gli altri: un carattere in ritardo sugli altri lascerebbe un buco nel numero */
+        if (o && q && o.ch === q.ch && o.st === q.st && Math.abs(xb + lb.xs[k] - xa - la.xs[k]) < 1.5) {
           var S = ST[q.st]; ctx.font = S.font; ctx.fillStyle = TOK[S.col];
-          ctx.fillText(q.ch, G.tx + lerp(la.xs[k], lb.xs[k], eOut(u)), y); continue;
+          ctx.fillText(q.ch, xb + lb.xs[k], y); continue;
         }
-        var e = eBack(u, 1.05);
-        if (o && u < 1) { var So = ST[o.st]; ctx.font = So.font; ctx.fillStyle = TOK[So.col]; ctx.fillText(o.ch, G.tx + la.xs[k], y - lh * e); }
-        if (q) { var Sq = ST[q.st]; ctx.font = Sq.font; ctx.fillStyle = TOK[Sq.col]; ctx.fillText(q.ch, G.tx + lb.xs[k], y + lh * (1 - e)); }
+        /* in ms dal suo inizio: il vecchio sale di una riga intera e in 160 ms è fuori (dopo 70 non tocca più la fascia), spegnendosi;
+           il nuovo parte a 70, quando la fascia è vuota, da mezza riga sotto, e si accende mentre sale: arriva a ROLL. Così nella fascia
+           c'è sempre un valore solo e il nuovo, quasi tutto dentro la fascia, non si vede mai a pezzi */
+        var dt = u * ROLL, eo = eOut(clamp(dt / 160, 0, 1)), ei = eOut(clamp((dt - 70) / (ROLL - 70), 0, 1));
+        if (o && eo < 1) { var So = ST[o.st]; ctx.font = So.font; ctx.fillStyle = TOK[So.col]; ctx.globalAlpha = 1 - 0.75 * eo; ctx.fillText(o.ch, xa + la.xs[k], y - lh * eo); }
+        if (q && ei > 0) { var Sq = ST[q.st]; ctx.font = Sq.font; ctx.fillStyle = TOK[Sq.col]; ctx.globalAlpha = Math.min(1, ei * 1.6); ctx.fillText(q.ch, xb + lb.xs[k], y + lh * 0.5 * (1 - ei)); }
+        ctx.globalAlpha = 1;
       }
       ctx.restore();
       return busy;
     }
+    function fine(s, t0) { var n = chars(s).length; return n ? t0 + (n - 1) * passo(n, t0) + ROLL : 0; }
     return {
-      dur: function () { return RITARDO_B + (Math.max(chars(B0).length, chars(B1).length) - 1) * PASSO + ROLL; },
+      dur: function () { return Math.max(fine(A0.length > A1.length ? A0 : A1, 0), fine(B0.length > B1.length ? B0 : B1, RITARDO_B), 1); },
       next: function () {
         var c = null, k = 0;
         while (!c && k < CONVERSIONI.length) { ix = (ix + 1) % CONVERSIONI.length; c = CONVERSIONI[ix](); k++; }
         if (!c) return;
         A0 = A1; B0 = B1; A1 = c[0]; B1 = c[1];
       },
-      idle: function (ctx) { ctx.setTransform(p.dpr, 0, 0, p.dpr, 0, 0); campo(ctx, geo(ctx)); },
+      idle: function () { },
       paint: function (ctx, t) {
         ctx.setTransform(p.dpr, 0, 0, p.dpr, 0, 0);
-        var G = geo(ctx); campo(ctx, G);
+        var G = geo(ctx);
         var bA = riga(ctx, G, A0, A1, "a", G.ya, G.la, 0, t);
         var bB = riga(ctx, G, B0, B1, "b", G.yb, G.lb, RITARDO_B, t);
         return bA || bB;
@@ -484,7 +506,10 @@
   if (mqDark.addEventListener) mqDark.addEventListener("change", tema); else if (mqDark.addListener) mqDark.addListener(tema);
   function moto() { if (still()) pics.forEach(function (p) { if (!p.moved) muovi(p); else { p.anim = false; ridisegna(p); } }); }
   if (mqReduce.addEventListener) mqReduce.addEventListener("change", moto); else if (mqReduce.addListener) mqReduce.addListener(moto);
-  if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(function () { pics.forEach(function (p) { if (p.d.ricalcola) p.d.ricalcola(); ridisegna(p); }); });
+  function caratteri() { pics.forEach(function (p) { if (p.d.ricalcola) p.d.ricalcola(); ridisegna(p); }); }
+  if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(caratteri);
+  /* la tela non chiede i caratteri da sé: si chiedono qui quelli del Convertitore (anche Geist Mono, che sta solo nelle intestazioni) */
+  if (doc.fonts && doc.fonts.load) { try { Promise.all([doc.fonts.load('500 11px "Geist Mono"'), doc.fonts.load("700 30px Manrope"), doc.fonts.load("600 19px Manrope")]).then(caratteri, function () { }); } catch (e) { } }
 
   /* per le prove (strumenti di cattura): si ferma il giro e si disegna un istante a mano */
   window.__ti = {

@@ -100,7 +100,8 @@
  *
  * QRCore.svg(qr, opts) -> string
  *   The same picture as an SVG document (opts as render; progress and dpr are ignored). viewBox in modules,
- *   width/height = size. A logo needs a data: URL: opts.logo.href, or a data: <img>, or a drawable image that
+ *   width/height = size. With a frame it has exactly the geometry of the PNG render draws at that size and dpr 1 (the
+ *   margin outside the ring, where whole modules leave some over, the caption band) and a whole number of px in height. A logo needs a data: URL: opts.logo.href, or a data: <img>, or a drawable image that
  *   is turned into a PNG (if that fails the logo is left out and its margin stays clear). An SVG is not snapped
  *   to pixels: check it with scannable(Object.assign({}, opts, { svg: true }), qr) for the size it is shown at.
  *
@@ -111,6 +112,11 @@
  *   both the fastest and the most reliable). ok: a code was read and, if expected is given, its text equals expected.
  *   text: what was read (null if nothing). scale: the scale that read it. 20 to 130 ms on a 400 to 1200 px
  *   canvas: run it once, when the drawing has finished, not on every frame.
+ *   crop { x, y, w, h } (source px): read only that rectangle, e.g. QRCore.codeBox(qr, opts). With a frame, check the
+ *   code inside the ring: the ring and the caption are decoration outside the quiet zone, and jsQR (not zxing-cpp)
+ *   sometimes misses a framed code at one scale because of them (1 in 10 framed "uniti" codes at 0.5). Smaller, faster.
+ * QRCore.codeBox(qr, opts) -> { x, y, w, h }: device px of the code and its quiet zone in what render draws (with a frame:
+ *   inside the ring, a pixel short of it; without: the whole picture).
  *
  * QRCore.suggestEcc(hasLogo) -> "H" with a logo, "M" without.
  * QRCore.contrast(fg, bg) -> WCAG contrast ratio (1..21). fg may be a gradient (the worse end counts);
@@ -563,6 +569,7 @@
     return [1, 0, 0, 0, 0];
   }
   function easeInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  function smooth(a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
   // a module part way from shape a to shape b (u 0..1): side and corners in between, a small dip in the middle
   function morphModule(p, a, b, u, nb, r, c, s) {
     if (u <= 0) { moduleShape(p, a, nb, r, c, s); return; }
@@ -571,6 +578,15 @@
     var k = s * (1 - DIP * Math.sin(Math.PI * u));
     var side = (ga[0] + (gb[0] - ga[0]) * e) * k, h = side / 2, cx = c + 0.5, cy = r + 0.5, rad = [];
     for (var i = 1; i < 5; i++) rad.push(Math.min(h, (ga[i] + (gb[i] - ga[i]) * e) * k));
+    if (nb && (a === 'uniti' || b === 'uniti') && a !== b) {
+      // from or to the joined shape: a side towards a joined neighbour keeps reaching it (a hair over, so no seam shows)
+      // for as long as the joined shape still counts, then lets go; the piece comes apart, it does not crack
+      // the join lets go early and quickly (from 12% to 40% of the piece's run; going to "uniti", it forms from 60% to 88%)
+      var w = a === 'uniti' ? 1 - smooth(0.12, 0.4, u) : smooth(0.6, 0.88, u), J = h + (0.5 + 0.02 - h) * w;
+      var hu = nb & 1 ? J : h, hr = nb & 2 ? J : h, hd = nb & 4 ? J : h, hl = nb & 8 ? J : h;
+      rrect(p, cx - hl, cy - hu, hl + hr, hu + hd, rad);
+      return;
+    }
     rrect(p, cx - h, cy - h, side, side, rad);
   }
 
@@ -1070,7 +1086,7 @@
     var nbSrc = st, full = null, fullQ = new Uint8Array(n * n);
     if (cells) {
       full = new Uint8Array(n * n);
-      for (i = 0; i < n * n; i++) if (st[i] !== 2 && cells[i] >= 0.999) full[i] = 1;
+      for (i = 0; i < n * n; i++) if (st[i] !== 2 && cells[i] >= 0.98) full[i] = 1;   // nearly full: joins its full neighbours
       nbSrc = full;
     }
     var stampOf = function (sh) { return sh === 'tondi' || sh === 'uniti'; };
@@ -1180,7 +1196,13 @@
     var fr = o.frame, band = fr && fr.text ? FR.cap : 0;
     var edge = fr ? quiet + FR.sw + FR.om : quiet;
     var T = n + 2 * edge, TH = fr ? edge + n + quiet + band + FR.pb + FR.sw + FR.om : T;
-    var size = Math.max(16, num(o.size, 256));
+    var size = Math.max(16, num(o.size, 256)), Wpx = size, Hpx = size * TH / T;
+    if (fr) {
+      // with a frame, the same geometry as the PNG of this size (render at dpr 1): the margin outside the ring, the ring
+      // and the caption band land where the canvas puts them, and the picture is a whole number of pixels high
+      var LF = layoutFor(n, Object.assign({}, o, { dpr: 1, size: size }));
+      edge = LF.ox / LF.m; T = LF.W / LF.m; TH = LF.H / LF.m; Wpx = LF.W; Hpx = LF.H;
+    }
     var area = logoArea(qr, o.logo);
     var prep = prepared(qr, o, area);
     var pl = prep.pl, list = prep.list;
@@ -1250,7 +1272,7 @@
         body += '<image x="' + fx(x) + '" y="' + fx(y) + '" width="' + fx(w) + '" height="' + fx(h) + '" preserveAspectRatio="xMidYMid meet" href="' + attr(href) + '" xlink:href="' + attr(href) + '"' + clip + '/>';
       }
     }
-    return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + fx(size) + '" height="' + fx(size * TH / T) + '" viewBox="0 0 ' + fx(T) + ' ' + fx(TH) + '">' +
+    return '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + fx(Wpx) + '" height="' + fx(Hpx) + '" viewBox="0 0 ' + fx(T) + ' ' + fx(TH) + '">' +
       (defs ? '<defs>' + defs + '</defs>' : '') + body + '</svg>';
   }
 
@@ -1277,6 +1299,12 @@
     if (typeof dec !== 'function') throw fail('LIBRERIA', 'Manca jsQR: carica vendor/jsQR.js prima di qr-core.js.');
     var img = pixels(src);
     var w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
+    var cr = vo && vo.crop ? vo.crop : null, sx0 = 0, sy0 = 0, sw0 = w0, sh0 = h0;
+    if (cr) {                                              // only this rectangle of the source (the code and its quiet zone)
+      sx0 = clamp(Math.round(cr.x), 0, w0 - 1); sy0 = clamp(Math.round(cr.y), 0, h0 - 1);
+      sw0 = clamp(Math.round(cr.w), 1, w0 - sx0); sh0 = clamp(Math.round(cr.h), 1, h0 - sy0);
+      w0 = sw0; h0 = sh0;
+    }
     var want = expected === undefined || expected === null ? null : String(expected);
     var first = null;
     var scales = vo && vo.scales && vo.scales.length ? vo.scales : SCALES;
@@ -1289,7 +1317,7 @@
       var cx = cv.getContext('2d');
       cx.imageSmoothingEnabled = true;
       cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, w, h); // flatten on white
-      cx.drawImage(img, 0, 0, w, h);
+      cx.drawImage(img, sx0, sy0, sw0, sh0, 0, 0, w, h);
       var data = cx.getImageData(0, 0, w, h).data;
       var res = null, inverted = false;
       try { res = dec(data, w, h, { inversionAttempts: 'dontInvert' }); } catch (e) { res = null; }
@@ -1434,6 +1462,15 @@
     return Math.floor(a * 200 + 1e-6) / 200;
   }
 
+  // where the code and its quiet zone are in what render draws (device px): with a frame, the square inside the ring,
+  // a pixel short of the ring's inner edge; without, the whole picture. The part a reader needs: verify it with { crop }.
+  function codeBox(qr, opts) {
+    var L = layoutFor(qr.n, normOpts(opts));
+    if (!L.frame) return { x: 0, y: 0, w: L.W, h: L.H };
+    var q = L.quiet * L.m - 1;
+    return { x: L.ox - q, y: L.oy - q, w: L.side + 2 * q, h: L.side + 2 * q };
+  }
+
   // the size of what render draws, in CSS px (taller than wide with a frame)
   function measure(qr, opts) {
     var L = layoutFor(qr.n, normOpts(opts));
@@ -1517,6 +1554,7 @@
     encode: encode,
     render: render,
     svg: svg,
+    codeBox: codeBox,
     verify: verify,
     suggestEcc: suggestEcc,
     contrast: contrast,

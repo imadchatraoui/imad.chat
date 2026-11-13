@@ -86,7 +86,12 @@ window.runCase = function (cs) {
   if (opts.logo) opts.logo = Object.assign({}, opts.logo, { image: makeLogo(opts.logo.kind) });
   var cv = document.createElement('canvas');
   var info = QRCore.render(cv, qr, opts);
-  var v = QRCore.verify(cv, cs.text);
+  var v;
+  if (cs.studio) {
+    // as QR Studio checks it: only the code and its quiet zone (QRCore.codeBox), one scale at a time, 0.5 first
+    var box = QRCore.codeBox(qr, opts), sc0 = opts.size > 1024 ? [0.25, 0.5, 1] : [0.5, 1, 0.75];
+    for (var si = 0; si < sc0.length; si++) { v = QRCore.verify(cv, cs.text, { scales: [sc0[si]], crop: box }); if (v.ok) break; }
+  } else v = QRCore.verify(cv, cs.text);
   var sc = QRCore.scannable(opts, qr);
   if (opts.frame && !(cv.height > cv.width)) v = { ok: false, text: 'cornice senza altezza', inverted: false, scale: 0 };
   return { version: qr.version, n: qr.n, mode: qr.mode, m: info.m, quiet: info.quiet, cleared: info.cleared,
@@ -199,6 +204,13 @@ function matrix(P) {
     add('cornice', `cornice senza scritta ${shape} 1024px`, TEXTS.corto, { ecc: 'M' }, { size: 1024, dpr: 1, shape, frame: { text: '' } });
     add('cornice', `svg cornice ${shape}`, TEXTS.url120, { ecc: 'Q' }, { size: 512, shape, eye: 'tondo', fg: { from: '#172554', to: '#7a1f5c', angle: 90 }, frame: { text: 'Scansiona' } }, { svg: true, scale: 2 });
   }
+  // H2. QR Studio's own check of a framed code, with everyday captions (it once refused 1 in 10 framed "uniti" codes
+  // that every reader read, because it decoded the ring and the caption too): the code inside the ring, 1024 and 2048 px
+  const CAPS = ['Scansiona', 'Ciao', 'Benvenuti', 'Inquadrami', 'Prenota un tavolo', 'Il nostro menù', 'Scansiona per il menù di', 'La carta dei vini'];
+  for (const shape of ['uniti', 'punti']) for (const cap of CAPS) for (const [t, k] of [[TEXTS.corto, 'corto'], ['https://www.esempio.it/menu?tavolo=12', 'menu']]) {
+    add('cornice-studio', `cornice "${cap}" ${shape} ${k} 1024px`, t, { ecc: 'M' }, { size: 1024, dpr: 1, shape, eye: 'tondo', fg: '#221d14', bg: '#fbf6ea', quiet: 4, frame: { text: cap } }, { studio: true });
+  }
+  for (const cap of ['Ciao', 'Il nostro menù']) add('cornice-studio', `cornice "${cap}" uniti 2048px`, TEXTS.corto, { ecc: 'M' }, { size: 2048, dpr: 1, shape: 'uniti', eye: 'tondo', fg: '#221d14', bg: '#fbf6ea', quiet: 4, frame: { text: cap } }, { studio: true });
   // G. SVG
   for (const shape of SHAPES) {
     add('svg', `svg ${shape} url120`, TEXTS.url120, { ecc: 'M' }, { size: 132, shape, eye: 'goccia' }, { svg: true, scale: 2 });
@@ -367,6 +379,13 @@ async function selfChecks(page) {
     ok(/<text[^>]*>Scansiona &lt;&amp;&gt;<\/text>/.test(QRCore.svg(qr, fo)), 'cornice svg testo');
     ok(QRCore.svg(qr, { size: 300, frame: { text: '' } }).indexOf('<text') < 0, 'cornice senza scritta');
     ok(px(draw(qr, Object.assign({}, fo, { frame: { text: 'x', t: 0.3 } }))).length > 0, 'cornice a metà');
+    // the SVG with a frame has the PNG's geometry at the same size (dpr 1) and a whole number of px in height
+    const f1 = { size: 1024, dpr: 1, frame: { text: 'Scansiona' } }, sm = QRCore.svg(qr, f1).match(/width="([^"]+)" height="([^"]+)"/), m1 = QRCore.measure(qr, f1);
+    ok(sm && +sm[1] === m1.deviceWidth && +sm[2] === m1.deviceHeight && Number.isInteger(+sm[2]), `cornice svg misura ${sm && sm[1]}x${sm && sm[2]} vs ${m1.deviceWidth}x${m1.deviceHeight}`);
+    // codeBox: inside the ring with a frame, the whole picture without
+    const L1 = QRCore._layout(qr, f1), cb = QRCore.codeBox(qr, f1), cb0 = QRCore.codeBox(qr, { size: 300, dpr: 2 });
+    ok(cb.x > 0 && cb.x < L1.ox && cb.w > L1.side && cb.x + cb.w < L1.width && cb.w === cb.h, `codeBox cornice ${JSON.stringify(cb)}`);
+    ok(cb0.x === 0 && cb0.w === 600 && cb0.h === 600, `codeBox senza cornice ${JSON.stringify(cb0)}`);
     // targets: exactly the modules a still picture draws as modules
     const t0 = QRCore.targets(qr, {}); let k1 = 0; for (let i = 0; i < t0.length; i++) if (t0[i]) { k1++; if (qr.kinds[i] === QRCore.KIND.finder || !qr.modules[i]) { fails.push('targets ' + i); break; } }
     ok(k1 > 0, 'targets vuoto');

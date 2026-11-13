@@ -15,8 +15,9 @@
        immagine   i moduli sotto di lei si ritirano, poi lei cade al centro e si assesta (opts.logoIn)
        cornice    l'anello si disegna intorno e la scritta sale (opts.frame.t), il codice si fa più piccolo senza salti
      Con «meno movimento» tutto cambia in un colpo. Ogni movimento dura meno di 600 ms.
-   - Quando il disegno è fermo, il PNG da 1024 px che si salverebbe viene riletto (QRCore.verify): solo allora la spunta
-     disegna il suo tratto e dice «Si legge»; le regole (QRCore.scannable) dicono in arancio cosa rischia e cosa fare, in
+   - Quando il disegno è fermo, il PNG da 1024 px che si salverebbe viene riletto (QRCore.verify, solo il quadrato del codice con
+     il suo margine: QRCore.codeBox; una scala per compito): solo allora la spunta disegna il suo tratto e dice «Si legge»; mentre
+     si ricontrolla restano le parole di prima con l'icona tenue; le regole (QRCore.scannable) dicono in arancio cosa rischia e cosa fare, in
      rosso quando non si legge, e allora Salva, Copia e Condividi si spengono.
    - Sul telefono la carta del codice resta in cima e si stringe da circa 260 a 132 px con lo scorrere (solo transform e
      l'altezza di un elemento assoluto: il posto della carta nella pagina non cambia, i comandi non saltano).
@@ -39,11 +40,26 @@
   function easeOut(t) { t = 1 - t; return 1 - t * t * t; }
   function easeOutBack(t) { var c1 = 1.3, c3 = c1 + 1, u = t - 1; return 1 + c3 * u * u * u + c1 * u * u; }
   function easeIn(t) { return t * t; }
+  /* una curva cubic-bezier come quelle del CSS (per --molla-piana) */
+  function bezier(x1, y1, x2, y2) {
+    return function (x) {
+      if (x <= 0) return 0; if (x >= 1) return 1;
+      var t = x;
+      for (var i = 0; i < 8; i++) {
+        var u = 1 - t, xt = 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t - x;
+        var dx = 3 * u * u * x1 + 6 * u * t * (x2 - x1) + 3 * t * t * (1 - x2);
+        if (Math.abs(xt) < 1e-5 || Math.abs(dx) < 1e-6) break;
+        t = clamp(t - xt / dx, 0, 1);
+      }
+      var v = 1 - t; return 3 * v * v * t * y1 + 3 * v * t * t * y2 + t * t * t;
+    };
+  }
+  var mollaPiana = bezier(0.2, 0.9, 0.25, 1);
   var raf = win.requestAnimationFrame ? function (f) { return win.requestAnimationFrame(f); } : function (f) { return setTimeout(function () { f(now()); }, 16); };
   var caf = win.cancelAnimationFrame ? function (h) { win.cancelAnimationFrame(h); } : clearTimeout;
 
   var main = $("st"), lato = $("lato"), carta = $("carta"), tela = $("tela"), flip = $("flip"), cv = $("cv");
-  var stato = $("stato"), statoT = $("statoT"), bFix = $("bFix"), info = $("info"), infoN = $("infoN"), annuncio = $("annuncio");
+  var stato = $("stato"), statoT = $("statoT"), bFix = $("bFix"), info = $("info"), infoN = $("infoN"), annuncio = $("annuncio"), cosaEl = $("cosa");
   var bSalva = $("bSalva"), bAltro = $("bAltro"), menu = $("menu"), bCopia = $("bCopia"), bCondividi = $("bCondividi");
   var T = { tempi: [], cicli: 0, controlli: 0, salvati: [] };      /* per le prove */
   win.__studio = T;
@@ -58,17 +74,19 @@
   /* ================================================================== lo stato */
   var ESEMPIO = "https://imad.chat";
   var FORME = ["quadrati", "punti", "tondi", "uniti"], OCCHI = ["quadrato", "tondo", "goccia"], VERSI = [0, 45, 90, 135];
-  /* i colori pronti: tutti si leggono (contrasto almeno 4,5). Kukko sono i colori del suo tema del cubo (#ff6961 e #ffb347):
-     sul bianco sono troppo chiari per un codice, quindi si scuriscono quanto basta, con la stessa tinta (QRCore.fixContrast) */
+  /* i colori pronti: tutti si leggono (contrasto almeno 4,5), e ognuno ha il suo secondo colore per la sfumatura, della
+     stessa famiglia, che si legge anche lui (5,4 o più sul suo fondo). «Classico», nero su bianco, è per chi stampa.
+     I colori Kukko del cubo restano sul cubo (CLAUDE.md), qui non ci sono. */
   var COPPIE = [
-    { id: "inchiostro", nome: "Inchiostro", fg: "#221d14", bg: "#fbf6ea" },
-    { id: "notte", nome: "Notte", fg: "#172554", bg: "#f1f4fd" },
-    { id: "bosco", nome: "Bosco", fg: "#1e4a35", bg: "#f0f5ee" },
-    { id: "prugna", nome: "Prugna", fg: "#5a1f4f", bg: "#fbf1f6" },
-    { id: "terracotta", nome: "Terracotta", fg: "#8f3a22", bg: "#fdf2ea" },
-    { id: "kukko", nome: "Kukko", fg: Q.fixContrast("#ff6961", "#ffffff", 4.5), fg2: Q.fixContrast("#ffb347", "#ffffff", 4.5), grad: true, ang: 45, bg: "#ffffff" }
+    { id: "inchiostro", nome: "Inchiostro", fg: "#221d14", fg2: "#7f5810", bg: "#fbf6ea" },
+    { id: "notte", nome: "Notte", fg: "#172554", fg2: "#1d5b8f", bg: "#f1f4fd" },
+    { id: "bosco", nome: "Bosco", fg: "#1e4a35", fg2: "#146c63", bg: "#f0f5ee" },
+    { id: "prugna", nome: "Prugna", fg: "#5a1f4f", fg2: "#962c58", bg: "#fbf1f6" },
+    { id: "terracotta", nome: "Terracotta", fg: "#8f3a22", fg2: "#875a14", bg: "#fdf2ea" },
+    { id: "classico", nome: "Classico", fg: "#111111", fg2: "#3f4654", bg: "#ffffff" }
   ];
-  var S = { forma: "uniti", occhi: "tondo", coppia: "inchiostro", fg: "#221d14", fg2: "#a8761c", grad: false, ang: 45, bg: "#fbf6ea", trasp: false, cornice: false, scritta: "Scansiona" };
+  COPPIE.forEach(function (p) { p.fg2 = Q.fixContrast(p.fg2, p.bg, 4.6); });
+  var S = { forma: "uniti", occhi: "tondo", coppia: "inchiostro", fg: "#221d14", fg2: "#7f5810", grad: false, ang: 45, bg: "#fbf6ea", trasp: false, cornice: false, scritta: "Scansiona" };
   var HEX = /^#[0-9a-f]{6}$/i;
   (function () {
     var s = null;
@@ -97,37 +115,49 @@
     return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
   }
   var PROT = "WPA", NASC = false;
+  function byte(s) { try { return new TextEncoder().encode(s).length; } catch (e) { return unescape(encodeURIComponent(s)).length; } }
+  function caratteri(k) { return k === 1 ? "1 carattere" : k.toLocaleString("it-IT") + " caratteri"; }
+  /* desc: ciò che dice la voce dopo «Codice QR» (con l'articolo giusto); cosa: la riga breve nella carta piccola;
+     avviso: ciò che il codice si legge ma non farà (una rete Wi-Fi a cui il telefono non si collega) */
   function contenuto() {
     var P = Q.payload, t;
     if (TIPO === "link") {
       t = pulito(val("fLink")); if (!t) return null;
       var u = P.url(t), host = u.replace(/^[a-z][a-z0-9+.\-]*:(\/\/)?/i, "").split(/[\/?#]/)[0].replace(/^www\./i, "");
       var link = /^[a-z][a-z0-9+.\-]*:/i.test(u);
-      return { text: u, desc: (link ? "il link " : "il testo ") + u, nome: "qr-" + (slug(host) || "link"), testo: !link };
+      var corto = u.replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/$/, "");
+      return { text: u, desc: (link ? "del link " : "del testo ") + u, cosa: link ? corto : "Testo · " + u, nome: "qr-" + (slug(host) || "link"), testo: !link };
     }
     if (TIPO === "testo") {
       t = P.text(val("fTesto")); if (!pulito(t)) return null;
       t = t.replace(/^\s+|\s+$/g, "");
-      return { text: t, desc: "un testo di " + Array.from(t).length + " caratteri", nome: "qr-testo" };
+      var k = Array.from(t).length;
+      return { text: t, desc: "del testo di " + caratteri(k), cosa: "Testo · " + caratteri(k), nome: "qr-testo" };
     }
     if (TIPO === "wifi") {
       var ssid = val("fSsid"); if (!pulito(ssid)) return null;
-      return { text: P.wifi({ ssid: ssid, password: PROT === "nopass" ? "" : val("fPw"), security: PROT, hidden: NASC }), desc: "la rete Wi-Fi " + ssid, nome: "qr-wifi-" + (slug(ssid) || "rete") };
+      var pw = PROT === "nopass" ? "" : val("fPw"), lp = Array.from(pw).length, avv = null;
+      if (byte(ssid) > 32) avv = "Nome della rete troppo lungo: al massimo 32 caratteri.";
+      else if (PROT !== "nopass" && !pw) avv = "Manca la password: se la rete è aperta, scegli Nessuna.";
+      else if (PROT === "WPA" && lp < 8) avv = "Password corta: una rete WPA ne vuole almeno 8 caratteri.";
+      else if (PROT === "WPA" && lp > 63 && !/^[0-9a-f]{64}$/i.test(pw)) avv = "Password lunga: una rete WPA ne accetta al massimo 63 caratteri.";
+      return { text: P.wifi({ ssid: ssid, password: pw, security: PROT, hidden: NASC }), desc: "della rete Wi-Fi " + ssid, cosa: "Wi-Fi · " + pulito(ssid), nome: "qr-wifi-" + (slug(ssid) || "rete"), avviso: avv };
     }
     if (TIPO === "contatto") {
       var c = { name: val("fNome"), phone: val("fTel"), email: val("fMail"), org: val("fOrg"), url: val("fSito") };
       if (!pulito(c.name + c.phone + c.email + c.org + c.url)) return null;
-      return { text: P.vcard(c), desc: "il contatto " + (pulito(c.name) || pulito(c.org) || pulito(c.email) || pulito(c.phone)), nome: "qr-contatto-" + (slug(c.name || c.org) || "nuovo") };
+      var chi = pulito(c.name) || pulito(c.org) || pulito(c.email) || pulito(c.phone) || pulito(c.url);
+      return { text: P.vcard(c), desc: "del contatto " + chi, cosa: "Contatto · " + chi, nome: "qr-contatto-" + (slug(c.name || c.org) || "nuovo") };
     }
     if (TIPO === "email") {
       var e = { to: val("fA"), subject: val("fOgg"), body: val("fCorpo") };
       if (!pulito(e.to + e.subject + e.body)) return null;
-      return { text: P.email(e), desc: "una e-mail" + (pulito(e.to) ? " a " + pulito(e.to) : ""), nome: "qr-email" };
+      return { text: P.email(e), desc: "dell'e-mail" + (pulito(e.to) ? " a " + pulito(e.to) : ""), cosa: "E-mail" + (pulito(e.to) ? " · " + pulito(e.to) : ""), nome: "qr-email" };
     }
     if (TIPO === "telefono") {
       if (!/\d/.test(val("fNum"))) return null;
       var tel = P.tel(val("fNum"));
-      return { text: tel, desc: "il numero " + tel.slice(4), nome: "qr-telefono" };
+      return { text: tel, desc: "del numero " + tel.slice(4), cosa: "Telefono · " + tel.slice(4), nome: "qr-telefono" };
     }
     return null;
   }
@@ -149,7 +179,7 @@
     regole: null, letto: null
   };
   var L = { wide: false, cardW: 0, box: 188, cbox: 104, H0: 262, Hmin: 132, startY: 0, top: 62, sw: 200, dpr: 2, k: -1, size: 188, cw: 188, ch: 188 };
-  var WAVE = 220, GROW = 240, SHRINK = 170, MORPH = 540, FLOW = 480, DROP = 340, FRAME = 440, SNAP = 460, FIRST = 540;
+  var WAVE = 300, FRONTE = 4, MORPH = 540, FLOW = 480, DROP = 340, FRAME = 440, SNAP = 460, FIRST = 460, VIA = 240, ASSESTA = 300;
   var layer = doc.createElement("canvas"), snapC = doc.createElement("canvas");
 
   function dprOra() { return clamp(Math.round((win.devicePixelRatio || 1) * 100) / 100, 1, 3); }
@@ -161,9 +191,12 @@
     var N = n * n;
     return { n: n, cells: new Float32Array(N), from: new Float32Array(N), to: new Uint8Array(N), t0: new Float64Array(N), dur: new Float32Array(N), end: 0 };
   }
-  /* porta il campo F verso tg con un'onda dal centro che parte dopo `ritardo` ms */
+  /* porta il campo F verso tg con un'onda dal centro che parte dopo `ritardo` ms. L'onda è stretta: va dal centro agli angoli
+     in WAVE ms, e ogni modulo cambia in quanto basta perché il fronte sia largo circa FRONTE moduli (da 45 a 150 ms): dietro
+     il fronte il codice nuovo, davanti il vecchio, tutti e due con i pezzi uniti; si staccano solo i moduli sul fronte */
   function campoOnda(F, tg, t, ritardo) {
     var n = F.n, N = n * n, mid = (n - 1) / 2, maxD = Math.SQRT2 * mid || 1, end = t;
+    var GROW = clamp(FRONTE * WAVE / maxD, 45, 150), SHRINK = GROW * 0.75;
     for (var i = 0; i < N; i++) {
       var r = (i / n) | 0, c = i - r * n, dr = r - mid, dc = c - mid;
       var d = Math.sqrt(dr * dr + dc * dc) / maxD;
@@ -223,8 +256,19 @@
   }
 
   function opzioni(t, ferma) {
-    var o = conMisura(G.look, L.size, ferma ? L.dpr : Math.min(L.dpr, 2));
+    if (G.frOut && t - G.frOut.t0 >= VIA) {
+      /* l'anello se n'è andato: la carta si assesta alla sua misura nuova (dal posto del codice con la cornice al suo) */
+      var prim = rettCodice(Object.assign({}, G.look, { frame: G.frOut.frame }), L.size);
+      G.frOut = null;
+      misuraTela(G.look);
+      var dopo = rettCodice(G.look, L.size), kk = prim.s / dopo.s;
+      flip.style.transformOrigin = "0 0";
+      G.fr = { t0: t, dur: ASSESTA, molla: true, flip: { tx: prim.x - dopo.x * kk, ty: prim.y - dopo.y * kk, k: kk } };
+    }
+    /* mentre si muove la tela si disegna a 2x al massimo; un codice molto fitto a 1,5x (costa poco più della metà) */
+    var o = conMisura(G.look, L.size, ferma ? L.dpr : Math.min(L.dpr, G.qr && G.qr.n > 57 ? 1.5 : 2));
     var busy = false;
+    if (G.frOut) { busy = true; o.frame = Object.assign({}, G.frOut.frame, { t: clamp(1 - (t - G.frOut.t0) / VIA, 0, 1) }); }
     if (G.field) { if (campoPasso(t)) busy = true; o.cells = G.field.cells; }
     if (G.morph) {
       var mt = (t - G.morph.t0) / MORPH;
@@ -239,12 +283,12 @@
       if (dt >= 1) G.drop = null; else { busy = true; o.logoIn = Math.max(0, dt); }
     }
     if (G.fr) {
-      var rt = (t - G.fr.t0) / FRAME;
+      var rt = (t - G.fr.t0) / (G.fr.dur || FRAME);
       if (rt >= 1) { G.fr = null; flip.style.transform = ""; }
       else {
         busy = true;
-        var e = easeOut(clamp(rt, 0, 1)), f = G.fr.flip;
-        if (o.frame) o.frame = Object.assign({}, o.frame, { t: clamp(rt * 1.1, 0, 1) });
+        var e = (G.fr.molla ? mollaPiana : easeOut)(clamp(rt, 0, 1)), f = G.fr.flip;
+        if (o.frame && !G.fr.molla) o.frame = Object.assign({}, o.frame, { t: clamp(rt * 1.1, 0, 1) });
         if (f) flip.style.transform = "translate(" + (f.tx * (1 - e)).toFixed(2) + "px," + (f.ty * (1 - e)).toFixed(2) + "px) scale(" + lerp(f.k, 1, e).toFixed(4) + ")";
       }
     }
@@ -302,7 +346,7 @@
   function avvia() { if (!G.loop) G.loop = raf(ciclo); }
   function tuttoFermo() {
     if (G.loop) { caf(G.loop); G.loop = 0; }
-    campoFermo(); G.morph = G.flow = G.drop = G.fr = G.wave = G.old = null; flip.style.transform = "";
+    campoFermo(); G.morph = G.flow = G.drop = G.fr = G.wave = G.old = G.frOut = null; flip.style.transform = "";
   }
   function fermato() { controllaPresto(); tessereDopo(); }
 
@@ -310,11 +354,15 @@
   function passa(qr, look, cosa) {
     var t = now(), pq = G.qr, pl = G.look;
     var prima = !G.shown;
-    if (fermo() || !pq || prima) {
+    if (G.frOut) { G.frOut = null; misuraTela(pl); }        /* un anello che stava andando via: via subito */
+    /* un codice molto fitto (più di 57 moduli per lato, oltre 150 caratteri circa) cambia contenuto in un colpo: lì l'onda
+       sarebbe un brusio e costerebbe troppo a ogni tasto (forma e colore si muovono lo stesso) */
+    var denso = cosa === "contenuto" && pq && (qr.n > 57 || pq.n > 57);
+    if (fermo() || !pq || prima || denso) {
       tuttoFermo();
       G.qr = qr; G.look = look; G.field = null;
       misuraTela(look);
-      if (!fermo() && prima && !pq) { G.wave = { t0: t + 80, dur: FIRST }; G.shown = true; G.field = null; avvia(); return; }
+      if (!fermo() && prima && !pq) { G.wave = { t0: t + 120, dur: FIRST }; G.shown = true; G.field = null; cartaEntra(); avvia(); return; }
       G.shown = true;
       disegna(t); fermato(); return;
     }
@@ -323,7 +371,11 @@
     var colore = function (o) { return typeof o.fg === "object" ? o.fg.from + ">" + o.fg.to + "@" + o.fg.angle : o.fg; };
     /* la cornice: l'anello si disegna e il codice scivola alla sua misura nuova (la tela parte da dov'era il codice) */
     var cornice = !!pl.frame !== !!look.frame || (pl.frame && look.frame && !!pl.frame.text !== !!look.frame.text);
-    if (cornice && pq.n === qr.n) {
+    if (cornice && pl.frame && !look.frame && pq.n === qr.n) {
+      /* togliere la cornice è l'andata al contrario: l'anello si cancella lungo il suo tratto e la scritta scende e
+         sparisce (VIA ms, la tela resta della misura con la cornice), poi la carta si assesta (opzioni) */
+      G.frOut = { t0: t, frame: pl.frame }; G.fr = null; flip.style.transform = "";
+    } else if (cornice && pq.n === qr.n) {
       var prim = rettCodice(pl, L.size);
       G.qr = qr; misuraTela(look);
       var dopo = rettCodice(look, L.size), k = prim.s / dopo.s;
@@ -353,8 +405,13 @@
     }
     if (look.logo && (!pl.logo || pl.logo.image !== look.logo.image)) G.drop = { t0: t + (pq.n !== qr.n ? 220 : 140) };
     G.look = look;
-    if (!G.fr) misuraTela(look);
+    if (!G.fr && !G.frOut) misuraTela(look);
     avvia();
+  }
+  /* la prima volta la carta del codice non compare di colpo: cresce da .94 e si accende (220 ms), poi i moduli a onda */
+  function cartaEntra() {
+    if (!cv.animate) return;
+    try { cv.animate([{ transform: "scale(.94)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 220, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "backwards" }); } catch (e) { /* senza: compare e basta */ }
   }
 
   /* ================================================================== aggiorna: il cuore */
@@ -364,14 +421,16 @@
     var c = contenuto();
     G.esempio = !c;
     var text = c ? c.text : ESEMPIO;
-    G.desc = c ? c.desc : "l'esempio " + ESEMPIO; G.nome = c ? c.nome : "qr-imad-chat";
+    G.desc = c ? c.desc : "dell'esempio " + ESEMPIO; G.nome = c ? c.nome : "qr-imad-chat";
+    G.cosa = c ? c.cosa : "imad.chat"; G.avvisoC = c && c.avviso ? c.avviso : null;
+    if (cosaEl && cosaEl.textContent !== G.cosa) cosaEl.textContent = G.cosa;
     var ecc = IMG.cv ? "H" : "M", qr = null, err = null;
     try { qr = Q.encode(text, { ecc: ecc }); }
     catch (e) {
       if (e && e.code === "TROPPO_LUNGO" && ecc === "M") { try { qr = Q.encode(text, { ecc: "L" }); } catch (e2) { err = e2; } }
       else err = e;
     }
-    ver++; pronto = null; G.letto = null; clearTimeout(controlloT);
+    ver++; pronto = null; G.letto = null; G.lungo = false; clearTimeout(controlloT); clearTimeout(lungoT);
     aiutoLink(c);
     if (err) {
       G.err = err.code === "TROPPO_LUNGO" && ecc === "H" ? "Troppo lungo con l'immagine: accorcia il testo o toglila."
@@ -384,12 +443,19 @@
     var look = aspetto();
     tela.classList.toggle("is-trasp", S.trasp);
     passa(qr, look, cosa);
-    G.regole = Q.scannable(conMisura(look, 1024, 1), qr);
-    cv.setAttribute("aria-label", "Codice QR di " + G.desc);
+    G.regole = conContenuto(Q.scannable(conMisura(look, 1024, 1), qr));
+    cv.setAttribute("aria-label", "Codice QR " + G.desc);
     numeri(qr.n);
     if (G.qr) limiteImmagine();
     mostra();
     T.tempi.push(now() - t0);
+  }
+
+  /* ciò che il contenuto non farà anche se si legge (la rete senza password...) va tra gli avvisi, per primo */
+  function conContenuto(sc) {
+    if (!G.avvisoC) return sc;
+    return { ok: false, level: sc.level === "errore" ? "errore" : "avviso", why: sc.level === "errore" ? sc.why : G.avvisoC,
+      problems: [{ code: "CONTENUTO", level: "avviso", why: G.avvisoC }].concat(sc.problems || []), details: sc.details };
   }
 
   /* scrivere: il disegno segue mentre si scrive, ma al massimo un aggiornamento ogni 100 ms; l'ultimo tasto vince sempre
@@ -419,56 +485,79 @@
   var COSA = { scurisci: "scurisci il colore.", correggi: "dai più contrasto ai colori.", inverti: "inverti i colori.", piccola: "rimpicciolisci l'immagine." };
   /* il problema da dire: prima i rossi; tra gli arancioni, chiaro su scuro prima del contrasto (la correzione giusta è invertire) */
   function primo(sc) {
-    var ps = sc.problems || [], rank = { errore: 0, avviso: 1 }, pri = { INVERTITO: 0, LOGO_GRANDE: 0, CONTRASTO: 1 };
+    var ps = sc.problems || [], rank = { errore: 0, avviso: 1 }, pri = { CONTENUTO: -1, INVERTITO: 0, LOGO_GRANDE: 0, CONTRASTO: 1 };
     return ps.slice().sort(function (a, b) { return (rank[a.level] - rank[b.level]) || ((pri[a.code] === undefined ? 2 : pri[a.code]) - (pri[b.code] === undefined ? 2 : pri[b.code])); })[0];
   }
   function detto(p) { var d = DETTI[p.code + ":" + p.level]; return d || [p.why, null]; }
-  var livello = "attesa", ultimoAnnuncio = "";
+  var livello = "attesa", ultimoAnnuncio = "", visto = null;
   function mostra() {
-    var lv, msg, fix = null;
-    if (G.err) { lv = "errore"; msg = G.err; }
+    var lv, msg, fix = null, dubbio = false;
+    if (G.err) { lv = "errore"; msg = G.err; visto = lv; }
     else {
       var sc = G.regole || { level: "ok", problems: [] }, top = primo(sc);
       if (G.letto === false) { fix = top ? detto(top)[1] : null; lv = "errore"; msg = sc.level === "errore" ? detto(top)[0] : "Non si legge: " + (fix ? COSA[fix] : "prova colori più netti."); }
       else if (sc.level === "errore") { lv = "errore"; msg = detto(top)[0]; fix = detto(top)[1]; }
-      else if (G.letto === null) { lv = "attesa"; msg = sc.level === "avviso" ? detto(top)[0] : (G.esempio ? "Esempio: controllo…" : "Controllo…"); if (sc.level === "avviso") fix = detto(top)[1]; }
+      else if (G.letto === null) {
+        /* mentre si ricontrolla (anche per tutto il tempo in cui si scrive): restano le parole dell'ultimo verdetto, con
+           l'icona più tenue; ciò che dicono le regole (contrasto, misura) vale subito, senza aspettare la lettura;
+           «Controllo…» solo se la lettura tarda (400 ms dopo che il disegno si è fermato) o se prima non si leggeva */
+        if (sc.level === "avviso") { lv = "avviso"; msg = detto(top)[0]; fix = detto(top)[1]; dubbio = true; }
+        else if (visto === "ok" && !G.lungo) { lv = "ok"; msg = G.esempio ? "Esempio: si legge" : "Si legge"; dubbio = true; }
+        else { lv = "attesa"; msg = G.esempio ? "Esempio: controllo…" : "Controllo…"; }
+      }
       else if (sc.level === "avviso") { lv = "avviso"; msg = detto(top)[0]; fix = detto(top)[1]; }
       else { lv = "ok"; msg = G.esempio ? "Esempio: si legge" : "Si legge"; }
+      if (G.letto !== null || (sc.level === "errore" && !dubbio)) visto = lv;
     }
     livello = lv;
     stato.setAttribute("data-l", lv);
     stato.classList.toggle("is-attesa", lv === "attesa" && msg.indexOf("Controllo") >= 0);
+    stato.classList.toggle("is-dubbio", dubbio);
     if (statoT.textContent !== msg) statoT.textContent = msg;
     bFix.hidden = !fix; if (fix) { bFix.textContent = FIX[fix]; bFix.setAttribute("data-fix", fix); }
     var spento = lv === "errore";
     [bSalva, bAltro, bCopia, bCondividi].forEach(function (b) { b.disabled = spento; });
     if (spento) chiudiMenu();
+    alto();
     posaPresto();
-    if (lv !== "attesa") {
+    if (lv !== "attesa" && !dubbio) {
       var a = msg + (lv === "ok" ? "." : "");
       if (a !== ultimoAnnuncio) { ultimoAnnuncio = a; annuncio.textContent = a; }
     }
   }
 
   /* quando il disegno è fermo: si rilegge il PNG che si salverebbe */
-  var controlloT = 0, pronto = null;
-  function controllaPresto() { clearTimeout(controlloT); if (G.err || !G.qr) return; controlloT = setTimeout(controlla, fermo() ? 0 : 90); }
-  /* in due compiti brevi (il disegno a 1024 px, poi la lettura), così chi riprende a scrivere non aspetta: se nel frattempo
-     qualcosa cambia, la lettura non si fa */
+  var controlloT = 0, lungoT = 0, pronto = null;
+  function controllaPresto() {
+    clearTimeout(controlloT); clearTimeout(lungoT);
+    if (G.err || !G.qr) return;
+    controlloT = setTimeout(controlla, fermo() ? 0 : 90);
+    if (G.letto === null && !fermo()) lungoT = setTimeout(function () { if (G.letto === null && !G.err && !G.lungo) { G.lungo = true; mostra(); } }, 400);
+  }
+  /* il codice che si rilegge è solo il quadrato del codice con il suo margine (QRCore.codeBox): l'anello e la scritta della
+     cornice sono decorazione fuori dal margine, e a volte confondono jsQR (non i telefoni). Un compito breve per volta (il
+     disegno a 1024 px, poi una scala per compito), così chi riprende a scrivere non aspetta: se nel frattempo qualcosa
+     cambia, la lettura si lascia lì */
+  function scatola(size) { return Q.codeBox(G.qr, conMisura(G.look, size, 1)); }
   function controlla() {
     if (G.loop || G.err || !G.qr) return;
     var my = ver, t0 = now();
-    var exp = esporta(1024), t1 = now();
-    controlloT = setTimeout(function () {
-      if (my !== ver || G.loop) return;
-      var t2 = now(), v = null;
-      try { v = Q.verify(exp, G.text, { scales: [0.5, 1, 0.75] }); } catch (e) { v = { ok: false }; }
-      T.controlli++; T.ultimoControllo = (t1 - t0) + (now() - t2);
-      if (my !== ver) return;
-      G.letto = !!v.ok;
-      mostra();
-      if (v.ok && exp.toBlob) exp.toBlob(function (b) { if (my === ver && b) pronto = { ver: my, blob: b }; }, "image/png");
-    }, 0);
+    var exp = esporta(1024), box = scatola(1024), spesa = now() - t0, scale = [0.5, 1, 0.75], i = 0;
+    (function passo() {
+      controlloT = setTimeout(function () {
+        if (my !== ver || G.loop) return;
+        var t2 = now(), v = null;
+        try { v = Q.verify(exp, G.text, { scales: [scale[i]], crop: box }); } catch (e) { v = { ok: false }; }
+        spesa += now() - t2; i++;
+        (T.passi || (T.passi = [])).push(now() - t2);
+        if (my !== ver) return;
+        if (!v.ok && i < scale.length) { passo(); return; }
+        T.controlli++; T.ultimoControllo = spesa;
+        G.letto = !!v.ok; clearTimeout(lungoT);
+        mostra();
+        if (v.ok && exp.toBlob) exp.toBlob(function (b) { if (my === ver && b) pronto = { ver: my, blob: b }; }, "image/png");
+      }, 0);
+    })();
   }
 
   /* ================================================================== i numeri che rotolano: «25 × 25» */
@@ -515,15 +604,30 @@
     L.cardW = lato.clientWidth;
     L.dpr = dprOra();
     if (L.wide) L.box = clamp(Math.floor(Math.min(L.cardW - 64, win.innerHeight - L.top - 14 - 98 - 12 - 60 - 28)), 140, 320);
-    else L.box = clamp(Math.floor(L.cardW - 150), 150, 184);
-    L.H0 = L.box + 98; L.cbox = L.Hmin - 28;
+    else L.box = clamp(Math.floor(L.cardW - 118), 160, 228);
+    L.cbox = L.Hmin - 28;
     L.sw = L.wide ? L.cardW - 32 - 110 : L.cardW - 14 - L.cbox - 14 - 14;
-    lato.style.setProperty("--st-h0", L.H0 + "px");
     carta.style.setProperty("--st-sw", L.sw + "px");
+    if (cosaEl) cosaEl.style.width = Math.max(40, L.sw - 25) + "px";
+    L.H0 = altezza();
+    lato.style.setProperty("--st-h0", L.H0 + "px");
     tela.style.width = L.box + "px"; tela.style.height = L.box + "px";
     var mr = main.getBoundingClientRect(), pt = parseFloat(win.getComputedStyle(main).paddingTop) || 0;
     L.startY = Math.round(mr.top + win.pageYOffset + pt - L.top);
     L.k = -1;
+  }
+  /* l'altezza piena della carta sul telefono: il codice, la riga dello stato quanto è alta adesso, i margini; un avviso su due
+     righe allunga la carta di una riga invece di tenere sempre un posto vuoto */
+  function altezza() { return L.wide ? L.box + 98 : 16 + L.box + 14 + Math.max(19, Math.round(stato.offsetHeight)) + 16; }
+  function alto() {
+    if (L.wide || !L.cardW) return;
+    var h = altezza(); if (h === L.H0) return;
+    var stuck = win.pageYOffset > L.startY + 0.5, com = $("comandi"), y0 = stuck ? com.getBoundingClientRect().top : 0;
+    L.H0 = h; lato.style.setProperty("--st-h0", h + "px");
+    /* la carta è in cima: i comandi sotto non si muovono. Chromium lo fa da sé (scroll anchoring), Safari no: si sposta solo
+       quanto resta da spostare */
+    if (stuck) { var dy = com.getBoundingClientRect().top - y0; if (Math.abs(dy) > 0.5) win.scrollBy(0, dy); }
+    posaPresto();
   }
   var posaRaf = 0;
   function posa() {
@@ -537,15 +641,21 @@
     var s = lerp(1, L.cbox / L.box, k);
     var x = lerp((L.cardW - L.box) / 2, 14, k), y = lerp(16, 14, k);
     tela.style.transform = "translate(" + x.toFixed(2) + "px," + y.toFixed(2) + "px) scale(" + s.toFixed(4) + ")";
-    var sx0 = 18, sy0 = 16 + L.box + 14, sx1 = 14 + L.cbox + 14, sy1 = 18;
-    stato.style.transform = "translate(" + lerp(sx0, sx1, k).toFixed(2) + "px," + lerp(sy0, sy1, k).toFixed(2) + "px)";
     if (misure.testo !== statoT.textContent + bFix.hidden || misure.n !== infoN.getAttribute("data-n")) {
       misure.testo = statoT.textContent + bFix.hidden; misure.n = infoN.getAttribute("data-n");
       misure.iw = info.offsetWidth; misure.sh = stato.offsetHeight;
     }
     var iw = misure.iw, sh = misure.sh;
+    /* nella carta piccola lo stato, i moduli e cosa c'è dentro stanno in un blocco centrato in altezza accanto al codice */
+    var blocco = sh + 3 + 19 + 5 + 16;
+    var sx0 = 18, sy0 = 16 + L.box + 14, sx1 = 14 + L.cbox + 14, sy1 = 14 + Math.max(0, (L.cbox - blocco) / 2);
+    stato.style.transform = "translate(" + lerp(sx0, sx1, k).toFixed(2) + "px," + lerp(sy0, sy1, k).toFixed(2) + "px)";
     var ix0 = L.cardW - 18 - iw, iy0 = sy0, ix1 = sx1 + 25, iy1 = sy1 + sh + 3;
     info.style.transform = "translate(" + lerp(ix0, ix1, k).toFixed(2) + "px," + lerp(iy0, iy1, k).toFixed(2) + "px)";
+    if (cosaEl) {
+      cosaEl.style.transform = "translate(" + lerp(ix0, ix1, k).toFixed(2) + "px," + (lerp(iy0, iy1, k) + 24).toFixed(2) + "px)";
+      cosaEl.style.opacity = clamp((k - 0.55) / 0.4, 0, 1).toFixed(3);
+    }
   }
   function posaPresto() { if (posaRaf) return; posaRaf = raf(function () { posaRaf = 0; posa(); }); }
   var misure = { iw: 0, sh: 0, testo: null, n: null };
@@ -556,21 +666,108 @@
     if (G.qr) { tuttoFermo(); misuraTela(G.look); disegna(now()); controllaPresto(); tessFatte = {}; tessere(true); }
     posa(); pillole(); barra();
   }
-  win.addEventListener("resize", function () { clearTimeout(resizeT); resizeT = setTimeout(ridisegna, 80); });
+  win.addEventListener("resize", function () {
+    if (win.innerWidth !== ultimaW) { ultimaW = win.innerWidth; altoMax = win.innerHeight; }
+    clearTimeout(resizeT); resizeT = setTimeout(function () { ridisegna(); suTastiera(); }, 80);
+  });
+
+  /* ================================================================== la tastiera del telefono
+     Mentre si scrive in un campo con la tastiera su, la barra in basso scivola via (starebbe sopra i tasti o sopra il campo)
+     e torna appena il campo perde il fuoco (120 ms dopo, così passando da un campo all'altro non sfarfalla). Ciò che prende
+     il fuoco non resta mai sotto la carta in cima o sotto la barra: il margine di scorrimento del CSS (scroll-padding) e,
+     dopo, un controllo qui. Su iOS la carta resta sotto il bordo visibile (visualViewport.offsetTop). Non provato su un
+     telefono vero: qui solo Chromium, con la tastiera finta come uno schermo più basso. */
+  var vv = win.visualViewport, ultimaW = win.innerWidth, altoMax = win.innerHeight, viaT = 0, azioni = $("azioni");
+  function campoAttivo() { var a = doc.activeElement; return !!(a && a.classList && a.classList.contains("st-in")); }
+  function tastiera() {
+    if (L.wide || !campoAttivo()) return false;
+    return !!((vv && vv.height < win.innerHeight - 100) || win.innerHeight < altoMax - 120);
+  }
+  function suTastiera() {
+    if (win.innerHeight > altoMax) altoMax = win.innerHeight;
+    var su = tastiera();
+    if (su !== azioni.classList.contains("is-via")) { azioni.classList.toggle("is-via", su); if (su) chiudiMenu(); }
+    var off = su && vv ? Math.max(0, Math.round(vv.offsetTop)) : 0;
+    root.style.setProperty("--st-top", (L.top + off) + "px");
+  }
+  function inVista(el) {
+    if (L.wide || !el || !el.getBoundingClientRect) return;
+    if (el === fImgEl) el = doc.querySelector(".st-img__scegli");
+    var r = el.getBoundingClientRect(); if (!r.height) return;
+    var su = carta.getBoundingClientRect().bottom + 10;
+    var vb = vv ? vv.offsetTop + vv.height : win.innerHeight;
+    var giu = (azioni.classList.contains("is-via") ? vb : Math.min(vb, azioni.getBoundingClientRect().top)) - 10;
+    if (r.top < su) win.scrollBy(0, r.top - su);
+    else if (r.bottom > giu) win.scrollBy(0, Math.min(r.bottom - giu, r.top - su));
+  }
+  var fImgEl = $("fImg");
+  $("comandi").addEventListener("focusin", function (e) {
+    var el = e.target;
+    clearTimeout(viaT); suTastiera();
+    raf(function () { inVista(el); });
+    setTimeout(function () { suTastiera(); if (doc.activeElement === el) inVista(el); }, 360);   /* la tastiera ci mette un attimo */
+  });
+  $("comandi").addEventListener("focusout", function () { clearTimeout(viaT); viaT = setTimeout(suTastiera, 120); });
+  if (vv && vv.addEventListener) { vv.addEventListener("resize", suTastiera); vv.addEventListener("scroll", suTastiera); }
   if (mqWide.addEventListener) mqWide.addEventListener("change", ridisegna); else if (mqWide.addListener) mqWide.addListener(ridisegna);
 
   /* ================================================================== le tessere: pezzetti di codice vero */
-  /* Le tessere ritagliano un codice vero, sempre lo stesso (quello di https://imad.chat, versione 2): scrivere non le fa
+  /* Le tessere ritagliano un codice vero, sempre lo stesso (quello di https://imad.chat, versione 2; per i moduli quello di
+     https://imad.chat/tools): scrivere non le fa
      ridisegnare, e il disegno costa poco. Si rifanno solo quando cambia ciò che mostrano (forma, occhi, tema, densità), un
      gruppo per volta e mai mentre il codice si muove. I colori pronti: un solo disegno in nero, che ogni tessera tinge con la
      sua coppia (la sfumatura attraversa la tessera nella sua direzione). */
   var tessT = 0, tessFatte = {}, grande = doc.createElement("canvas"), tinta = doc.createElement("canvas"), TQ = null;
   function tessereDopo() { clearTimeout(tessT); tessT = setTimeout(function () { tessere(false); }, 80); }
   function inchiostro() { var c = win.getComputedStyle(doc.body).color; return c || "#16171d"; }
-  function disegnaGrande(opts, M) {
+  function disegnaGrande(opts, M, qr) {
     if (!TQ) TQ = Q.encode(ESEMPIO, { ecc: "M" });
-    Q.render(grande, TQ, Object.assign({}, opts, { size: (TQ.n + 4) * M, dpr: 1, quiet: 2, style: false }));
-    return Math.floor((grande.width - M * TQ.n) / 2);
+    qr = qr || TQ;
+    Q.render(grande, qr, Object.assign({}, opts, { size: (qr.n + 4) * M, dpr: 1, quiet: 2, style: false }));
+    return Math.floor((grande.width - M * qr.n) / 2);
+  }
+  /* il pezzetto delle tessere dei moduli, scelto con una regola e non a caso: 6 × 6 moduli di dati con 14-20 scuri, nessuna
+     riga o colonna tutta scura, almeno 3 moduli soli e almeno 2 gruppi uniti (così «Uniti» mostra le giunture); tra quelli,
+     il più vicino al centro. Lo stesso per le quattro tessere: cambia solo la forma. Il codice di https://imad.chat ha pochi
+     moduli soli (al massimo 2 in 6 × 6), quindi queste tessere ritagliano quello della pagina degli strumenti */
+  var PEZZO = null, TQF = null;
+  function pezzo() {
+    if (PEZZO) return PEZZO;
+    if (!TQF) TQF = Q.encode("https://imad.chat/tools", { ecc: "M" });
+    var n = TQF.n, K = Q.KIND.data, best = null, bd = 1e9, r0, c0, r, c;
+    var dk = function (rr, cc) { return rr >= 0 && cc >= 0 && rr < n && cc < n && TQF.modules[rr * n + cc] === 1; };
+    for (r0 = 0; r0 <= n - 6; r0++) for (c0 = 0; c0 <= n - 6; c0++) {
+      var ok = true, scuri = 0, soli = 0, rig = [0, 0, 0, 0, 0, 0], col = [0, 0, 0, 0, 0, 0];
+      for (r = 0; r < 6 && ok; r++) for (c = 0; c < 6; c++) {
+        var R = r0 + r, C = c0 + c;
+        if (TQF.kinds[R * n + C] !== K) { ok = false; break; }
+        if (!dk(R, C)) continue;
+        scuri++; rig[r]++; col[c]++;
+        if (!dk(R - 1, C) && !dk(R + 1, C) && !dk(R, C - 1) && !dk(R, C + 1)) soli++;
+      }
+      if (!ok || scuri < 14 || scuri > 20 || soli < 3 || rig.indexOf(6) >= 0 || col.indexOf(6) >= 0) continue;
+      var visto = new Uint8Array(36), gruppi = 0;
+      for (var i = 0; i < 36; i++) {
+        if (visto[i] || !dk(r0 + ((i / 6) | 0), c0 + i % 6)) continue;
+        var pila = [i], quanti = 0; visto[i] = 1;
+        while (pila.length) {
+          var j = pila.pop(), jr = (j / 6) | 0, jc = j % 6; quanti++;
+          var vicini = [[jr - 1, jc], [jr + 1, jc], [jr, jc - 1], [jr, jc + 1]];
+          for (var q = 0; q < 4; q++) {
+            var vr = vicini[q][0], vc = vicini[q][1], vi = vr * 6 + vc;
+            if (vr < 0 || vc < 0 || vr > 5 || vc > 5 || visto[vi] || !dk(r0 + vr, c0 + vc)) continue;
+            visto[vi] = 1; pila.push(vi);
+          }
+        }
+        if (quanti >= 2) gruppi++;
+      }
+      if (gruppi < 2) continue;
+      var d = Math.abs(r0 + 3 - n / 2) + Math.abs(c0 + 3 - n / 2) + Math.abs(scuri - 17) * 0.5;
+      if (d < bd) { bd = d; best = [r0, c0]; }
+    }
+    PEZZO = best || [9, 9];
+    T.pezzo = PEZZO;
+    return PEZZO;
   }
   function tela50(btn) {
     var c = btn.querySelector("canvas"); if (!c) return null;
@@ -578,9 +775,9 @@
     if (c.width !== px) { c.width = px; c.height = px; }
     return c;
   }
-  function ritaglio(btn, opts, r0, c0, span, M) {
+  function ritaglio(btn, opts, r0, c0, span, M, qr) {
     var c = tela50(btn); if (!c) return;
-    var ox = disegnaGrande(opts, M), px = c.width, x = c.getContext("2d");
+    var ox = disegnaGrande(opts, M, qr), px = c.width, x = c.getContext("2d");
     x.clearRect(0, 0, px, px); x.imageSmoothingEnabled = true;
     x.drawImage(grande, ox + c0 * M, ox + r0 * M, span * M, span * M, 0, 0, px, px);
   }
@@ -611,7 +808,7 @@
     var ink = inchiostro(), base = L.dpr + "|", px = Math.round(50 * L.dpr);
     var M6 = Math.max(4, Math.ceil(px / 6)), M9 = Math.max(4, Math.ceil(px / 9)), M10 = Math.max(4, Math.ceil(px / 10));
     var gruppi = [
-      ["forme", base + ink, function () { qsa("#forme .st-tess").forEach(function (b) { ritaglio(b, { shape: b.getAttribute("data-v"), eye: S.occhi, fg: ink, bg: "transparent" }, 9, 9, 6, M6); }); }],
+      ["forme", base + ink, function () { var pz = pezzo(); qsa("#forme .st-tess").forEach(function (b) { ritaglio(b, { shape: b.getAttribute("data-v"), eye: S.occhi, fg: ink, bg: "transparent" }, pz[0], pz[1], 6, M6, TQF); }); }],
       ["occhi", base + S.forma + ink, function () { qsa("#occhi .st-tess").forEach(function (b) { ritaglio(b, { shape: S.forma, eye: b.getAttribute("data-v"), fg: ink, bg: "transparent" }, -1, -1, 9, M9); }); }],
       ["coppie", base + S.forma + S.occhi, function () { coppieTessere(M10); }]
     ].filter(function (g) { return tessFatte[g[0]] !== g[1]; });
@@ -677,6 +874,7 @@
   var gTipi = gruppo($("tipi"), function (v) {
     TIPO = v;
     campi.forEach(function (c) { c.hidden = c.getAttribute("data-per") !== v; });
+    pillole();          /* le pillole dei campi appena comparsi si misurano adesso (da nascoste erano larghe zero), senza scivolare */
     aggiorna("contenuto");
   });
   ["fLink", "fTesto", "fSsid", "fPw", "fNome", "fTel", "fMail", "fOrg", "fSito", "fA", "fOgg", "fCorpo", "fNum"].forEach(function (id) {
@@ -719,8 +917,7 @@
   });
   var gCoppie = gruppo(boxCoppie, function (v) {
     var p = COPPIE.filter(function (x) { return x.id === v; })[0]; if (!p) return;
-    S.coppia = v; S.fg = p.fg; S.bg = p.bg; S.trasp = false; S.grad = !!p.grad;
-    if (p.grad) { S.fg2 = p.fg2; S.ang = p.ang; }
+    S.coppia = v; S.fg = p.fg; S.fg2 = p.fg2; S.bg = p.bg; S.trasp = false; S.grad = false;
     ricorda(); mettiColori(); aggiorna("colore");
   });
   var cFg = $("cFg"), cFg2 = $("cFg2"), cBg = $("cBg"), fGrad = $("fGrad"), fTrasp = $("fTrasp");
@@ -744,7 +941,12 @@
     });
   }
   suColore("fg", cFg); suColore("fg2", cFg2); suColore("bg", cBg);
-  interruttore(fGrad, function (on) { S.grad = on; S.coppia = null; ricorda(); mettiColori(); aggiorna("colore"); });
+  interruttore(fGrad, function (on) {
+    S.grad = on;
+    /* il secondo colore deve leggersi anche lui sul fondo di adesso: se non basta, si scurisce quanto serve, stessa tinta */
+    if (on) S.fg2 = Q.fixContrast(S.fg2, S.trasp ? "#ffffff" : S.bg, 4.6) || S.fg2;
+    S.coppia = null; ricorda(); mettiColori(); aggiorna("colore");
+  });
   interruttore(fTrasp, function (on) { S.trasp = on; S.coppia = null; ricorda(); mettiColori(); aggiorna("colore"); });
 
   /* le correzioni a un tocco, dalla riga dello stato */
@@ -761,6 +963,8 @@
       var mx = G.qr ? Q.maxLogoScale(G.qr, { pad: IMG.margine, round: IMG.tonda ? 1 : 0.16 }) : 0.2;
       IMG.scala = Math.max(0.12, mx); $("fScala").value = Math.round(IMG.scala * 100); scalaTesto(); aggiorna("img");
     }
+    /* il pulsante si è nascosto con il fuoco addosso: il fuoco va sulla riga dello stato, che dice com'è andata */
+    if (bFix.hidden) { try { stato.focus({ preventScroll: true }); } catch (e) { stato.focus(); } }
   });
 
   /* ================================================================== l'immagine al centro: resta sul telefono */
@@ -786,14 +990,16 @@
       img.src = url;
     };
     if (!win.createImageBitmap) { conImg(); return; }
-    /* il browser apre e rimpicciolisce la foto fuori dal filo della pagina: un ritaglio quadrato al centro, 768 px */
-    win.createImageBitmap(f, { imageOrientation: "from-image" }).then(function (bm) {
-      var w = bm.width, h = bm.height, s = Math.min(w, h);
-      if (s <= 1536) { try { usaImmagine(bm); bene(); } catch (e) { conImg(); } return; }
-      return win.createImageBitmap(bm, (w - s) / 2, (h - s) / 2, s, s, { resizeWidth: 768, resizeHeight: 768, resizeQuality: "high" }).then(function (pic) {
-        if (bm.close) bm.close();
-        try { usaImmagine(pic); bene(); } catch (e) { conImg(); }
-      });
+    /* il browser apre la foto e la rimpicciolisce in un colpo solo, dal file e fuori dal filo della pagina (larga 768 px):
+       una foto da 12 megapixel non blocca la pagina. Molto larga e bassa: si riapre alta 512. Se il browser non sa
+       rimpicciolire, la foto arriva intera e la rimpicciolisce usaImmagine, a metà per volta. */
+    var apri = function (o) { return win.createImageBitmap(f, Object.assign({ imageOrientation: "from-image", resizeQuality: "high" }, o)); };
+    apri({ resizeWidth: 768 }).then(function (bm) {
+      if (Math.min(bm.width, bm.height) >= 384 || bm.width !== 768) return bm;
+      if (bm.close) bm.close();
+      return apri({ resizeHeight: 512 });
+    }).then(function (bm) {
+      try { usaImmagine(bm); bene(); } catch (e) { conImg(); }
     }).catch(function () { conImg(); });
   });
   /* una foto grande si rimpicciolisce prima di usarla (a metà per volta: niente scalini, niente blocchi), ritagliata quadrata */
@@ -813,7 +1019,11 @@
     if (step) ox.drawImage(step, 0, 0, cur, cur, 0, 0, OUT, OUT); else ox.drawImage(src, sx, sy, s, s, 0, 0, OUT, OUT);
     if (img.close) img.close();
     IMG.cv = out;
-    imgThumb.style.backgroundImage = "url(" + out.toDataURL("image/jpeg", 0.8) + ")";
+    /* l'anteprima piccola: un PNG (una foto con parti trasparenti resta trasparente), 96 px, che costa poco */
+    var th = doc.createElement("canvas"); th.width = th.height = 96;
+    var tx = th.getContext("2d"); tx.imageSmoothingEnabled = true; if ("imageSmoothingQuality" in tx) tx.imageSmoothingQuality = "high";
+    tx.drawImage(out, 0, 0, 96, 96);
+    imgThumb.style.backgroundImage = "url(" + th.toDataURL("image/png") + ")";
     imgThumb.hidden = false; bTogli.hidden = false; $("imgOpz").hidden = false;
     $("imgScegliT").textContent = "Cambia";
     imgThumb.classList.toggle("is-quadrata", !IMG.tonda);
@@ -844,7 +1054,7 @@
     var track = "linear-gradient(90deg, " + fill + " 0 " + Math.min(a, m) + "%, transparent " + Math.min(a, m) + "%), " +
       "linear-gradient(90deg, " + ok + " 0 " + m + "%, transparent " + m + "%), " + no;
     fScala.style.setProperty("--st-track", track);
-    $("scalaAiuto").textContent = mx > 0 ? "Si legge fino al " + Math.round(mx * 100) + "%: oltre, la barra è a righe." : "Con questo testo l'immagine non ci sta: accorcialo.";
+    $("scalaAiuto").textContent = mx > 0 ? "Si legge fino al " + Math.round(mx * 100) + "%." : "Con questo testo l'immagine non ci sta: accorcialo.";
   }
 
   /* ================================================================== la cornice */
@@ -864,7 +1074,9 @@
     if (G.err || !G.qr) return null;
     if (size === 1024 && pronto && pronto.ver === ver) return pronto.blob;
     var exp = esporta(size), v = null;
-    try { v = Q.verify(exp, G.text, { scales: size > 1024 ? [0.5, 0.25, 1] : [0.5, 1, 0.75] }); } catch (e) { v = { ok: false }; }
+    try { v = Q.verify(exp, G.text, { scales: size > 1024 ? [0.25, 0.5, 1] : [0.5, 1, 0.75], crop: scatola(size) }); } catch (e) { v = { ok: false }; }
+    /* il PNG grande che non si rilegge non cambia il verdetto del codice (quello da 1024 resta buono): lo si dice e basta */
+    if (!v.ok && size > 1024) { nota("Il PNG da 2048 px non si rilegge: usa Salva, a 1024 px."); return null; }
     if (!v.ok) { G.letto = false; mostra(); return null; }
     if (G.letto === null) { G.letto = true; mostra(); }
     var b = blobDa(exp.toDataURL("image/png"));
@@ -903,7 +1115,14 @@
     var tre = !bCopia.hidden && !bCondividi.hidden;
     $("azioni").classList.toggle("is-stretto", tre && $("azioni").clientWidth < 440);
   }
-  function nota(msg) { G.nota = msg; statoT.textContent = msg; setTimeout(function () { G.nota = null; mostra(); }, 2600); }
+  var notaT = 0;
+  function nota(msg) {
+    clearTimeout(notaT);
+    stato.setAttribute("data-l", "avviso"); stato.classList.remove("is-attesa", "is-dubbio"); bFix.hidden = true;
+    statoT.textContent = msg; annuncio.textContent = msg; ultimoAnnuncio = "";
+    alto(); posaPresto();
+    notaT = setTimeout(mostra, 2600);
+  }
   bSalva.addEventListener("click", function () {
     if (bSalva.disabled) return;
     var b = pngOra(1024); if (!b) return;
@@ -951,7 +1170,7 @@
         var c = doc.createElement("canvas"); c.width = c.height = 1024;
         var m = Q.measure(G.qr, conMisura(G.look, 1024, 1)); c.height = Math.round(m.deviceHeight);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        var v = null; try { v = Q.verify(c, G.text, { scales: [0.5, 1, 0.75] }); } catch (e) { v = { ok: false }; }
+        var v = null; try { v = Q.verify(c, G.text, { scales: [0.5, 1, 0.75], crop: scatola(1024) }); } catch (e) { v = { ok: false }; }
         if (my !== ver) return;
         svgPronto = { ver: my, text: s, ok: !!v.ok };
         item.disabled = !v.ok;

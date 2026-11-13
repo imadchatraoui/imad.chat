@@ -10,16 +10,14 @@
 <!-- Pagina d'esempio del guscio comune: NON va online (la build pubblica solo i file index.html delle cartelle casa/<nome>/).
      Una pagina vera sta in docs/anteprime/casa/<nome>/index.html e scrive gli indirizzi relativi a sé: ../comune/pagina.css,
      ../../shared/astro-lite.js, ../home/index.html per tornare alla casa. Qui, che sta in comune/, valgono gli stessi. -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..600&family=Manrope:wght@400..800&display=swap">
+<!-- i caratteri (Manrope, Geist Mono) li dichiara pagina.css, da copie accanto alle pagine: niente fogli di Google -->
 <link rel="stylesheet" href="pagina.css">
 </head>
 <body class="pg-corpo">
 <div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
 
 <header class="pg-testa">
-  <a class="pg-casa" href="../home/index.html" aria-label="imad.chat, torna alla casa"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <a class="pg-casa" href="../home/index.html" aria-label="imad.chat, torna alla home"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
   <p class="pg-titolo">Esempio</p>
 </header>
 
