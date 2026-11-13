@@ -772,7 +772,8 @@
       a.className = "ip__msg" + (vuoto ? " ip__msg--vuoto" : ""); a.textContent = msg;
       b.className = "ip__ago"; b.textContent = quando || " ";
       /* come una riga di git log: prima quando (tenue), poi il titolo; tutte e due nelle stesse due righe al più */
-      li.appendChild(b); li.appendChild(a); return li;
+      /* tra il tempo e il titolo uno spazio vero: senza, «FA» e «Remove» erano una parola sola e a 320 px si spezzava a metà («Remo|ve») */
+      li.appendChild(b); li.appendChild(doc.createTextNode(" ")); li.appendChild(a); return li;
     }
     function dati(j) {
       var L = j && j.ok ? j.learning : null;

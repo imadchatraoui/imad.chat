@@ -103,7 +103,9 @@
    scuro sale fino alla luce del punto (--accent), con più croma in basso: niente cachi. */
 .heatmap {
   --hm-0: rgba(30, 28, 70, .07);
-  --hm-1: #f1e2bd; --hm-2: #e6c987; --hm-3: #d4aa55; --hm-4: #b98a2e;              /* il più pieno = --accent-ink */
+  /* passi di luminosità OKLab quasi uguali dal giorno vuoto (L .926 sul vetro) al pieno: .862 .792 .726 .663. Con #f1e2bd il primo passo
+     (L .915) si staccava dal vuoto solo per il colore, e i giorni con un commit sembravano vuoti (controllo finale, 13 novembre) */
+  --hm-1: #e7cea4; --hm-2: #dbb573; --hm-3: #cc9e4a; --hm-4: #b98a2e;              /* il più pieno = --accent-ink */
   --hm-label: rgba(22, 23, 29, .62); --hm-today: #16171d;
   --hm-up-0: #e5e4ec; --hm-up-1: #cfd0dc; --hm-ring: rgba(255, 255, 255, .95); --hm-shade: rgba(46, 40, 100, .35);
 }
@@ -166,7 +168,7 @@
 }
 .ip__log li + li { margin-top: 6px; }
 .ip__ago {
-  display: inline; margin-right: 6px;
+  display: inline; margin-right: 3px;                 /* più lo spazio vero che segue (vivi.js riga()): circa 6 px in tutto */
   font: var(--f-meta, 500 10.5px/16px var(--font-mono)); letter-spacing: var(--ls-meta, .06em); text-transform: uppercase; color: var(--t-ink-2); white-space: nowrap;
 }
 /* niente nodo (l'anello di 6 px): in riga con il titolo toglieva 12 px, e a 360 px «README.md» finiva tagliato. Il tempo in maiuscolo
