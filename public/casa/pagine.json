@@ -1,0 +1,29 @@
+{
+ "fatto_da": "scripts/home/build.mjs (non si scrive a mano)",
+ "pagine": [
+  {
+   "url": "/"
+  },
+  {
+   "url": "/mondo"
+  },
+  {
+   "url": "/progetti"
+  },
+  {
+   "url": "/progetti/cubo"
+  },
+  {
+   "url": "/su-di-me"
+  },
+  {
+   "url": "/tools"
+  },
+  {
+   "url": "/tools/palette"
+  },
+  {
+   "url": "/tools/qr"
+  }
+ ]
+}

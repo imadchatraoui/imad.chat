@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+/* il movimento (../home/moto.css, CASA.md 2d E), prima del primo disegno: html.is-pagina dice a moto.css che questa è una pagina interna;
+   html.vt-<riquadro> dà alla parte uguale di questa pagina il nome del riquadro toccato nella casa (la transizione tra documenti, dove il
+   browser la sa fare; il nome si toglie quando è finita); html.pg-entra fa salire la pagina da sola dove non la sa fare (l'iPhone di
+   Imad, iOS 18.0), mai tornando indietro e mai con «meno movimento». ES2017 al massimo. */
+(function () {
+  var r = document.documentElement, id = "";
+  r.classList.add("is-pagina");
+  /* una transizione saltata (dal browser, o tornando con un gesto) rifiuta ready: si raccoglie qui, niente errori in console */
+  window.addEventListener("pagereveal", function (e) { var vt = e.viewTransition, z = function () { }; if (vt && vt.ready && vt.ready.catch) { vt.ready.catch(z); vt.finished.catch(z); } });
+  try { id = sessionStorage.getItem("imad.vt") || ""; } catch (e) { }
+  if (/^[a-z]+$/.test(id)) {
+    r.classList.add("vt-" + id);
+    var via = function () { r.classList.remove("vt-" + id); };
+    window.addEventListener("pagereveal", function (e) { if (e.viewTransition) e.viewTransition.finished.then(via, via); else via(); });
+    window.addEventListener("pageshow", function (e) { if (e.persisted) via(); });
+  }
+  try {
+    var n = performance.getEntriesByType && performance.getEntriesByType("navigation")[0];
+    var back = (n || {}).type === "back_forward" || !!(performance.navigation && performance.navigation.type === 2);
+    var calm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    if (typeof CSSViewTransitionRule === "undefined" && !calm && !back) {
+      r.classList.add("pg-entra");
+      setTimeout(function () { r.classList.remove("pg-entra"); }, 900);
+    }
+  } catch (e) { }
+})();
+</script>
+<style>
+/* le transizioni tra documenti (moto.css, CASA.md 2d E): l'adesione sta qui, in linea, perché in un foglio esterno Chromium a volte la
+   legge troppo tardi e salta la transizione; con «meno movimento» nessuna pagina la chiede */
+@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }
+</style>
+<title>Su di me — imad.chat</title>
+<meta name="description" content="Su di me: Imad Chatraoui, con le sue parole.">
+<link rel="canonical" href="https://www.imad.chat/su-di-me">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="imad.chat">
+<meta property="og:locale" content="it_IT">
+<meta property="og:url" content="https://www.imad.chat/su-di-me">
+<meta property="og:title" content="Su di me — imad.chat">
+<meta property="og:description" content="Su di me: Imad Chatraoui, con le sue parole.">
+<meta property="og:image" content="https://www.imad.chat/opengraph-image">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="imad.chat: il logo dei nove tasti con il centro d&#39;oro e la scritta imad.chat, su un cielo di notte">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-icon">
+<meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
+<!-- SU DI ME: qui andranno la foto e le parole di Imad. Finché non le manda: la foto provvisoria del riquadro della casa
+     (Torino, CC BY 3.0) e una riga che dice che si aspetta lui. Niente di inventato su di lui: niente studi, lavoro, età, luoghi. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&display=swap">
+<link rel="stylesheet" href="/casa/comune/pagina.css">
+<link rel="stylesheet" href="/casa/su-di-me/su-di-me.css">
+<link rel="stylesheet" href="/casa/moto.css">
+</head>
+<body class="pg-corpo">
+<div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
+
+<header class="pg-testa">
+  <a class="pg-casa" href="/" aria-label="imad.chat, torna alla home"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <p class="pg-titolo">Su di me</p>
+</header>
+
+<main class="pg sm">
+  <figure class="sm-foto">
+    <img class="sm-foto__img" src="/casa/intro/media/torino.jpg" alt="Foto provvisoria: Torino." width="640" height="960" decoding="async">
+    <i class="sm-foto__vel" aria-hidden="true"></i>
+  </figure>
+  <div class="sm-testo">
+    <h1 class="pg-h1 sm-nome">Imad</h1>
+    <p class="sm-attesa">Presto, con le parole di Imad.</p>
+    <p class="sm-link"><a class="pg-pill" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr">, in una nuova scheda</span></a></p>
+    <p class="pg-nota sm-cred">La foto è provvisoria: Torino, di Konstantin&nbsp;Dacosta, CC&nbsp;BY&nbsp;3.0.</p>
+  </div>
+</main>
+
+<footer class="pg-piede"><a href="/">Torna alla home</a><span>Il cielo di questa pagina è quello di Torino, adesso.</span></footer>
+
+<script src="/casa/dati/astro-lite.js"></script>
+<script src="/casa/comune/pagina.js"></script>
+<script>
+/* la foto entra piano quando è pronta (senza movimento: c'è e basta) */
+(function () {
+  var img = document.querySelector(".sm-foto__img"), f = img && img.parentNode;
+  if (!img || (window.PAGINA && window.PAGINA.still())) return;
+  if (img.complete && img.naturalWidth) return;
+  f.classList.add("is-attesa");
+  function ok() { f.classList.remove("is-attesa"); }
+  img.addEventListener("load", ok); img.addEventListener("error", ok);
+})();
+</script>
+</body>
+</html>

@@ -7,7 +7,7 @@
 //          /anteprima e /anteprima/... portano (308) allo stesso indirizzo alla radice; le pagine si indicizzano.
 // Dopo averlo cambiato: node scripts/home/build.mjs, poi la build e la pubblicazione di sempre (la build si ferma
 // se public/ non è stata rifatta con lo stesso interruttore).
-export const CASA_NUOVA = false;
+export const CASA_NUOVA = true;
 
 // L'indirizzo pubblico del sito, per i link canonici, la sitemap, robots.txt e le anteprime condivise (Open Graph).
 // È il dominio principale del progetto su Vercel, quello che risponde senza rimandare altrove: il 2026-11-13 è

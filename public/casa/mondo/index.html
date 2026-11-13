@@ -36,54 +36,52 @@
    legge troppo tardi e salta la transizione; con «meno movimento» nessuna pagina la chiede */
 @media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }
 </style>
-<title>Su di me — imad.chat</title>
-<meta name="robots" content="noindex">
-<meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
-<!-- SU DI ME: qui andranno la foto e le parole di Imad. Finché non le manda: la foto provvisoria del riquadro della casa
-     (Torino, CC BY 3.0) e una riga che dice che si aspetta lui. Niente di inventato su di lui: niente studi, lavoro, età, luoghi. -->
+<title>Nel mondo — imad.chat</title>
+<meta name="description" content="Nel mondo: i testi di Imad Chatraoui.">
+<link rel="canonical" href="https://www.imad.chat/mondo">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="imad.chat">
+<meta property="og:locale" content="it_IT">
+<meta property="og:url" content="https://www.imad.chat/mondo">
+<meta property="og:title" content="Nel mondo — imad.chat">
+<meta property="og:description" content="Nel mondo: i testi di Imad Chatraoui.">
+<meta property="og:image" content="https://www.imad.chat/opengraph-image">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="imad.chat: il logo dei nove tasti con il centro d&#39;oro e la scritta imad.chat, su un cielo di notte">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-icon">
+<meta name="theme-color" content="#fbf6ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16130f" media="(prefers-color-scheme: dark)">
+<!-- NEL MONDO: la sezione la scrive Imad (content/mondo/*.md, come si fa: content/mondo/README.md). Qui non c'è una parola nostra:
+     niente titoli, fatti, slogan, bandiere, mappe, animazioni, niente Dot. Una pagina di carta, sobria.
+     scripts/home/build.mjs mette al posto del blocco «mondo:indice» l'elenco dei suoi testi (dal più recente) e scrive una pagina
+     per testo da pagina.html. Senza testi resta così com'è. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&display=swap">
-<link rel="stylesheet" href="/anteprima/comune/pagina.css">
-<link rel="stylesheet" href="/anteprima/su-di-me/su-di-me.css">
-<link rel="stylesheet" href="/anteprima/moto.css">
+<link rel="stylesheet" href="/casa/comune/pagina.css">
+<link rel="stylesheet" href="/casa/mondo/mondo.css">
+<link rel="stylesheet" href="/casa/moto.css">
 </head>
-<body class="pg-corpo">
-<div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
+<body class="pg-corpo mo-corpo">
 
 <header class="pg-testa">
-  <a class="pg-casa" href="/anteprima" aria-label="imad.chat, torna alla home"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
-  <p class="pg-titolo">Su di me</p>
+  <a class="pg-casa" href="/" aria-label="imad.chat, torna alla home"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <p class="pg-titolo">Nel mondo</p>
 </header>
 
-<main class="pg sm">
-  <figure class="sm-foto">
-    <img class="sm-foto__img" src="/anteprima/intro/media/torino.jpg" alt="Foto provvisoria: Torino." width="640" height="960" decoding="async">
-    <i class="sm-foto__vel" aria-hidden="true"></i>
-  </figure>
-  <div class="sm-testo">
-    <h1 class="pg-h1 sm-nome">Imad</h1>
-    <p class="sm-attesa">Presto, con le parole di Imad.</p>
-    <p class="sm-link"><a class="pg-pill" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr">, in una nuova scheda</span></a></p>
-    <p class="pg-nota sm-cred">La foto è provvisoria: Torino, di Konstantin&nbsp;Dacosta, CC&nbsp;BY&nbsp;3.0.</p>
-  </div>
+<main class="pg mo">
+  <h1 class="mo-h1">Nel mondo</h1>
+  <!-- mondo:indice -->
+  <p class="mo-presto">Presto, con le parole di Imad.</p>
+  <!-- /mondo:indice -->
 </main>
 
-<footer class="pg-piede"><a href="/anteprima">Torna alla home</a><span>Il cielo di questa pagina è quello di Torino, adesso.</span></footer>
+<footer class="pg-piede mo-piede"><a href="/">Torna alla home</a></footer>
 
-<script src="/anteprima/dati/astro-lite.js"></script>
-<script src="/anteprima/comune/pagina.js"></script>
-<script>
-/* la foto entra piano quando è pronta (senza movimento: c'è e basta) */
-(function () {
-  var img = document.querySelector(".sm-foto__img"), f = img && img.parentNode;
-  if (!img || (window.PAGINA && window.PAGINA.still())) return;
-  if (img.complete && img.naturalWidth) return;
-  f.classList.add("is-attesa");
-  function ok() { f.classList.remove("is-attesa"); }
-  img.addEventListener("load", ok); img.addEventListener("error", ok);
-})();
-</script>
+<script src="/casa/comune/pagina.js"></script>
 </body>
 </html>

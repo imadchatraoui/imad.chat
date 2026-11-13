@@ -6,9 +6,23 @@
   <meta name="viewport" content="width=device-width,height=device-height,user-scalable=no,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0">
 
   <title>The Cube — imad.chat</title>
-  <meta name="robots" content="noindex">
-  <meta name="description" content="«The Cube» di Boris Šehovac, nella versione di Imad con il tema Kukko.">
-  <meta name="theme-color" content="#ffffff">
+<meta name="description" content="«The Cube» di Boris Šehovac, nella versione di Imad con il tema Kukko.">
+<link rel="canonical" href="https://www.imad.chat/progetti/cubo">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="imad.chat">
+<meta property="og:locale" content="it_IT">
+<meta property="og:url" content="https://www.imad.chat/progetti/cubo">
+<meta property="og:title" content="The Cube — imad.chat">
+<meta property="og:description" content="«The Cube» di Boris Šehovac, nella versione di Imad con il tema Kukko.">
+<meta property="og:image" content="https://www.imad.chat/opengraph-image">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="imad.chat: il logo dei nove tasti con il centro d&#39;oro e la scritta imad.chat, su un cielo di notte">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-icon">
+      <meta name="theme-color" content="#ffffff">
 
   <!-- IL CUBO: il gioco vero di Imad, il suo fork di «The Cube» di Boris Šehovac (https://github.com/imadchatraoui/cube), che si gioca qui.
        gioco/cube.js e gioco/styles.css sono assets/js/cube.js e assets/css/styles.css del suo repository, copiati così come sono;
@@ -16,8 +30,8 @@
        Il markup di .ui è quello del suo index.html. Di nostro: la barra in alto, la riga del credito, cubo.css e cornice.js.
        Tolti rispetto al suo index.html: il service worker (UpUp), le icone e il manifest dell'app da installare. Niente da altri server.
        Per aggiornarlo: ricopiare i suoi due file in gioco/ e, se nel suo index.html cambia, window.gameVersion qui sotto (CASA.md, sezione 6). -->
-  <link rel="stylesheet" type="text/css" href="/anteprima/progetti/cubo/gioco/styles.css">
-  <link rel="stylesheet" href="/anteprima/progetti/cubo/cubo.css">
+  <link rel="stylesheet" type="text/css" href="/casa/progetti/cubo/gioco/styles.css">
+  <link rel="stylesheet" href="/casa/progetti/cubo/cubo.css">
   <style>
     /* come le altre pagine (../../home/moto.css, CASA.md 2d E): la transizione tra documenti, in linea; da Progetti al gioco e ritorno
        una dissolvenza semplice. Senza l'adesione da questa parte Chromium salta la transizione e lo scrive come errore */
@@ -40,8 +54,8 @@
 <body>
 
   <header class="cb-barra">
-    <a class="cb-casa" href="/anteprima" aria-label="imad.chat, torna alla home"><span class="cb-l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
-    <a class="cb-torna" href="/anteprima/progetti"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6.5L9 12l5.5 5.5"/></svg>Torna ai progetti</a>
+    <a class="cb-casa" href="/" aria-label="imad.chat, torna alla home"><span class="cb-l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+    <a class="cb-torna" href="/progetti"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6.5L9 12l5.5 5.5"/></svg>Torna ai progetti</a>
   </header>
 
   <div class="ui" lang="en">
@@ -136,9 +150,9 @@
     <p><span>«<a href="https://github.com/bsehovac/the-cube" target="_blank" rel="noopener">The Cube<span class="sr">, l'originale su GitHub, in una nuova scheda</span></a>» di Boris Šehovac,</span> <span><a href="https://github.com/imadchatraoui/cube" target="_blank" rel="noopener">versione di Imad<span class="sr">, su GitHub, in una nuova scheda</span></a> con il tema Kukko</span></p>
   </footer>
 
-  <script src="/anteprima/progetti/cubo/vendor/three.js"></script>
-  <script src="/anteprima/progetti/cubo/gioco/cube.js"></script>
-  <script src="/anteprima/progetti/cubo/cornice.js"></script>
+  <script src="/casa/progetti/cubo/vendor/three.js"></script>
+  <script src="/casa/progetti/cubo/gioco/cube.js"></script>
+  <script src="/casa/progetti/cubo/cornice.js"></script>
 
 </body>
 </html>

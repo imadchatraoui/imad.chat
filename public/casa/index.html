@@ -3,8 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>imad.chat — anteprima</title>
-<meta name="robots" content="noindex">
+<title>imad.chat — il sito di Imad Chatraoui</title>
+<meta name="description" content="Il sito di Imad Chatraoui: i suoi progetti, piccoli strumenti da usare dal telefono, un versetto del Corano al giorno, cinque città con la loro ora e Dot, il gatto.">
+<link rel="canonical" href="https://www.imad.chat/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="imad.chat">
+<meta property="og:locale" content="it_IT">
+<meta property="og:url" content="https://www.imad.chat/">
+<meta property="og:title" content="imad.chat — il sito di Imad Chatraoui">
+<meta property="og:description" content="Il sito di Imad Chatraoui: i suoi progetti, piccoli strumenti da usare dal telefono, un versetto del Corano al giorno, cinque città con la loro ora e Dot, il gatto.">
+<meta property="og:image" content="https://www.imad.chat/opengraph-image">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="imad.chat: il logo dei nove tasti con il centro d&#39;oro e la scritta imad.chat, su un cielo di notte">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-icon">
 <meta name="theme-color" content="#eef0f8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
 <script>
@@ -87,11 +102,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Geist+Mono:wght@400..600&family=Manrope:wght@400..800&display=swap">
-<link rel="stylesheet" href="/anteprima/style.css">
-<link rel="stylesheet" href="/anteprima/casa.css">
-<link rel="stylesheet" href="/anteprima/vivi.css">
-<link rel="stylesheet" href="/anteprima/moto.css">
-<link rel="stylesheet" href="/anteprima/intro/intro.css">
+<link rel="stylesheet" href="/casa/style.css">
+<link rel="stylesheet" href="/casa/casa.css">
+<link rel="stylesheet" href="/casa/vivi.css">
+<link rel="stylesheet" href="/casa/moto.css">
+<link rel="stylesheet" href="/casa/intro/intro.css">
 </head>
 <body>
 <!-- il cielo della pagina: Torino adesso, dall'alto in basso, più la grana (di notte, nel tema scuro, app.js ci mette le stelle) -->
@@ -162,7 +177,7 @@
 
     <!-- NEL MONDO: fermo e sobrio. Le parole sono di Imad: finché non scrive, solo il titolo e la riga che lo dice. Dot qui sta tranquillo -->
     <article class="tile mondo" data-tile="mondo" data-mat="glass" data-dot="quiet">
-      <a class="tile__hit" href="/anteprima/mondo" aria-label="Nel mondo. Apri la pagina"></a>
+      <a class="tile__hit" href="/mondo" aria-label="Nel mondo. Apri la pagina"></a>
       <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg>
       <div class="tile__in">
         <h2 class="mondo__t">Nel mondo</h2>
@@ -173,9 +188,9 @@
 
     <!-- SU DI ME: una finestra; la foto è provvisoria, la metterà Imad -->
     <article class="tile win me" data-tile="sudime" data-mat="night">
-      <img class="win__img" src="/anteprima/intro/media/torino.jpg" alt="" aria-hidden="true">
+      <img class="win__img" src="/casa/intro/media/torino.jpg" alt="" aria-hidden="true">
       <i class="win__scrim" aria-hidden="true"></i>
-      <a class="tile__hit" href="/anteprima/su-di-me" aria-label="Su di me. Apri la pagina"></a>
+      <a class="tile__hit" href="/su-di-me" aria-label="Su di me. Apri la pagina"></a>
       <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg>
       <div class="tile__in">
         <span class="label label--ink">Su di me</span>
@@ -186,7 +201,7 @@
 
     <!-- PROGETTI: il cubo nei colori Kukko che si mescola e si risolve da solo -->
     <article class="tile progetti" data-tile="progetti" data-mat="glass">
-      <a class="tile__hit" href="/anteprima/progetti" aria-label="Progetti. Apri la pagina"></a>
+      <a class="tile__hit" href="/progetti" aria-label="Progetti. Apri la pagina"></a>
       <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg>
       <div class="tile__in">
         <canvas class="cubo__cv" id="cuboCv" aria-hidden="true"></canvas>
@@ -211,8 +226,8 @@
     <!-- TOOLS: il mini QR che funziona davvero (lo mette vivi.js con QRCore). Niente velo di tocco su tutto il riquadro: dentro ci sono comandi -->
     <article class="tile tools" data-tile="tools" data-mat="glass">
       <div class="tile__in">
-        <header class="tile__head"><a class="label label--ink qr__tutti" href="/anteprima/tools" aria-label="Tools: tutti gli strumenti">Tools</a><span class="label">Codice QR</span></header>
-        <div class="vivo vivo--tocca qr" id="qrMini" data-jsqr="/anteprima/qr/vendor/jsQR.js">
+        <header class="tile__head"><a class="label label--ink qr__tutti" href="/tools" aria-label="Tools: tutti gli strumenti">Tools</a><span class="label">Codice QR</span></header>
+        <div class="vivo vivo--tocca qr" id="qrMini" data-jsqr="/casa/qr/vendor/jsQR.js">
           <div class="qr__campo">
             <label class="sr" for="qrIn">Un link o un testo da trasformare in codice QR</label>
             <input class="qr__in" id="qrIn" type="text" placeholder="Incolla un link" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
@@ -227,7 +242,7 @@
               <button class="qr__salva" id="qrSalva" type="button" disabled><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v10"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg><span id="qrSalvaT">Salva</span></button>
             </div>
           </div>
-          <p class="qr__presto"><a class="qr__apri" href="/anteprima/tools/qr">Apri QR Studio</a> · <a class="qr__apri" href="/anteprima/tools/palette">Palette</a><span> · Presto: Convertitore</span></p>
+          <p class="qr__presto"><a class="qr__apri" href="/tools/qr">Apri QR Studio</a> · <a class="qr__apri" href="/tools/palette">Palette</a><span> · Presto: Convertitore</span></p>
         </div>
       </div>
     </article>
@@ -265,7 +280,7 @@
 <script>/* chi torna da una pagina ritrova il suo posto prima del primo disegno (la testa, __casaTorna) */ if (window.__casaTorna) window.__casaTorna();</script>
 
 <!-- Dot: il suo strato sta sopra i riquadri e sotto le pagine aperte; taglia ciò che sporge di lato -->
-<div class="dot-clip" id="dotclip" data-media="/anteprima/dot/media/"></div>
+<div class="dot-clip" id="dotclip" data-media="/casa/dot/media/"></div>
 
 <!-- il dock: i quattro filtri -->
 <div class="dock" id="dock" role="group" aria-label="Metti davanti i riquadri di">
@@ -294,24 +309,24 @@
 </div>
 
 <!-- l'intro: una tela sopra la pagina, finché non atterra sui nove riquadri -->
-<canvas class="ni" id="ni" aria-hidden="true" data-media="/anteprima/intro/media/"></canvas>
+<canvas class="ni" id="ni" aria-hidden="true" data-media="/casa/intro/media/"></canvas>
 
-<script src="/anteprima/dati/data.js"></script>
-<script src="/anteprima/dati/astro-lite.js"></script>
-<script src="/anteprima/app.js"></script>
-<script src="/anteprima/terra.js"></script>
-<script src="/anteprima/vivo.js"></script>
+<script src="/casa/dati/data.js"></script>
+<script src="/casa/dati/astro-lite.js"></script>
+<script src="/casa/app.js"></script>
+<script src="/casa/terra.js"></script>
+<script src="/casa/vivo.js"></script>
 <script>
 /* dove stanno i suoni di Dot, prima dei suoi script: un tocco durante l'intro sveglia già l'audio e li chiede */
 window.DOT = window.DOT || {}; window.DOT.mediaBase = document.getElementById("dotclip").getAttribute("data-media");
 </script>
-<script src="/anteprima/dot/dot-rig.js"></script>
-<script src="/anteprima/dot/look-manifesto.js"></script>
-<script src="/anteprima/dot/dot-stage.js"></script>
-<script src="/anteprima/dot/dot-sound.js"></script>
-<script src="/anteprima/dot/dot-fx.js"></script>
-<script src="/anteprima/dot/dot-brain.js"></script>
-<script src="/anteprima/casa.js"></script>
+<script src="/casa/dot/dot-rig.js"></script>
+<script src="/casa/dot/look-manifesto.js"></script>
+<script src="/casa/dot/dot-stage.js"></script>
+<script src="/casa/dot/dot-sound.js"></script>
+<script src="/casa/dot/dot-fx.js"></script>
+<script src="/casa/dot/dot-brain.js"></script>
+<script src="/casa/casa.js"></script>
 <script>
 /* l'intro atterra su questi nove riquadri, in quest'ordine della sua griglia 3x3 (riga per riga); le foto delle lettere stanno con l'intro.
    La casa nuova usa la copia dell'intro con la versione «gatto» (i tasti volano sulla mensola di Dot); ?v=stella mostra quella di oggi */
@@ -319,10 +334,10 @@ window.__niMedia = document.getElementById("ni").getAttribute("data-media");
 window.__niTiles = ["corano", "citta", "mondo", "sudime", "progetti", "imparando", "tools", "heatmap", "saluti"];
 window.__niV = "gatto";
 </script>
-<script src="/anteprima/intro/intro-gatto.js"></script>
-<script src="/anteprima/qr/vendor/qrcode-generator.js"></script>
-<script src="/anteprima/qr/qr-core.js"></script>
-<script src="/anteprima/vivi.js"></script>
-<script src="/anteprima/moto.js"></script>
+<script src="/casa/intro/intro-gatto.js"></script>
+<script src="/casa/qr/vendor/qrcode-generator.js"></script>
+<script src="/casa/qr/qr-core.js"></script>
+<script src="/casa/vivi.js"></script>
+<script src="/casa/moto.js"></script>
 </body>
 </html>
