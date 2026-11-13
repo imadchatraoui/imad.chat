@@ -21,7 +21,7 @@ async function open(page, url) { await page.goto(url, { waitUntil: "load" }); aw
 const MIN = +(process.argv[2] || 10), PAGE = process.argv[3] || "riordina.html", SEEDS = (process.argv[4] || "1,2,3").split(",").map(Number);
 const browser = await chromium.launch();
 for (const seed of SEEDS) {
-  const { page, errs, ctx } = await phone(browser); await open(page, base + PAGE + "?manual=1&primo=0&suono=no&look=" + (process.env.LOOK || "manifesto") + "&seme=" + seed);   /* l'aspetto scelto da Imad (riordina.html, senza ?look, prenderebbe quello di prova) */
+  const { page, errs, ctx } = await phone(browser); await open(page, base + PAGE + "?manual=1&primo=0&suono=no&look=" + (process.env.LOOK || "manifesto") + "&seme=" + seed);   /* l'aspetto scelto da Imad (LOOK=base per quello semplice di prova) */
   const rep = await page.evaluate(({ MIN, seed }) => {
     var D = DOT.debug, s = seed * 7919 + 13; function R() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }
     /* gli errori dentro l'aspetto: il cervello li inghiotte e passa a «base»; qui si contano */
