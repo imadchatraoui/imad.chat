@@ -25,9 +25,13 @@
     var b = $('.dock__b[data-filtro="' + cur + '"]', dock);
     $$(".dock__b", dock).forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
     if (!b || !pill) return;
-    if (still) dock.classList.add("is-still");
-    pill.style.width = b.offsetWidth + "px"; pill.style.transform = "translateX(" + b.offsetLeft + "px)";
-    if (still) { void pill.offsetWidth; dock.classList.remove("is-still"); }
+    /* la pillola a molle di moto.js (CASA.md 2d E); senza, la transizione CSS di prima */
+    if (I.moto && I.moto.pill) I.moto.pill(b, !!still);
+    else {
+      if (still) dock.classList.add("is-still");
+      pill.style.width = b.offsetWidth + "px"; pill.style.transform = "translateX(" + b.offsetLeft + "px)";
+      if (still) { void pill.offsetWidth; dock.classList.remove("is-still"); }
+    }
   }
   function marks() { tiles.forEach(function (t) { var id = idOf(t); t.classList.toggle("is-dim", id !== "corano" && !inGroup(cur, id)); }); }
   function stopAnims() { anims.forEach(function (a) { try { a.cancel(); } catch (e) { } }); anims = []; tiles.forEach(function (t) { t.style.zIndex = ""; }); grid.classList.remove("is-moving"); }
@@ -97,7 +101,9 @@
       if (!still) {
         /* il viaggio, come le mosse di un cubo: prima lungo la riga, poi lungo la colonna; si parte riga per riga, dall'alto */
         var rows = last.map(function (r) { return Math.round(r.top); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).sort(function (a, b) { return a - b; });
-        tiles.forEach(function (t, i) {
+        /* i viaggi a strati di moto.js (CASA.md 2d E); senza, quelli di prima */
+        if (I.moto && I.moto.viaggio) longest = I.moto.viaggio({ tiles: tiles, first: first, last: last, front: function (t) { return inGroup(f, idOf(t)) || idOf(t) === "corano"; }, anims: anims });
+        else tiles.forEach(function (t, i) {
           var dx = first[i].left - last[i].left, dy = first[i].top - last[i].top;
           if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
           var dist = Math.abs(dx) + Math.abs(dy), dur = Math.round(I.clamp(440 + dist * 0.16, 500, 780)), delay = rows.indexOf(Math.round(last[i].top)) * 26;
@@ -168,6 +174,8 @@
     ".foot__sky", ".foot__cred", ".foot .l9--big i"
   ].join(", ");
   window.__dotKeep = KEEP;                                             /* per gli strumenti di prova */
+  /* la riga della città del globo cambia da sola ogni pochi secondi (Casablanca, Gaza...): per Dot conta tutta la riga, non solo il nome di adesso */
+  $$(".citta__now").forEach(function (e) { e.setAttribute("data-dot-keep", "box"); });
   /* la prima volta in questa sessione del browser? (deciso al caricamento: l'intro deve saperlo prima di finire) */
   var first = true; try { first = sessionStorage.getItem("imad.dot.aperto") !== "1"; } catch (e) { }
   if (I.shot || Q.get("primo") === "0") first = false;
@@ -186,7 +194,8 @@
       /* i posatoi sempre buoni: la mensola (il bordo alto dell'hero, con la scatola), il dock (fisso sullo schermo: ci va in groppa) e il
          logo 3x3 del fondo (data-dot="perch": solo la sua fila di tasti in alto) */
       DOT.start({ tiles: ".testa > .tile, .grid > .tile, .foot [data-dot=\"perch\"]", home: $("#hero"), homeX: HOME_X, parent: clip, look: look, firstVisit: first, keysFormed: !!(first && keysFormed), dark: I.isDark(), bottomInset: bottomInset,
-        keep: KEEP, strict: true, dock: dock, fixedParent: fisso });
+        keep: KEEP, strict: true, dock: dock, fixedParent: fisso,
+        hint: Q.get("suggerimento") !== "no" });   /* il suggerimento che Dot si può toccare (CASA.md 2c C): il dito fantasma, bussa, si accorge del dito */
     } catch (e) { if (window.console) console.error(e); return; }
     seguiPagina();
     if (root.classList.contains("is-sheet") && DOT.pause) DOT.pause();   /* un foglio aperto mentre i tasti volavano: Dot aspetta sotto */

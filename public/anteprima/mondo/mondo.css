@@ -7,6 +7,8 @@
   :root:not([data-theme="light"]) { --mo-bg: #16130f; --mo-ink: #f2ead8; --mo-ink-2: rgba(242, 234, 216, .7); --mo-ink-3: rgba(242, 234, 216, .5); --mo-hair: rgba(242, 234, 216, .14); --bg: #16130f; --bar-glass: rgba(22, 19, 15, .8); --focus: #f2ead8; }
 }
 :root[data-theme="dark"] { --mo-bg: #16130f; --mo-ink: #f2ead8; --mo-ink-2: rgba(242, 234, 216, .7); --mo-ink-3: rgba(242, 234, 216, .5); --mo-hair: rgba(242, 234, 216, .14); --bg: #16130f; --bar-glass: rgba(22, 19, 15, .8); --focus: #f2ead8; }
+/* la pagina è carta anche oltre il bordo: il guscio comune dà a html il cielo della casa, qui no */
+html { background: var(--mo-bg); }
 .mo-corpo { background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--mo-bg); color: var(--mo-ink); }
 .mo-corpo .pg-casa, .mo-corpo .pg-titolo { color: var(--mo-ink); }
 .mo-corpo .pg-testa::before { transition: none; }
@@ -20,7 +22,7 @@ a.pg-titolo { display: inline-flex; align-items: center; min-height: 44px; paddi
 
 .mo { max-width: 720px; padding-top: 28px; }
 .mo-h1 { font: 800 clamp(38px, 11vw, 64px)/1.02 var(--font-sans); letter-spacing: -.05em; margin-left: -.03em; text-wrap: balance; overflow-wrap: break-word; }
-.mo-presto { margin-top: 18px; font: 500 20px/1.5 var(--font-sans); letter-spacing: -.016em; color: var(--mo-ink-2); }
+.mo-presto { margin-top: 18px; font: 500 19px/1.45 var(--font-sans); letter-spacing: -.016em; color: var(--mo-ink-2); }
 
 /* l'indice: i suoi testi, dal più recente; titolo grande, luogo e data sotto */
 .mo-indice { margin-top: 30px; border-top: 1px solid var(--mo-hair); }

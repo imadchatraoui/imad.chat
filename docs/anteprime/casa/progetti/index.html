@@ -3,6 +3,37 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+/* il movimento (../home/moto.css, CASA.md 2d E), prima del primo disegno: html.is-pagina dice a moto.css che questa è una pagina interna;
+   html.vt-<riquadro> dà alla parte uguale di questa pagina il nome del riquadro toccato nella casa (la transizione tra documenti, dove il
+   browser la sa fare; il nome si toglie quando è finita); html.pg-entra fa salire la pagina da sola dove non la sa fare (l'iPhone di
+   Imad, iOS 18.0), mai tornando indietro e mai con «meno movimento». ES2017 al massimo. */
+(function () {
+  var r = document.documentElement, id = "";
+  r.classList.add("is-pagina");
+  try { id = sessionStorage.getItem("imad.vt") || ""; } catch (e) { }
+  if (/^[a-z]+$/.test(id)) {
+    r.classList.add("vt-" + id);
+    var via = function () { r.classList.remove("vt-" + id); };
+    window.addEventListener("pagereveal", function (e) { if (e.viewTransition) e.viewTransition.finished.then(via, via); else via(); });
+    window.addEventListener("pageshow", function (e) { if (e.persisted) via(); });
+  }
+  try {
+    var n = performance.getEntriesByType && performance.getEntriesByType("navigation")[0];
+    var back = (n || {}).type === "back_forward" || !!(performance.navigation && performance.navigation.type === 2);
+    var calm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    if (typeof CSSViewTransitionRule === "undefined" && !calm && !back) {
+      r.classList.add("pg-entra");
+      setTimeout(function () { r.classList.remove("pg-entra"); }, 900);
+    }
+  } catch (e) { }
+})();
+</script>
+<style>
+/* le transizioni tra documenti (moto.css, CASA.md 2d E): l'adesione sta qui, in linea, perché in un foglio esterno Chromium a volte la
+   legge troppo tardi e salta la transizione; con «meno movimento» nessuna pagina la chiede */
+@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }
+</style>
 <title>Progetti — imad.chat</title>
 <meta name="robots" content="noindex">
 <meta name="description" content="I progetti di Imad su GitHub.">
@@ -15,6 +46,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..600&family=Manrope:wght@400..800&display=swap">
 <link rel="stylesheet" href="../comune/pagina.css">
 <link rel="stylesheet" href="progetti.css">
+<link rel="stylesheet" href="../home/moto.css">
 </head>
 <body class="pg-corpo">
 <div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
