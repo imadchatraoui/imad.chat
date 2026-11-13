@@ -151,9 +151,10 @@
     return b;
   };
   /* ------------------------------------------------------------------ il polpastrello fantasma (il suggerimento: Dot si può toccare)
-     Un cerchio chiaro e traslucido di circa 24 px, come il punto di un tocco in una registrazione dello schermo. Non si muove da solo:
+     Un cerchio traslucido di circa 24 px, come il punto di un tocco in una registrazione dello schermo (chiaro sul tema scuro, scuro con un
+     anello sottile sul tema chiaro). Non si muove da solo:
      draw(x, y, a, sc, press, dark) lo mette in (x, y) del suo strato; a = quanto si vede, sc = grandezza (più grande = più lontano
-     dal vetro), press 0..1 = premuto (un filo più piccolo, l'ombra più corta sul tema chiaro). */
+     dal vetro), press 0..1 = premuto (il polpastrello si schiaccia, con un'ombra di contatto sotto). */
   fx.Dito = function (layer) {
     var S = 64, sp = fx.Sprite(layer, S, S, S / 2, S / 2, 9), c = sp.ctx, o = { sp: sp };
     o.draw = function (x, y, a, sc, press, dark) {
@@ -167,12 +168,20 @@
         c.fillStyle = cg; c.beginPath(); c.ellipse(0, r * qy * 0.72 + 2, r * 0.95, r * 0.42, 0, 0, PI * 2); c.fill();
       }
       c.scale(qx, qy);
-      if (!dark) { c.shadowColor = "rgba(8,10,24," + (0.26 * (1 - 0.5 * press)).toFixed(3) + ")"; c.shadowBlur = (9 - 4.5 * press) * sp.dpr; c.shadowOffsetY = (2.8 - 1.8 * press) * sp.dpr; }   /* sul chiaro un'ombra morbida: il dito sta sopra il vetro */
-      g = c.createRadialGradient(-r * 0.22, -r * 0.3, 0, 0, 0, r);
-      g.addColorStop(0, dark ? "rgba(255,255,255,.64)" : "rgba(255,255,255,.9)"); g.addColorStop(1, dark ? "rgba(255,255,255," + (0.34 + 0.08 * press).toFixed(3) + ")" : "rgba(244,245,249," + (0.62 + 0.1 * press).toFixed(3) + ")");
-      c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, PI * 2); c.fill();
-      c.shadowColor = "rgba(0,0,0,0)"; c.shadowBlur = 0; c.shadowOffsetY = 0;
-      c.lineWidth = 1; c.strokeStyle = dark ? "rgba(255,255,255,.72)" : "rgba(18,20,32,.36)"; c.beginPath(); c.arc(0, 0, r - 0.5, 0, PI * 2); c.stroke();
+      if (dark) {
+        g = c.createRadialGradient(-r * 0.22, -r * 0.3, 0, 0, 0, r);
+        g.addColorStop(0, "rgba(255,255,255,.64)"); g.addColorStop(1, "rgba(255,255,255," + (0.34 + 0.08 * press).toFixed(3) + ")");
+        c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, PI * 2); c.fill();
+        c.lineWidth = 1; c.strokeStyle = "rgba(255,255,255,.72)"; c.beginPath(); c.arc(0, 0, r - 0.5, 0, PI * 2); c.stroke();
+      } else {
+        /* sul chiaro (2026-11-13): un disco scuro traslucido con un anello sottile, come il punto di un tocco in una registrazione dello schermo
+           (il disco bianco sul cielo quasi bianco si leggeva come una macchiolina sul fez); fuori dall'anello un filo chiaro, che si vede solo sul pelo nero */
+        g = c.createRadialGradient(0, 0, 0, 0, 0, r);
+        g.addColorStop(0, "rgba(20,24,40," + (0.22 + 0.06 * press).toFixed(3) + ")"); g.addColorStop(1, "rgba(20,24,40," + (0.3 + 0.06 * press).toFixed(3) + ")");
+        c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, PI * 2); c.fill();
+        c.lineWidth = 1; c.strokeStyle = "rgba(20,24,40,.45)"; c.beginPath(); c.arc(0, 0, r - 0.5, 0, PI * 2); c.stroke();
+        c.lineWidth = 0.75; c.strokeStyle = "rgba(255,255,255,.5)"; c.beginPath(); c.arc(0, 0, r + 0.4, 0, PI * 2); c.stroke();
+      }
       c.restore();
     };
     o.move = function (parent) { if (parent && sp.cv.parentNode !== parent) parent.appendChild(sp.cv); };   /* nello strato fisso o nella pagina, come il gatto */
