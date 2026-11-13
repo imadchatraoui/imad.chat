@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tools — imad.chat</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="Piccoli strumenti che funzionano sul tuo telefono.">
+<meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
+<!-- TOOLS: l'indice degli strumenti, per famiglie. Le schede le scrive indice.js da un solo elenco (STRUMENTI, in cima al file):
+     uno strumento nuovo è una riga lì, più il suo indirizzo qui sotto in <template id="tiIndirizzi"> quando è pronto.
+     Ogni scheda ha un piccolo disegno vivo di quello che lo strumento fa (un codice QR vero, cinque colori, un valore che rotola). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&display=swap">
+<link rel="stylesheet" href="../comune/pagina.css">
+<link rel="stylesheet" href="indice.css">
+</head>
+<body class="pg-corpo">
+<div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
+
+<header class="pg-testa">
+  <a class="pg-casa" href="../home/index.html" aria-label="imad.chat, torna alla casa"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <p class="pg-titolo">Tools</p>
+</header>
+
+<main class="pg ti">
+  <h1 class="pg-h1">Tools</h1>
+  <p class="pg-lead">Piccoli strumenti, fatti con cura. Funzionano sul tuo telefono: quello che ci metti resta lì, non viene caricato da nessuna parte.</p>
+
+  <!-- le famiglie e le schede: le scrive indice.js -->
+  <div class="ti-famiglie" id="tiFamiglie"></div>
+
+  <noscript><p class="pg-p">Le schede hanno bisogno di JavaScript. Lo strumento pronto: <a href="qr/index.html">QR Studio</a>.</p></noscript>
+</main>
+
+<!-- gli indirizzi degli strumenti pronti, uno per strumento (data-strumento = id in STRUMENTI). Stanno qui e non nello script
+     perché la build riscrive gli indirizzi dell'HTML e mai quelli dentro gli script. Uno strumento senza indirizzo resta «Presto». -->
+<template id="tiIndirizzi">
+  <a data-strumento="qr" href="qr/index.html">QR Studio</a>
+</template>
+
+<footer class="pg-piede"><a href="../home/index.html">Torna alla home</a><span>Il cielo di questa pagina è quello di Torino, adesso.</span></footer>
+
+<script src="../../shared/astro-lite.js"></script>
+<script src="../comune/pagina.js"></script>
+<script src="qr/vendor/qrcode-generator.js"></script>
+<script src="qr/qr-core.js"></script>
+<script src="indice.js"></script>
+</body>
+</html>

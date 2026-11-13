@@ -1,0 +1,75 @@
+/* imad.chat — Tools, l'indice. Sopra il guscio comune (../comune/pagina.css): le famiglie e le schede degli strumenti.
+   Una scheda pronta è vetro in rilievo e tutta la scheda è il link; una «Presto» è piatta, più quieta, e non è un link.
+   Safari non recente: niente :has() in una lista, top/right/bottom/left scritti per esteso. */
+
+/* ------------------------------------------------------------------ le famiglie */
+.ti-famiglie { margin-top: 8px; }
+.ti-fam { margin-top: 34px; }
+.ti-fam__t { font: 700 22px/1.15 var(--font-sans); letter-spacing: -.032em; }
+.ti-lista { margin-top: 14px; display: grid; grid-template-columns: 1fr; gap: 12px; }
+
+/* ------------------------------------------------------------------ la scheda */
+.ti-card { display: flex; flex-direction: column; padding: 8px 8px 18px; transition: transform 240ms var(--ease-out), opacity 460ms var(--ease-out); }
+.ti-card.is-prima { opacity: 0; transform: translateY(12px); transition: none; }
+
+/* il disegno vivo: una tela su un fondo appena incassato, con gli angoli concentrici a quelli della scheda */
+.ti-scena {
+  position: relative; height: 152px; overflow: hidden; border-radius: calc(var(--r) - 8px);
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair);
+  transition: background 200ms ease;
+}
+.ti-cv { position: absolute; top: 0; left: 0; display: block; width: 100%; height: 100%; }
+
+.ti-testo { padding: 14px 12px 0; }
+.ti-riga { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ti-nome { min-width: 0; font: 700 19px/1.25 var(--font-sans); letter-spacing: -.026em; }
+.ti-cosa { margin-top: 5px; max-width: 30em; font: 500 14.5px/1.45 var(--font-sans); letter-spacing: -.008em; color: var(--ink-2); text-wrap: pretty; }
+
+/* pronta: il nome è il link e la sua area copre tutta la scheda */
+.ti-a { color: var(--ink); }
+.ti-a::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 2; border-radius: var(--r); }
+.ti-a:focus-visible { outline: none; }
+.ti-a:focus-visible::after { box-shadow: inset 0 0 0 2.5px var(--focus); }
+.ti-go { flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin-right: -4px; border-radius: 14px; color: var(--ink-2); background: var(--fill); transition: transform 240ms var(--ease-out), background 200ms ease, color 200ms ease; }
+.ti-go svg { display: block; }
+.ti-card.is-pronto:active { transform: scale(.975); transition-duration: var(--d-press); }
+.ti-card.is-pronto:active .ti-scena { background: var(--fill-2); }
+
+/* presto: piatta (niente rilievo, niente ombra), il disegno più quieto, la parola «Presto» al posto della freccia */
+.ti-card.is-presto { background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); }
+.ti-card.is-presto::after { display: none; }
+.ti-card.is-presto .ti-scena { background: transparent; }
+.ti-card.is-presto .ti-cv { opacity: .74; }
+.ti-card.is-presto .ti-nome { color: var(--ink-2); }
+.ti-presto {
+  flex: none; display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 12px;
+  font: 600 12px/1 var(--font-sans); letter-spacing: .01em; color: var(--ink-2);
+  background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair);
+}
+
+/* ------------------------------------------------------------------ schermi più larghi */
+/* sui più larghi le famiglie stanno in una griglia di colonne uguali: ognuna ne prende tante quante schede ha (--n2, --n3,
+   scritti da indice.js), così due famiglie piccole stanno sulla stessa riga e una grande va a capo da sola */
+@media (min-width: 700px) {
+  .ti-famiglie { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; }
+  .ti-fam { margin-top: 40px; grid-column: span var(--n2, 1); display: flex; flex-direction: column; }
+  .ti-fam .ti-lista { flex: 1 1 auto; }          /* le schede di una riga sono alte uguali, anche di famiglie diverse */
+  .ti-fam__t { font-size: 24px; }
+  .ti-lista { grid-template-columns: repeat(var(--n2, 1), minmax(0, 1fr)); gap: 14px; }
+  .ti-scena { height: 172px; }
+}
+@media (min-width: 1100px) {
+  .ti-famiglie { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 16px; }
+  .ti-fam { grid-column: span var(--n3, 1); }
+  .ti-lista { grid-template-columns: repeat(var(--n3, 1), minmax(0, 1fr)); gap: 16px; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .ti-card.is-pronto:hover { transform: translateY(-3px); }
+  .ti-card.is-pronto:hover .ti-go { color: var(--ink); background: var(--fill-2); transform: translateX(2px); }
+  .ti-card.is-pronto:active { transform: translateY(-1px) scale(.98); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ti-card, .ti-go, .ti-scena { transition: none; }
+  .ti-card.is-pronto:hover, .ti-card.is-pronto:hover .ti-go { transform: none; }
+  .ti-card.is-pronto:active { transform: none; }
+}

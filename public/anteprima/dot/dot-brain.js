@@ -647,7 +647,10 @@
     },
     peek: function (dt, d) {                                           /* spunta dal bordo: orecchie, occhi, due zampe; si guarda attorno; poi sale davvero */
       if (!d.p) { cat.vis = false; return set("wait"); }                 /* il suo riquadro non c'è più */
-      cat.vis = true; var st = cat.st, p = d.p, k = px(), P0 = rig.poses.peek; cat.plat = p; cat.x = d.x; cat.gy = null; cat.clipAt = p.y; cat.hideL = p.tile.l; cat.hideR = p.tile.r; rig.grounded = false;
+      cat.vis = true; var st = cat.st, p = d.p, k = px(), P0 = rig.poses.peek;
+      if (O.strict && (p.quiet || p.low) && !d.first && !d.ab && st < 1.6) { d.ab = now; d.ay = cat.y; }   /* un filtro ha messo una parola (o il riquadro quiet) sopra quel bordo: torna giù, dietro lo stesso bordo */
+      if (d.ab) { var ua = seg(now, d.ab, d.ab + 0.2); cat.plat = p; cat.x = d.x; cat.clipAt = p.y; cat.hideL = p.tile.l; cat.hideR = p.tile.r; rig.grounded = false; rig.pose = "peek"; cat.y = lerp(d.ay, p.y + 34 * k, ua * ua);
+        if (ua >= 1) { cat.vis = false; cat.plat = null; cat.clipAt = null; cat.hideL = cat.hideR = null; set("wait"); } return; } cat.plat = p; cat.x = d.x; cat.gy = null; cat.clipAt = p.y; cat.hideL = p.tile.l; cat.hideR = p.tile.r; rig.grounded = false;
       if (!d.dir) d.dir = room(p, d.x, 1) > room(p, d.x, -1) ? 1 : -1;
       if (!d.init) { d.init = 1; cat.face = "front"; rig.yawT = Y.front; rig.pose = "peek"; rig.over = d.ready ? {} : { f0y: P0.f0y - 9, f1y: P0.f1y - 9 }; rig.snap("peek"); cat.voff = 0; cat.voffV = 0; cat.rot = 0; if (d.ready) cat.paws = true; }   /* d.ready: c'è già, sbirciando (una visita successiva) */
       var tUp = 0.55, t1 = tUp + (d.first ? 2.0 : 1.7) + (d.hold || 0), c = st - t1;
@@ -1279,9 +1282,10 @@
     if (near != null) c.push(clamp(near, p.a + 8, p.b - 8));
     c.push(p.b - rr(6, 26), p.a + rr(6, 26), m + w * 0.22, m - w * 0.22, m);
     for (x = p.a + 8; x <= p.b - 8; x += 12) c.push(x);
-    if (moving) { for (i = 0; i < c.length; i++) if (!dockBlocked(c[i])) return c[i]; return null; }   /* la pagina scorre: le parole passano, contano solo il Corano e il riquadro quiet */
+    if (moving) { for (i = 0; i < c.length; i++) if (!dockBlocked(c[i], 30 + Math.abs(B.vy || 0) * 0.7)) return c[i]; return null; }   /* la pagina scorre: le parole passano, contano solo il Corano e il riquadro quiet (con più margine: non risale per riscendere subito) */
     for (i = 0; i < c.length; i++) if (!dockBlocked(c[i]) && !dockWords(c[i])) return c[i];   /* meglio dove dietro non c'è nessuna parola */
     for (i = 0; i < c.length; i++) if (!dockBlocked(c[i]) && !dockWords(c[i], true)) return c[i];   /* se no almeno dove non c'è un comando */
+    for (i = 0; i < c.length; i++) if (!dockBlocked(c[i])) return c[i];   /* se no comunque (poi si fa piccolo, e la maniglia lascia passare i tocchi) */
     return null;
   }
   /* fermo sul dock con una parola o un comando dietro (la pagina si è fermata lì): due passi fino a un punto libero della pillola, se c'è */
@@ -1349,6 +1353,8 @@
       if (!d.init) { d.init = 1; cat.face = "front"; rig.yawT = Y.front; rig.pose = "peek"; rig.over = { f0y: P0.f0y - 9, f1y: P0.f1y - 9 }; rig.snap("peek"); cat.voff = 0; cat.voffV = 0; cat.rot = 0; cat.s = 1;
         d.dir = cat.x > (p.a + p.b) / 2 ? -1 : 1; if (d.hold == null) d.hold = rr(0.55, 0.95); }
       var tUp = 0.46, t1 = tUp + d.hold, c = st - t1;
+      if (!d.ab && st > 0.05 && dockBlocked(cat.x)) { d.ab = now; d.ay = cat.y; }   /* arriva il Corano o il riquadro quiet mentre sale: torna giù, svelto */
+      if (d.ab) { var ua = seg(now, d.ab, d.ab + 0.14); cat.y = lerp(d.ay, p.y + 52 * k, 1 - (1 - ua) * (1 - ua)); rig.pose = st < t1 ? "peek" : "sit"; if (ua >= 1) { cat.vis = false; cat.plat = null; cat.clipAt = null; cat.hideL = cat.hideR = null; set("ducked", { x: cat.x }); } return; }
       if (st < t1) {
         rig.pose = "peek"; cat.face = "front"; rig.rate = 12;
         cat.y = p.y + (1 - eBack(seg(st, 0, tUp), 1.5)) * 27 * k;            /* le orecchie per prime, un filo oltre e giù */
@@ -1383,7 +1389,7 @@
       cat.vis = false; var p = world.dock; if (!p || !p.on) return set("wait"); d.w = (d.w || 0) + dt;
       if (d.w > 0.4 && now - (B.scrollAt || -9) > 0.6) { var c = perchChoice(true) || (homeSeen() ? perchChoice() : null); if (c && c.kind !== "dock") return arrive(c); }   /* intanto si vede casa (o il logo): va lì */
       if (d.w > 0.45) {                                                  /* appena la sua zona è libera (mentre scorre basta che non ci sia il Corano o il riquadro quiet) */ var x = dockPickX(d.x); if (x != null) { cat.plat = p; cat.x = x; cat.y = p.y; return set("dockup", { x: x, hold: rr(0.3, 0.5) }); } }
-      if (d.w > 6) set("wait");
+      if (d.w > 6) { B.offT = O.followAfter || 3.6; strictBack(); }    /* troppo a lungo: prova subito un altro posatoio (se non ce n'è, aspetta fuori vista) */
     }
   });
   /* il dito sul dock: guarda giù il filtro toccato */
@@ -1437,12 +1443,12 @@
       /* la pagina si è fermata con una parola dietro di lui: due passi fino a un punto libero della pillola, se è vicino. Con un comando
          dietro (un campo, un bottone, un link, il QR) non resta: si sposta, o giù dietro la pillola finché la pagina non si muove */
       life.dockMoveAt = now + 1.2; var ctl = dockWords(cat.x, true), cx = dockClearX(false, 260), lowx = null;
-      if (cx == null) lowx = dockClearX(ctl, 260, true);                  /* nessun punto libero da seduto: forse ci sta a pagnotta, più basso */
-      if (cx == null && lowx == null && ctl) cx = dockClearX(true, 260);
+      if (cx == null) lowx = dockClearX(false, 260, true);                /* nessun punto libero da seduto: forse ci sta a pagnotta, più basso */
+      if (cx == null && lowx == null && ctl) { cx = dockClearX(true, 260); if (cx == null) lowx = dockClearX(true, 260, true); }   /* almeno nessun comando dietro */
       var dd = cx != null ? Math.abs(cx - cat.x) : lowx != null ? Math.abs(lowx - cat.x) : 0, go = { gait: dd > 50 ? "trot" : "walk" }; if (dd > 120) go = { speed: 118 };
       if (cx != null) return walkTo(clamp(cx, p.a + 2, p.b - 2), "sit", go);
       if (lowx != null) { var lf = function () { set("loaf", { dur: rr(6, 10), face: "view", pose: "loaf" }); }; if (dd < 4) return lf(); return walkTo(clamp(lowx, p.a + 2, p.b - 2), lf, go); }
-      if (ctl) return set("dockdown", { duck: true });
+      if (ctl && s !== "loaf" && s !== "sleep") return set("loaf", { dur: rr(5, 8), face: "view", pose: "loaf" });   /* nessun posto pulito: si fa piccolo; la maniglia non copre i comandi (render), un tocco va al comando */
     }
     if (!DOCKCALM[s]) { life.watching = 0; return; }
     if (cat.d.lookAt && cat.st < 1.1) cat.att = cat.d.lookAt;        /* appena salito: guarda il riquadro che se ne va */
@@ -1631,6 +1637,7 @@
     if (free) { var gxp, gyp; if (drag && drag.moved) { gxp = drag.x; gyp = drag.y; } else { var b = f.body, mx = (b.hips.x + b.chest.x) / 2 * 0.6 + f.head.x * 0.4, my = (b.hips.y + b.chest.y) / 2 * 0.6 + f.head.y * 0.4; gxp = cat.x + mx * k; gyp = Oy - my * k; }
       if (dockOn() && !(drag && drag.moved)) { var dk = world.dock.tile, gt = gyp - 38; if (gxp + 38 > dk.l && gxp - 38 < dk.r && gt + 76 > dk.t) gh = Math.floor(dk.t - 1 - gt); }
       if (gh < 30) free = false;
+      else if (O.strict && !(drag && drag.moved)) { var j, kn, gx0 = gxp - 34, gx1 = gxp + 34, gy0 = gyp - 38, gy1 = gyp - 38 + gh; for (j = 0; j < world.keep.length; j++) { kn = world.keep[j]; if (kn.c && gx1 > kn.l && gx0 < kn.r && gy1 > kn.t && gy0 < kn.b) { free = false; break; } } }   /* sopra un comando la maniglia non c'è: il tocco arriva al comando */
       else { grab.style.transform = "translate3d(" + (gxp - 38 - gox).toFixed(1) + "px," + (gyp - 38 - goy).toFixed(1) + "px,0)"; if (grab.style.display === "none") grab.style.display = "block";
         if (gh !== B.grabH) { B.grabH = gh; grab.style.height = gh + "px"; } } }
     if (!free && grab.style.display !== "none" && !(drag && drag.moved)) grab.style.display = "none";
