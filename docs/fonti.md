@@ -263,6 +263,18 @@ Il motore dei codici QR (`docs/anteprime/casa/tools/qr/qr-core.js`, scritto da n
 
 “QR Code” è un marchio registrato di DENSO WAVE INCORPORATED.
 
+## Strumenti: Palette
+
+Palette (`docs/anteprime/casa/tools/palette/`: `colore.js` il motore, `palette.js` la pagina) non copia librerie né file da fuori: tutto il codice è scritto da noi. Le formule e gli elenchi vengono da qui (letti il 2026-11-13):
+
+- **OKLab e OKLCH**: le due matrici e la radice cubica sono quelle pubblicate da Björn Ottosson in «A perceptual color space for image processing» (2020), https://bottosson.github.io/posts/oklab/ ; lo stesso spazio è definito in **CSS Color Module Level 4** (W3C), https://www.w3.org/TR/css-color-4/ (OKLab, OKLCH). La prova: 20 000 colori sRGB a caso, HEX → OKLCH → HEX, tornano tutti uguali.
+- **Colori fuori dallo schermo**: si tiene la luce e la tinta e si abbassa la croma con una ricerca binaria finché il colore sta in sRGB, l'idea del «gamut mapping» di CSS Color 4 (§ 13) senza la sua tolleranza; la pagina dice quando lo fa e di quanto.
+- **I nomi dei colori**: i 148 colori con nome di CSS Color 4, § 6.1 «Named Colors» (W3C), https://www.w3.org/TR/css-color-4/#named-colors ; 139 valori diversi (dei doppioni resta il primo in ordine alfabetico: aqua e non cyan, fuchsia e non magenta, gray e non grey). Ogni valore è stato riletto da Chromium (il nome scritto come colore in un canvas dà lo stesso HEX dell'elenco, 139 su 139). Nomi in italiano: non ancora, perché non abbiamo trovato un elenco con una fonte e una licenza chiare.
+- **Il contrasto**: luminanza relativa e rapporto di contrasto come li definisce **WCAG 2.2** (W3C), https://www.w3.org/TR/WCAG22/#dfn-relative-luminance e #dfn-contrast-ratio (soglia 0,04045; il vecchio 0,03928 cambia il risultato solo dalla quinta cifra), con le soglie dei criteri 1.4.3 e 1.4.6: 4,5 e 7 per il testo normale, 3 e 4,5 per il testo grande (24 px, o 18,66 px in grassetto). Il rapporto si mostra troncato a due decimali, mai arrotondato per eccesso.
+- **I colori di una foto**: k-means in OKLab con l'inizio «k-means++» di D. Arthur e S. Vassilvitskii («k-means++: The Advantages of Careful Seeding», 2007), su una copia della foto di al più 128 px di lato, sul dispositivo. Il generatore con seme è **mulberry32** (Tommy Ettinger, dominio pubblico).
+- **Le armonie** (analoga, complementare, divisa, triade, sfumature, neutri, libera) sono ricette nostre in OKLCH, non prese da un'altra applicazione; nessuna usa i colori del tema Kukko del cubo.
+- I caratteri sono le copie già descritte sopra (Manrope e Geist Mono, in `comune/pagina.css`).
+
 ## Il gioco del cubo
 
 La pagina `/anteprima/progetti/cubo` (sorgente `docs/anteprime/casa/progetti/cubo/`) fa giocare il fork di Imad di «The Cube». Letto il 2026-11-13.
