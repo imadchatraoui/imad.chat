@@ -265,7 +265,7 @@
     rig.over = {}; rig.walkT = 0; rig.pitchT = 0; rig.rollT = 0; rig.longT = 0; rig.tailSwish = 0; rig.tailRate = 0; rig.grounded = true; rig.rate = 12; rig.pupilT = 0.8; rig.pupilDotT = 0;
     rig.headMax = HEADMAX; rig.breathRate = 1.9; rig.turn = 9;
     rig.poseAs = null; rig.edge = null; rig.eyeMood = null; rig.faceTurn = null; rig.gaitT = null; cat.moodKeys = null;
-    cat.clipAt = null; cat.clipTop = null; cat.hideL = cat.hideR = null; cat.paws = false; cat.att = null; cat.gz = true; cat.ownRot = false;
+    cat.clipAt = null; cat.clipTop = null; cat.hideL = cat.hideR = null; cat.boxW = null; cat.shadowA = null; cat.paws = false; cat.att = null; cat.gz = true; cat.ownRot = false;
     if (cat.d.face) cat.face = cat.d.face; if (cat.d.pose) rig.pose = cat.d.pose;
   }
   function think() { if (reduced) return sitFor(1e9); set("think"); }   /* movimento ridotto: resta seduto */
@@ -371,6 +371,7 @@
     for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (q.quiet || q.low || q === cat.plat) continue; tx = clamp(cat.x, q.a + 6, q.b - 6);
       if (Math.abs(q.y - cat.y) > 520 || Math.abs(tx - cat.x) > 380 || arcBlocked(cat.x, cat.y, tx, q.y)) continue; var sc = hyp(tx - cat.x, q.y - cat.y); if (sc < bs) { bs = sc; best = { p: q, x: tx }; } }
     if (best) return jumpTo(best.p, best.x, "sit", { quick: true });
+    if (dropped() && hopAway()) return;                                 /* appena lasciato: si sposta in vista, non sparisce */
     if (cat.plat) return set("dive", { away: true, face: "side", pose: "crouch" });
     cat.vis = false; set("wait");
   }
@@ -429,10 +430,10 @@
   }
   function pathNo(x0, y0, x1, y1) { var n = Math.max(1, Math.ceil(hyp(x1 - x0, y1 - y0) / 14)), i; for (i = 1; i <= n; i++) if (boxNo(lerp(x0, x1, i / n), lerp(y0, y1, i / n))) return true; return false; }
   /* il salto vero (lo stesso arco di arc(), con lo stesso apice) passa davanti al Corano? controlla tutto il corpo, non solo i piedi */
-  function arcBlocked(x0, y0, x1, y1, c) {
+  function arcBlocked(x0, y0, x1, y1, c, noKeep) {                 /* noKeep: conta solo il Corano (dopo un rilascio, vedi hopAway) */
     var d = arc(x0, y0, x1, y1, c), i, u, tt, x, y, lx = x0, ly = y0;
     for (i = 1; i <= 24; i++) { u = i / 24; tt = u * d.dur; x = lerp(x0, x1, u); y = y0 + d.vy0 * tt + 0.5 * GRAV * tt * tt; if (pathNo(lx, ly, x, y)) return true; lx = x; ly = y; }
-    return O.strict ? arcKeep(x0, y0, x1, y1, c) : false;
+    return O.strict && !noKeep ? arcKeep(x0, y0, x1, y1, c) : false;
   }
   /* «strict» (la casa): un viaggio non passa mai davanti a una parola, a un comando, al riquadro quiet o dietro il dock.
      Il corpo in volo è un rettangolo attorno ai piedi (x, y): largo 2 hw, alto hh sopra i piedi */
@@ -456,20 +457,58 @@
       if (pathNo(lx, ly, x, y)) { if (out) return -1; n++; } else out = true; lx = x; ly = y; }
     return boxNo(x1, y1) ? -1 : n;
   }
+  /* lasciato (o lanciato) da chi guarda da poco: sulla casa allora non sparisce mai dietro un bordo. Dove atterra resta in vista e, se lì
+     non può stare (parole sopra il bordo, il riquadro quiet, il Corano vicino), ci va via camminando o con un salto che si vede */
+  function behindDock(q, x) { var d = world.dock; return !!(d && d.on && q.y > d.y - 10 && clamp(x, q.a, q.b) > d.tile.l - 20 && clamp(x, q.a, q.b) < d.tile.r + 20); }   /* un bordo sotto il dock: saltandoci si finirebbe sulla pillola */
+  function dropped() { return !!O.strict && !reduced && now - (B.dropAt == null ? -99 : B.dropAt) < 8; }
+  /* da un bordo dove non può restare, dopo un rilascio: due passi sullo stesso bordo; se no un salto (mai davanti al Corano; davanti a una
+     parola solo per l'attimo del volo) al posatoio buono in vista: la mensola, il logo, un bordo libero, il dock; se no un tratto dove può
+     stare sdraiato. false: niente di tutto questo (allora chi chiama fa come prima) */
+  function hopAway() {
+    var p = cat.plat; if (!p || p.fixed || reduced) return false;
+    if (unblock(1, true)) return true;
+    var c = perchChoice(), x, v, i, q;
+    if (c && c.p && c.p !== p && !arcBlocked(cat.x, cat.y, c.x, c.p.y, null, true)) { jumpTo(c.p, c.x, "sit", { quick: true }); return true; }
+    var ds = dropDock(cat.x); q = world.dock;
+    if (ds && !ds.peek && !arcBlocked(cat.x, cat.y, ds.x, q.y, null, true)) { jumpTo(q, ds.x, "sit", { quick: true }); return true; }   /* il dock, dove ci si siede senza coprire parole */
+    v = visPlats(true); v.sort(function (a, b) { return Math.abs(a.y - cat.y) - Math.abs(b.y - cat.y); });
+    for (i = 0; i < v.length; i++) { q = v[i]; if (q === p || q.b - q.a < 44) continue; x = clamp(cat.x, q.a + 14, q.b - 14);
+      if (!arcBlocked(cat.x, cat.y, x, q.y, null, true)) { jumpTo(q, x, function () { set("loaf", { dur: rr(5, 9), face: "view", pose: "loaf" }); }, { quick: true }); return true; } }
+    var v2 = [], e = p.tile && p.tile.mode !== "quiet" && !underNo(cat.x, p.y) ? edgePeekAt(p, cat.x) : null;   /* niente in vista: si cala dietro questo bordo e sbircia, dove non copre parole */
+    for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (q !== p && q.cov && q.tile.mode !== "quiet" && q.b - q.a >= 30 && inView(q.y, 60, 20) && !underNo(clamp(cat.x, q.a, q.b), q.y) && Math.abs(q.y - cat.y) < 420) v2.push(q); }
+    v2.sort(function (a, b) { return hyp(clamp(cat.x, a.a, a.b) - cat.x, a.y - cat.y) - hyp(clamp(cat.x, b.a, b.b) - cat.x, b.y - cat.y); });
+    if (e) { var go = function () { set("edgepeek", { p: p, x: cat.x, lv: e.lv }); }; if (Math.abs(e.x - cat.x) > 3) walkTo(e.x, go, { lo: Math.min(cat.x, p.a), hi: Math.max(cat.x, p.b) }); else go(); return true; }
+    for (i = 0; i < v2.length; i++) { q = v2[i]; e = edgePeekAt(q, clamp(cat.x, q.a + 6, q.b - 6)); if (!e || arcBlocked(cat.x, cat.y, e.x, q.y, null, true)) continue;   /* un altro bordo in vista, sotto le parole: ci salta e sbircia da dietro */
+      jumpTo(q, e.x, (function (qq, lv) { return function () { set("edgepeek", { p: qq, x: cat.x, lv: lv }); }; })(q, e.lv), { quick: true }); return true; }
+    q = world.dock; if (ds && !arcBlocked(cat.x, cat.y, ds.x, q.y, null, true)) { jumpTo(q, ds.x, "sit", { quick: true }); return true; }   /* il dock, sbirciando da dietro la pillola */
+    var far = null, fs = 1e9;                                          /* in vista non c'è niente: un salto che si vede, verso il bordo buono più vicino anche fuori dallo schermo (poi la regola del seguire) */
+    for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (q === p || q.quiet || q.low || Math.abs(q.y - cat.y) > 1500 || behindDock(q, cat.x)) continue; x = clamp(cat.x, q.a + 6, q.b - 6); if (underNo(x, q.y)) continue;
+      var sc = hyp(x - cat.x, q.y - cat.y); if (sc < fs && !arcBlocked(cat.x, cat.y, x, q.y, null, true)) { fs = sc; far = { p: q, x: x }; } }
+    if (far) { jumpTo(far.p, far.x, "sit", { quick: true }); return true; }
+    return false;
+  }
   /* via da davanti al Corano (o da una caduta che ci passerebbe davanti): un salto vero, da dove è, al bordo migliore.
      Mai un arco che passa davanti al Corano (se parte già lì, ne esce e non ci rientra), mai un arrivo sotto il Corano o sul
      riquadro quiet; meglio i bordi visibili, vicini, verso l'alto. Se non c'è nessun salto pulito: si nasconde dietro il suo
      bordo (se ne ha uno) e torna altrove, oppure torna subito altrove (comeBack) */
   function escapeJump() {
-    var i, j, q, tx, n, sc, best = null, bs = 1e9, inside = boxNo(cat.x, cat.y), H = [24, 8, 60], clean = null, cs = 1e9;
-    for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (q.quiet || q.low) continue; tx = clamp(cat.x, q.a + 6, q.b - 6); if (underNo(tx, q.y)) continue;
+    var i, j, q, tx, n, sc, best = null, bs = 1e9, inside = boxNo(cat.x, cat.y), H = [24, 8, 60], clean = null, cs = 1e9, drop = dropped();
+    for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (q.quiet || q.low || (drop && !inView(q.y, 60, 20))) continue; tx = clamp(cat.x, q.a + 6, q.b - 6); if (underNo(tx, q.y)) continue;   /* appena lasciato: solo dove lo si vede */
       for (j = 0; j < H.length; j++) { n = escArc(cat.x, cat.y, tx, q.y, H[j]); if (n < 0 || n > 3) continue;   /* da davanti al Corano se ne esce subito (al massimo 3 campioni su 24), mai attraversandolo */
         sc = hyp(tx - cat.x, q.y - cat.y) + n * 8 + j * 30 + (inView(q.y, 60, 20) ? 0 : 500) + (inside && q.y > cat.y + 20 ? 140 : 0);
         if (sc < bs) { bs = sc; best = { p: q, x: tx, h: H[j] }; }
         if (O.strict && sc < cs && !arcKeep(cat.x, cat.y, tx, q.y, H[j])) { cs = sc; clean = { p: q, x: tx, h: H[j] }; }   /* sulla casa: meglio un salto che non passa davanti a una parola */
         break; } }
-    if (O.strict && !clean && cat.plat && onEdge() && !onDock()) return set("dive", { away: true, face: "side", pose: "crouch" });   /* nessun salto pulito: giù dietro il suo bordo, poi torna da un posto buono */
-    if (O.strict && clean) best = clean;
+    var ds = drop && !onDock() ? dropDock(cat.x) : null;
+    if (ds && !ds.peek) { q = world.dock; tx = ds.x;                   /* appena lasciato dal visitatore: anche la cima del dock, dove ci si siede senza coprire parole */
+      for (j = 0; j < H.length; j++) { n = escArc(cat.x, cat.y, tx, q.y, H[j]); if (n < 0 || n > 3) continue; sc = hyp(tx - cat.x, q.y - cat.y) + n * 8 + j * 30 + 60; if (sc < bs) { bs = sc; best = { p: q, x: tx, h: H[j] }; } break; } }
+    if (drop && !best) for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (!q.cov || q.tile.mode === "quiet" || !inView(q.y, 60, 20)) continue; tx = clamp(cat.x, q.a + 6, q.b - 6); if (underNo(tx, q.y)) continue;   /* e se no un bordo sotto le parole che si vede: ci atterra, poi sbircia da dietro (hopAway) */
+      for (j = 0; j < H.length; j++) { n = escArc(cat.x, cat.y, tx, q.y, H[j]); if (n < 0 || n > 3) continue; sc = hyp(tx - cat.x, q.y - cat.y) + n * 8 + j * 30; if (sc < bs) { bs = sc; best = { p: q, x: tx, h: H[j] }; } break; } }
+    if (O.strict && !clean && !drop && cat.plat && onEdge() && !onDock()) return set("dive", { away: true, face: "side", pose: "crouch" });   /* nessun salto pulito: giù dietro il suo bordo, poi torna da un posto buono */
+    if (O.strict && clean && !(drop && best && best.p.fixed && bs < cs - 200)) best = clean;   /* appena lasciato: un salto che passa davanti a una parola per un attimo è meglio che sparire (CASA.md 2c E vale per i viaggi suoi) */
+    if (!best && drop && cat.plat && onEdge() && hopAway()) return;
+    if (!best && drop) for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (q.quiet || q.low || Math.abs(q.y - cat.y) > 1500 || behindDock(q, cat.x)) continue; tx = clamp(cat.x, q.a + 6, q.b - 6); if (underNo(tx, q.y)) continue;   /* in vista non c'è niente: un salto che si vede, anche se arriva fuori dallo schermo (poi la regola del seguire) */
+      for (j = 0; j < H.length; j++) { n = escArc(cat.x, cat.y, tx, q.y, H[j]); if (n < 0 || n > 3) continue; sc = hyp(tx - cat.x, q.y - cat.y) + n * 8 + j * 30; if (sc < bs) { bs = sc; best = { p: q, x: tx, h: H[j] }; } break; } }
     if (!best) { if (cat.plat && onEdge()) return set("dive", { away: true, face: "side", pose: "crouch" }); return comeBack(); }   /* sul bordo: giù dietro il bordo (si allontana dal Corano), poi torna altrove */
     cat.plat = null; cat.dir = best.x >= cat.x ? 1 : -1;
     set("air", arc(cat.x, cat.y, best.x, best.p.y, best.h, { q: best.p, then: "shake", face: "side", pose: "air" }));
@@ -508,6 +547,7 @@
     if (unblock(k)) return;
     if (k === 2) return escapeJump();
     var o = jumpTargets(cat.plat, 420); if (o.length) { o.sort(function (a, b) { return hyp(a.x - cat.x, a.p.y - cat.y) - hyp(b.x - cat.x, b.p.y - cat.y); }); return jumpTo(o[0].p, o[0].x, "sit", { quick: true }); }
+    if (dropped() && hopAway()) return;                                 /* appena lasciato: si sposta in vista, non sparisce */
     set("dive", { away: true, face: "side", pose: "crouch" });
   }
   function clearHeld() { var i; for (i = 0; i < props.length; i++) if (props[i].held) dropProp(props[i]); }
@@ -730,6 +770,7 @@
     if (cat.vis && lowNow() && onEdge()) { cat.taps = []; life.earFlick = 1; var lo = jumpTargets(cat.plat, 420); if (lo.length && s !== "crouch") { lo.sort(function (a, b) { return hyp(a.x - cat.x, a.p.y - cat.y) - hyp(b.x - cat.x, b.p.y - cat.y); }); jumpTo(lo[0].p, lo[0].x, "sit"); } return; }   /* sdraiato sotto una parola: un tocco lo fa spostare dove può sedersi (lì miagola, gioca) */
     if (ASLEEP[s] || (s === "loaf" && cat.st > 3)) return set("annoyed", { face: "view", pose: s === "drape" ? "drape" : "loaf", from: s });
     if (s === "sulk" || s === "annoyed") { rig.tailSwish = 0.8; life.earFlick = 1; say("mrr", 0.9, "mini"); return; }
+    if (s === "edgepeek") { cat.taps = []; life.earFlick = 1; life.earSide = rnd() < 0.5 ? 1 : -1; say("mrr", 0.9, "mini"); life.slow = now; return; }   /* sbirciando da dietro un bordo (dopo un rilascio): un «mrr», le orecchie */
     if (s === "dockpeek") {                                            /* sbirciando da dietro la pillola: un «mrr», le orecchie; se qui ci si siede senza coprire parole, salta su */
       cat.taps = []; life.earFlick = 1; life.earSide = rnd() < 0.5 ? 1 : -1;
       if (!dockBlocked(cat.x) && !dockWords(cat.x) && pathClear(cat.x, cat.x)) return set("dockup", { x: cat.x, from: "peek", hold: 0.12 });
@@ -888,12 +929,13 @@
     fall: function (dt, d) {                                           /* cade dritto fino al bordo di sotto: le zampe davanti cercano il bordo */
       d.vy = (d.vy || 0) + 2300 * dt; var y0 = cat.y; cat.y += d.vy * dt; cat.x += (d.vx || 0) * dt; d.vx = (d.vx || 0) * Math.exp(-dt * 3);
       rig.grounded = false; rig.pose = cat.st < 0.12 ? "air" : "b-reach"; rig.rate = 16; rig.pitchT = 0; rig.over.eye = 1.15; rig.over.ear = 0.3; rig.pupilDotT = 0.6;
-      var p = d.p && cat.x >= d.p.a - 10 && cat.x <= d.p.b + 10 ? d.p : platBelow(cat.x, y0 - 2);
+      var yb = Math.min(y0, y0 + below() * px()), p = d.p && cat.x >= d.p.a - 10 && cat.x <= d.p.b + 10 ? d.p : platBelow(cat.x, yb - 2);   /* il bordo si cerca dal corpo: i piedi possono essere già oltre un bordo che sta appena sotto il corpo (in fondo a una scivolata, lasciato a cavallo di un bordo) */
       cat.gy = p ? p.y : null;
-      if (p && cat.y >= p.y) { cat.x = clamp(cat.x, p.a, p.b); landOn(p);
+      if (p && cat.y >= p.y) { cat.x = clamp(cat.x, p.a, p.b); if (cat.y > p.y + 0.5) reanchor((p.y - cat.y) / px()); landOn(p);   /* i piedi erano già sotto il bordo: l'origine sale al bordo, il disegno resta dov'è e ci sale sopra con la molla */
         if (p.quiet) { set("land", { then: leaveQuiet, quiet: true, v: d.vy, face: cat.face === "front" ? "view" : cat.face, pose: "land" }); return; }
         if (d.vy > 700) moodSet("scared", 1.6); set("land", { then: d.vy > 700 ? "shake" : "sit", v: d.vy, face: cat.face === "front" ? "view" : cat.face, pose: "land" }); return; }
-      if (cat.y > view.sy + view.vh + 160 || cat.y > doc.documentElement.scrollHeight + 100) comeBack();
+      if (!p && !d.esc && dropped()) { d.esc = 1; return escapeJump(); }   /* lasciato dove sotto non c'è nessun bordo (in fondo alla pagina, di lato): non cade fuori dalla pagina, salta su un bordo */
+      if (cat.y > doc.documentElement.scrollHeight + 100 || (!p && cat.y > view.sy + view.vh + 160)) comeBack();   /* sotto c'è un bordo: ci arriva anche fuori dallo schermo (poi la regola del seguire lo riporta); torna altrove solo se sotto non c'è niente */
     },
     fly: function (dt, d) {                                            /* lanciato: vola lungo il lancio, poi atterra e magari ruzzola */
       var y0 = cat.y; d.vy += 2000 * dt; cat.x += d.vx * dt; cat.y += d.vy * dt; rig.grounded = false; rig.rate = 16;
@@ -935,7 +977,7 @@
         d.sc.done(); d.sc = null;
         var bl = platBelow(cat.x, t.b + 2), gap = bl ? bl.y - t.b : 1e9;
         if (gap > 54 && !tileAt(cat.x, t.b + 24) && !rectHits(world.no.filter(function (n) { return !n.m; }), cat.x - 30, t.b, cat.x + 30, t.b + 74)) {   /* appeso solo se sotto c'è spazio libero (mai le zampe davanti al Corano) */ reanchor((t.b - cat.y) / k); set("hang", { t: t, edgeY: t.b, w: (d.vy / 300), face: "front", pose: "hang" }); }
-        else { reanchor(below() - below("air")); if (fallBlocked(cat.x, cat.y)) escapeJump(30); else set("fall", { vy: d.vy, face: "view", pose: "air" }); }
+        else { reanchor(below() - below("air")); if (fallBlocked(cat.x, cat.y)) escapeJump(30); else set("fall", { p: bl, vy: d.vy, face: "view", pose: "air" }); }   /* p: il bordo sotto è già noto (i piedi, in fondo alla scivolata, possono essere già oltre: in un bento di 12 px di spazio succede sempre) */
       }
     },
     hang: function (dt, d) {                                           /* appeso al bordo di sotto con le zampe davanti: dondola, scalcia, guarda giù, molla */
@@ -948,12 +990,12 @@
       cat.ownRot = true; cat.piv = 0; cat.rot = d.a;
       cat.gz = false; rig.look.ty = 0.18 * Math.sin(st * 1.3); rig.look.tp = 0; rig.gazeT[0].x = rig.gazeT[1].x = 0.1 * Math.sin(st * 2); rig.gazeT[0].y = rig.gazeT[1].y = st < 0.8 ? -0.75 : st < 1.6 ? 0.1 : -0.8;
       rig.pupilT = 0.7; rig.pupilDotT = st > 1.6 ? 0.8 : 0.3; rig.over.eye = (H.eye || 1) * (st > 1.6 ? 1.1 : 1); rig.tailSwish = 0.3;
-      if (st > d.dur) { cat.rot = 0; reanchor(below() - below("air")); if (fallBlocked(cat.x, cat.y)) escapeJump(40); else set("fall", { vy: 40, face: "view", pose: "air" }); }
+      if (st > d.dur) { cat.rot = 0; reanchor(below() - below("air")); if (fallBlocked(cat.x, cat.y)) escapeJump(40); else set("fall", { p: platBelow(cat.x, d.edgeY + 2), vy: 40, face: "view", pose: "air" }); }
     }
   });
   /* dove lasciarlo: sul bordo, nella scatola, sulla faccia di un riquadro, appeso sotto, oppure giù */
   function release(vx, vy) {
-    var sp = hyp(vx, vy), k = px(); lastIn = now;
+    var sp = hyp(vx, vy), k = px(); lastIn = now; if (!(fake && fake.ghost)) B.dropAt = now;   /* lasciato da chi guarda (il dito fantasma lo rimette giù da sé) */
     var bodyY = cat.y + below() * k;
     if (stageOn && stage.hit && stage.hit(cat.x, bodyY)) return boxIn(true);
     if (sp > 650) { var f = Math.min(1, 1500 / sp), tv = { vx: vx * f, vy: vy * f }, tries = 0;
@@ -968,7 +1010,11 @@
     for (i = 0; i < world.tiles.length; i++) { t = world.tiles[i]; if (t.mode !== "quiet") continue;   /* davanti al riquadro quiet: niente graffi, niente appeso; via subito */
       if (cat.x > t.l && cat.x < t.r && bodyY > t.t + 6 && bodyY < t.b + 22) { reanchor(below() - below("air")); escapeJump(); return; } }
     for (i = 0; i < world.tiles.length; i++) { t = world.tiles[i]; if (t.mode === "no" || t.mode === "quiet" || t.mode === "perch") continue; if (cat.x > t.l + 24 && cat.x < t.r - 24 && cat.y > t.b - 24 && cat.y < t.b + 22 && !tileAt(cat.x, t.b + 30) && !rectHits(nos, cat.x - 30, t.b, cat.x + 30, t.b + 74)) { reanchor(below() - below("hang")); set("hang", { t: t, edgeY: t.b, vx: vx, face: "front", pose: "hang" }); return; } }
-    for (i = 0; i < world.plats.length; i++) { p = world.plats[i]; if (cat.x >= p.a - 14 && cat.x <= p.b + 14 && bodyY + 14 * k >= p.y - 30 && bodyY + 14 * k <= p.y + 26) { if (!best || Math.abs(p.y - bodyY) < Math.abs(best.y - bodyY)) best = p; } }
+    /* il primo bordo sotto il dito: se sta fra la collottola (dove lo si tiene) e i piedi del gatto che penzola, ci si aggrappa e ci sale
+       (come un gatto vero), invece di scivolare sulla faccia del riquadro sotto. Il dock conta come un bordo (sta davanti alla pagina) */
+    var cb2 = catBox(), feet = Math.max(cb2 ? cb2.y1 : cat.y, bodyY + 14 * k), top = Math.min(cat.y, bodyY) - 4, q2 = world.dock;
+    for (i = 0; i < world.plats.length; i++) { p = world.plats[i]; if (cat.x >= p.a - 14 && cat.x <= p.b + 14 && p.y >= top && p.y <= feet + 8 && (!best || p.y < best.y)) best = p; }
+    if (q2 && q2.on && cat.x >= q2.a - 14 && cat.x <= q2.b + 14 && q2.y >= top && q2.y <= feet + 8 && (!best || q2.y < best.y)) best = q2;
     if (best) { reanchor(below() - below("air")); cat.x = clamp(cat.x, best.a, best.b); set("fall", { p: best, vy: 0, vx: vx * 0.2, face: "view", pose: "air" }); return; }
     t = tileAt(cat.x, bodyY);
     if (t && !t.mode && bodyY < t.b - 40 * k) { reanchor(below() - below("slide")); set("slide", { t: t, vy: Math.max(0, vy * 0.15), face: "front", pose: "slide" }); return; }
@@ -1240,13 +1286,21 @@
   function goBox() {
     var r = stage.rim(), hl = homeLanding(r), p = hl.p; if (!p) return think();
     if (cat.plat && Math.abs(cat.plat.y - p.y) < 3) { var side = cat.x < r.x ? -1 : 1, i, q; for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (Math.abs(q.y - p.y) < 3 && (side < 0 ? q.b <= r.x : q.a >= r.x)) p = q; } }
-    var gx = clamp(r.x + (p.a >= r.x ? 1 : -1) * (r.w / 2 + 20), p.a, p.b);
+    var gx = clamp(r.x + (p.a >= r.x ? 1 : -1) * ((r.ow || r.w) / 2 + 40 * K / 1.5), p.a, p.b);   /* aspetta accanto alla scatola, non davanti alla sua faccia */
     if (p === cat.plat) walkTo(gx, function () { boxIn(false); }, { speed: 50 });
     else if (!arcBlocked(cat.x, cat.y, gx, p.y)) jumpTo(p, gx, function () { boxIn(false); });
     else set("annoyed", { face: "view", pose: "sit", from: "sit" });   /* la scatola è oltre il Corano: se ne va offeso altrove */
   }
   function boxIn(closed) { cat.plat = null; set("boxjump", { closed: closed, x0: cat.x, y0: cat.y, face: closed ? "front" : "side", pose: closed ? "held" : "crouch" }); }
-  function boxOut() { if (!stageOn) return think(); lidTo(1, 0.3); set("boxexit", { face: "front", pose: "peek" }); }
+  function boxOut() { if (!stageOn) return think(); lidTo(1, 0.3); set("boxexit", { face: "front", pose: "peek" }); STATES.boxexit(0, cat.d); }   /* subito: il fotogramma di questo passo è già ritagliato (set() toglie i ritagli) */
+  /* la scatola come finestra del gatto (render): l, r i lati, y il bordo davanti, b il fondo; strict: dentro, si vede solo ciò che sta sopra il bordo.
+     Senza strict (appena uscito, in volo): dietro la faccia davanti della scatola non si vede niente, né il gatto né la sua ombra */
+  function boxWin(r, strict) { var hw = (r.ow || r.w) / 2; return { l: r.x - hw, r: r.x + hw, y: r.y, b: r.bottom != null ? r.bottom : r.y + 32, strict: !!strict }; }
+  /* quanto è grande il gatto nella scatola: la scatola misura lo stesso su ogni schermo (46 px), il gatto no (K va da 1.5 a 1.9): dentro
+     ha sempre la grandezza del telefono, così le zampe sul bordo e il corpo stanno nella sua larghezza */
+  function sBox() { return 0.78 * Math.min(1, 1.5 / K); }
+  /* il punto più basso del gatto disegnato (pagina, px) */
+  function catLow() { var P = catParts(), i, lo = -1e9; for (i = 0; i < P.length; i++) if (P[i].y + P[i].r > lo) lo = P[i].y + P[i].r; return P.length ? lo : 1e9; }
   /* la sequenza dentro la scatola (apertura e uscite): ts = tempo del copione.
      Coperchio aperto → due occhi verdi si aprono nel buio, si guardano attorno, battono → la testa sale e le zampe
      si posano sul bordo → guarda a sinistra e a destra → si gira verso dove salterà, si abbassa, spinge → salta fuori */
@@ -1256,19 +1310,18 @@
     if (ts < tEyes - 0.03) { cat.vis = false; return; }
     cat.vis = true; cat.plat = null; cat.gy = null; rig.grounded = false;
     if (!d.side) { var lp = homeLanding(r); d.p = lp.p; d.side = lp.side; d.lx = lp.x; }
-    var hl = r.x - (r.ow || r.w) / 2, hr = r.x + (r.ow || r.w) / 2;
     if (ts < T.jump) {
       if (!d.inBox) { d.inBox = 1; cat.face = "front"; rig.yawT = Y.front; rig.over = {}; rig.snap("peek"); cat.voff = 0; cat.voffV = 0; }
-      cat.s = 0.78; cat.x = r.x; cat.face = "front"; rig.pose = "peek"; cat.clipAt = r.y; cat.hideL = hl; cat.hideR = hr; kk = px();
+      cat.s = sBox(); cat.x = r.x; cat.face = "front"; rig.pose = "peek"; cat.clipAt = r.y; cat.hideL = cat.hideR = null; cat.boxW = boxWin(r, true); cat.shadowA = 0; kk = px();
       var band = r.back != null ? r.y - r.back : 12 * r.w / 42.6, eyeU = P0.cy + P0.dy + rig.P.eye.up, low = (eyeU * kk - band * 0.5) / kk;   /* gli occhi stanno a metà della fessura buia */
       cat.clipTop = ts < T.peek + 0.05 ? r.y - band : null;
       var off = ts < T.peek ? low : lerp(low, 0, eBack(seg(ts, T.peek, T.peek + 0.42), 1.5));
-      off += 5 * eIO(seg(ts, T.crouch, T.jump - 0.06));                /* si abbassa prima di saltare */
+      var sink = 5 * eIO(seg(ts, T.crouch, T.jump - 0.06)); off += sink;   /* si abbassa prima di saltare */
       cat.y = r.y + off * kk;
       /* le zampe: salgono sul bordo dopo la testa, una appena dopo l'altra; spariscono quando si abbassa */
-      var pu = ts < T.crouch ? 1 : 1 - seg(ts, T.crouch, T.crouch + 0.12);
+      var pu = ts < T.crouch - 0.08 ? 1 : 1 - seg(ts, T.crouch - 0.08, T.crouch + 0.04);   /* le zampe lasciano il bordo prima che si abbassi */
       rig.over.f0y = P0.f0y - 9 * (1 - eBack(seg(ts, T.peek + 0.18, T.peek + 0.38), 2) * pu); rig.over.f1y = P0.f1y - 9 * (1 - eBack(seg(ts, T.peek + 0.23, T.peek + 0.43), 2) * pu);
-      cat.paws = rig.A.f0y > P0.f0y - 1.8 && rig.A.f1y > P0.f1y - 1.8;
+      cat.paws = rig.A.f0y > P0.f0y - 0.3 && rig.A.f1y > P0.f1y - 0.3 && sink < 0.4;   /* posate sul bordo solo quando ci stanno davvero: mai giù sulla faccia della scatola */
       /* gli occhi nel buio: si aprono, guardano un po' qua e là, battono */
       var bo = null; if (ts < tEyes + 0.16) bo = eOut(seg(ts, tEyes, tEyes + 0.16)); else if (ts > tBlink && ts < tBlink + 0.16) bo = Math.abs(ts - tBlink - 0.08) / 0.08;
       cat.blinkO = bo;
@@ -1284,10 +1337,14 @@
     if (ts < T.land) {                                                 /* il salto fuori: spinge, vola mentre cresce, allunga le zampe davanti */
       if (!d.jumped) { d.jumped = 1; cat.blinkO = null; rig.over = {}; cat.paws = false; cat.clipTop = null; reanchor(below() - below("b-launch")); d.y0 = cat.y; cat.dir = d.side; cat.gz = true; }
       var u = seg(ts, T.jump, T.land), ly = d.p ? d.p.y : r.y + 4, h = 44 + (d.y0 - ly) * 0.2, dur = T.land - T.jump, ux = u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u);   /* prima sale, poi esce: le zampe passano sopra il bordo */
-      cat.face = "side"; cat.x = lerp(d.x0, d.lx, ux); cat.y = lerp(d.y0, ly, u) - 4 * h * u * (1 - u); cat.s = lerp(0.78, 1, eOut(u));
+      cat.face = "side"; cat.x = lerp(d.x0, d.lx, ux); cat.y = lerp(d.y0, ly, u) - 4 * h * u * (1 - u); cat.s = lerp(sBox(), 1, eOut(u));
       var vy = ((ly - d.y0) - 4 * h * (1 - 2 * u)) / dur; rig.rate = 15; flight(u, (d.lx - d.x0) / dur, vy);
       cat.att = { x: d.lx + d.side * 40, y: ly - 10 };
-      cat.clipAt = u < 0.6 ? r.y : null; cat.hideL = hl; cat.hideR = hr; cat.gy = ly; return;
+      /* finché una parte del gatto sta sotto il bordo si vede solo ciò che sta sopra (anche ai lati: un gatto nella scatola non sporge dalle
+         pareti); quando tutto è sopra il bordo il ritaglio se ne va (non salta fuori niente) e resta solo la faccia davanti della scatola,
+         dietro cui non si vede nulla, neanche l'ombra, che compare piano */
+      if (!d.out && (catLow() < r.y - 2 || u > 0.8)) { d.out = 1; d.outT = ts; }
+      cat.clipAt = d.out ? null : r.y; cat.hideL = cat.hideR = null; cat.boxW = boxWin(r, !d.out); cat.shadowA = d.out ? sat((ts - d.outT) / 0.15) : 0; cat.gy = ly; return;
     }
     if (!d.landed) { d.landed = 1; cat.s = 1; cat.x = d.lx; if (d.p) landOn(d.p); cat.clipAt = null; set("land", { then: d.first ? greet : "sit", v: 650, face: "side", pose: "land" }); }
   }
@@ -1306,13 +1363,15 @@
       var r = stage.rim(), u = seg(cat.st, d.closed ? 0 : 0.18, d.closed ? 0.25 : 0.62), k;
       if (!d.closed && cat.st < 0.18) { cat.dir = r.x > cat.x ? 1 : -1; rig.pose = "crouch"; if (!d.lid) { d.lid = 1; if ((B.lidV == null ? 1 : B.lidV) < 0.99) lidTo(1, 0.22); } return; }   /* la scatola era chiusa: il coperchio si alza mentre si prepara al salto */
       if (!d.re) { d.re = 1; if (d.closed) { reanchor(below() - below("air")); if ((B.lidV == null ? 1 : B.lidV) < 0.99) lidTo(1, 0.1); } d.x0 = cat.x; d.y0 = cat.y; }
-      cat.clipAt = u > 0.55 ? r.y : null; cat.hideL = r.x - (r.ow || r.w) / 2; cat.hideR = r.x + (r.ow || r.w) / 2; rig.grounded = false; cat.gy = null;
-      cat.x = lerp(d.x0, r.x, eIO(u)); cat.s = lerp(1, 0.78, u); k = px();
+      if (!d.inn && (d.closed || (u > 0.3 && (catLow() < r.y - 2 || u > 0.55)))) d.inn = 1;   /* entra: da quando tutto il gatto è sopra il bordo (o a metà caduta; messo giù dal dito: subito) si vede solo ciò che sta sopra, niente sporge dai lati */
+      if (d.inn && !d.closed) { rig.over.te = 1; rig.over.tc = 0.7; }   /* la coda entra per ultima, alzata: non resta fuori dalla parete */
+      cat.clipAt = d.inn ? r.y : null; cat.hideL = cat.hideR = null; cat.boxW = d.inn ? boxWin(r, true) : null; rig.grounded = false; cat.gy = null;
+      cat.x = lerp(d.x0, r.x, eIO(u)); cat.s = lerp(1, sBox(), u); k = px();
       cat.y = lerp(d.y0, r.floor, u) - (d.closed ? 0 : 4 * 40 * u * (1 - u)); rig.pose = u < 0.7 ? "air" : "sit"; cat.face = u < 0.7 && !d.closed ? "side" : "front";
-      if (u >= 1) { if (d.closed) { lidTo(0, 0.2); cat.vis = false; set("boxed"); } else set("box", { dur: rr(7, 10), face: "front", pose: "peek" }); }
+      if (u >= 1) { if (d.closed) { lidTo(0, 0.2); cat.vis = false; set("boxed"); } else { set("box", { dur: rr(7, 10), face: "front", pose: "peek" }); STATES.box(0, cat.d); } }
     },
     box: function (dt, d) {                                            /* nascosto: solo due occhi verdi nel buio, un po' offesi */
-      var r = stage.rim(), k; cat.s = 0.78; k = px(); cat.x = r.x; cat.face = "front"; rig.pose = "peek"; cat.clipAt = r.y; cat.hideL = r.x - (r.ow || r.w) / 2; cat.hideR = r.x + (r.ow || r.w) / 2; cat.voff = 0; cat.voffV = 0; rig.grounded = false;
+      var r = stage.rim(), k; cat.s = sBox(); k = px(); cat.x = r.x; cat.face = "front"; rig.pose = "peek"; cat.clipAt = r.y; cat.hideL = cat.hideR = null; cat.boxW = boxWin(r, true); cat.voff = 0; cat.voffV = 0; rig.grounded = false;
       var band = r.back != null ? r.y - r.back : 12 * r.w / 42.6, low = ((rig.poses.peek.cy + rig.poses.peek.dy + rig.P.eye.up) * k - band * 0.5) / k;
       cat.clipTop = r.y - band; cat.y = lerp(cat.y, r.y + low * k, 1 - Math.exp(-dt * 6)); rig.over.lid = 0.42; rig.over.brow = 0.4; rig.over.ear = 0.35; cat.att = null;
       if (cat.st > d.dur) boxOut();
@@ -1324,7 +1383,7 @@
      (la mensola di casa, il logo del fondo, un bordo libero), se no sul dock: spunta da dietro la pillola (orecchie, occhi, un
      saltello su) e se ne va allo stesso modo. Sul dock va con lo schermo, guarda quello che passa, guarda giù il filtro toccato.
      Se la pagina lo porta contro il dock (si scorre in su), ci sale sopra. Torna a casa quando chi legge è di nuovo in cima. */
-  var FOLLOW = { sit: 1, pause: 1, look: 1, loaf: 1, sleep: 1, groom: 1, yawn: 1, stretch: 1, drape: 1, sulk: 1, think: 1, walk: 1, wait: 1, dockpeek: 1 };
+  var FOLLOW = { sit: 1, pause: 1, look: 1, loaf: 1, sleep: 1, groom: 1, yawn: 1, stretch: 1, drape: 1, sulk: 1, think: 1, walk: 1, wait: 1, dockpeek: 1, edgepeek: 1 };
   var DOCKCALM = { sit: 1, look: 1, loaf: 1, pause: 1, dockpeek: 1 }, DOCKREST = { sit: 1, look: 1, loaf: 1, pause: 1, sleep: 1, groom: 1, yawn: 1, stretch: 1, sulk: 1, think: 1, dockpeek: 1, greet: 1, shake: 1, purr: 1, meow: 1 };
   function FOLLOWAT() { return O.followAfter || (O.strict ? 2.4 : 3.6); }   /* fuori vista da tanti secondi a pagina ferma: torna (la casa: 2.4, CASA.md 2c E) */
   function homeSpot() {
@@ -1385,6 +1444,8 @@
     return null;
   }
   function dockPickX(near) { var s = dockSpot(near); return s ? s.x : null; }
+  /* dopo un rilascio: un posto del dock dove ci si siede (o si sbircia) senza toccare il riquadro quiet (l'avrebbe fatto scendere subito) */
+  function dropDock(near) { var s = dockOn() ? dockSpot(near) : null, k = K / 1.5; if (!s) return null; var p = world.dock; return rectHits(world.quiet, s.x - 40 * k, p.y - 80 * k, s.x + 40 * k, p.y + 4) ? null : s; }
   /* camminando sul dock (in piedi, la coda su) non copre parole in nessun punto della strada */
   function pathClear(x0, x1) {
     var p = world.dock, n = Math.max(1, Math.ceil(Math.abs(x1 - x0) / 6)), i, j, x, q, L = world.keep, hw = 38 * K / 1.5, ht = 74 * K / 1.5;
@@ -1538,8 +1599,34 @@
         if (!d.gl || now > d.gl) { d.gl = now + rr(1.8, 4.2); var g = rnd(); d.side = g < 0.6 ? 0 : g < 0.8 ? -1 : 1; d.tilt = rnd() < 0.3 ? rr(-0.16, 0.16) : 0; }
         cat.att = d.side ? { x: cat.x + d.side * 160, y: p.y - 50 } : null; rig.over.hr = (P0.hr || 0) + d.tilt; rig.over.hp = (P0.hp || 0) + 0.04; } }
       rig.pupilT = Math.max(rig.pupilT, 0.86);
+    },
+    /* lasciato su un bordo dove non può stare, e in vista non c'è un posto buono dove andare: si cala dietro quel bordo e sbircia, come dal
+       dock (le stesse tre altezze: occhi e zampe, solo gli occhi, solo le punte delle orecchie e il fez), alla più alta che non copre parole.
+       Resta in vista e non copre niente; quando la pagina si muove (o va fuori vista) fa come sempre (la regola del seguire) */
+    edgepeek: function (dt, d) {
+      var p = fresh(d.p, d.x); if (!p || p.fixed) { cat.vis = false; cat.plat = null; return set("wait"); }
+      var st = cat.st, P0 = rig.poses.peek, PK = PEEKS[d.lv || 0];
+      d.p = p; cat.plat = p; cat.x = d.x; cat.y = p.y; cat.gy = null; cat.clipAt = p.y; cat.hideL = p.tile.l; cat.hideR = p.tile.r; rig.grounded = false; cat.vis = true; cat.face = "front";
+      rig.pose = "peek"; rig.rate = lerp(8, 12, smooth(0, 0.6, st));
+      var sk = smooth(0.08, 0.42, st);                                 /* calandosi da seduto: il corpo scivola dietro il bordo, il mento arriva sulle zampe (o più giù) */
+      rig.over.dy = P0.dy - PK.dy * sk; rig.over.f0y = PK.paws ? P0.f0y : P0.f0y - 9; rig.over.f1y = PK.paws ? P0.f1y : P0.f1y - 9; cat.paws = !!PK.paws && rig.A.f0y > P0.f0y - 1.8;
+      if (st < 0.3) { rig.over.hp = (P0.hp || 0) - 0.12 * bell(seg(st, 0, 0.3)); rig.over.ear = 0.18 * bell(seg(st, 0, 0.3)); }
+      else { delete rig.over.ear; if (!d.gl || now > d.gl) { d.gl = now + rr(1.8, 4.2); var g = rnd(); d.side = g < 0.6 ? 0 : g < 0.8 ? -1 : 1; }
+        cat.att = d.side ? { x: cat.x + d.side * 160, y: p.y - 50 } : null; rig.over.hp = (P0.hp || 0) + 0.04; }
+      rig.pupilT = Math.max(rig.pupilT, 0.86);
+      if (st > 1 && !dropped() && now - (B.scrollAt || -9) < 0.3) { set("dive", { away: true, quick: true, face: "front", pose: "peek" }); }   /* la pagina si muove: giù, poi torna da un posto buono (la regola del seguire) */
     }
   });
+  /* dove sbirciare da dietro il bordo p (edgepeek): vicino a x, alla più alta delle tre altezze che non copre parole né il Corano */
+  function edgePeekAt(p, x) {
+    var lv, dx, i, xx, P, k = K / 1.5, L = world.keep, n, ok;
+    for (lv = 0; lv < PEEKS.length; lv++) for (dx = 0; dx <= 60; dx += 6) for (i = -1; i <= 1; i += 2) { if (!dx && i > 0) continue; xx = clamp(x + i * dx, p.a + 4, p.b - 4); P = PEEKS[lv]; ok = true;
+      var x0 = xx - P.w * k - 2, x1 = xx + P.w * k + 2, y0 = p.y - P.h * k - 2, y1 = p.y;
+      for (n = 0; n < L.length && ok; n++) if (x1 > L[n].l && x0 < L[n].r && y1 > L[n].t && y0 < L[n].b) ok = false;
+      if (ok && (rectHits(world.no.filter(function (q) { return !q.m; }), x0, y0, x1, y1) || rectHits(world.quiet, x0, y0, x1, y1))) ok = false;
+      if (ok) return { x: xx, lv: lv }; }
+    return null;
+  }
   /* il dito sul dock: guarda giù il filtro toccato */
   function onDockDown(e) {
     var t = e && e.target, b = t && t.closest ? t.closest("button") : null; if (life.dockTap && now - life.dockTap.t < 0.25) return; life.dockTap = { el: b || O.dock, t: now };
@@ -1557,17 +1644,17 @@
     if (!seen && FOLLOW[s] && still < 0.3 && B.offT > 0.8 && dockOn() && !homeSeen()) { var mp = dockSpot(cat.x, true); if (mp) { B.offT = 0; return arrive({ kind: "dock", x: mp.x, peek: true, lv: 0 }); } }   /* la pagina scorre: viene a sbirciare dal dock (le parole gli passano dietro); fermi, si vedrà */   /* chi legge è tornato in cima: a casa prima; dopo un po' anche mentre la pagina scorre (sul dock lo scorrere non conta) */
     if (riding() && s !== "dockup" && s !== "dockdown" && s !== "held" && dockBlocked(cat.x)) return set("dockdown", { duck: true, peek: s === "dockpeek" });   /* passa il Corano o il riquadro quiet dietro di lui: giù, svelto */
     /* 2. a casa quando chi legge è di nuovo in cima */
-    if (FOLLOW[s] && s !== "wait" && seen && !atHome() && still > 5 && now > (B.homeTry || 0) && homeSeen()) {   /* in cima e fermo da cinque secondi: non a ogni passaggio (resta in vista dov'è, intanto) */
+    if (FOLLOW[s] && s !== "wait" && seen && !atHome() && still > 5 && now > (B.homeTry || 0) && homeSeen() && !dropped()) {   /* appena lasciato da chi guarda: resta un po' dove l'ha messo */   /* in cima e fermo da cinque secondi: non a ogni passaggio (resta in vista dov'è, intanto) */
       B.homeTry = now + 4; var h = homeSpot();
       if (h && !onDock() && cat.plat && Math.abs(h.p.y - cat.y) < 330 && Math.abs(h.x - cat.x) < 380 && !arcBlocked(cat.x, cat.y, h.x, h.p.y)) return jumpTo(h.p, h.x, "sit");
       return leaveThen(function () { var c = perchChoice(); if (c) arrive(c); else { cat.vis = false; set("wait"); } });
     }
     /* 3. sul dock da un po', con la pagina ferma, si vede il logo del fondo: ci va */
-    if (onDock() && seen && FOLLOW[s] && still > 5 && now > (B.upTry || 0)) { B.upTry = now + 9; var cp = perchChoice(true); if (cp) return leaveThen(function () { arrive(cp); }); }
+    if (onDock() && seen && FOLLOW[s] && still > 5 && now > (B.upTry || 0) && !dropped()) { B.upTry = now + 9; var cp = perchChoice(true); if (cp) return leaveThen(function () { arrive(cp); }); }
     /* 4. la pagina lo porta contro il dock (si scorre in su): ci sale sopra; se non ci arriva, giù dietro il suo bordo */
     if (dockOn() && cat.vis && cat.plat && !onDock() && onEdge()) {
       var bb = catBox(), dk = world.dock.tile;
-      if (bb && bb.y1 > dk.t - 2 && bb.x1 > dk.l && bb.x0 < dk.r) {
+      if (bb && bb.y1 > dk.t - 2 && bb.x1 > dk.l && bb.x0 < dk.r && !(Math.abs(cat.voff) * px() > 4 && now - (B.scrollAt || -9) > 0.3)) {   /* non mentre il disegno sta ancora salendo sul bordo dove è appena atterrato (a pagina ferma) */
         if (s === "peek" || s === "dive" || s === "dockup" || s === "dockdown") { cat.vis = false; return set("wait"); }
         if (cat.y >= dk.t - 28 * K / 1.5 && cat.x > dk.l - 4 && cat.x < dk.r + 4) return board();
         return set("dive", { away: true, face: "side", pose: "crouch" });
@@ -2075,6 +2162,17 @@
     else if (cat.clipAt == null && inFixed() && y1 > world.dock.y + 1.5) y1 = Math.max(y0, world.dock.y + 1.5);   /* sulla pillola: sotto la cima non si disegna nulla */
     return { x0: x0, y0: y0, x1: x1, y1: y1 };
   }
+  /* le parti del gatto disegnato (ultimo fotogramma), come cerchi in pagina: testa, orecchie, fez, corpo, zampe (ginocchio, metà, piede), coda.
+     Serve alla scatola: che cosa sta ancora dentro, sotto il bordo */
+  function catParts(f) {
+    f = f || lastF; if (!f) return []; var k = px(), P = [], i, l, q;
+    function add(x, y, r) { var p = drawnPt(x, y); P.push({ x: p.x, y: p.y, r: r * k }); }
+    add(f.head.x, f.head.y, Math.max(f.head.rx, f.head.ry)); for (i = 0; i < 2; i++) add(f.ears[i].tx, f.ears[i].ty, 1);
+    add(f.body.hips.x, f.body.hips.y, f.body.hips.r); add(f.body.chest.x, f.body.chest.y, f.body.chest.r);
+    for (i = 0; i < 4; i++) { l = f.legs[i]; if (l.tuck >= 0.95) continue; add(l.jx, l.jy, l.r0); add(l.kx, l.ky, (l.r0 + l.r1) / 2); add((l.kx + l.fx) / 2, (l.ky + l.fy) / 2, l.r1); add(l.fx, l.fy, l.paw + 0.6); }
+    for (i = 0; i < f.tail.pts.length; i++) { q = f.tail.pts[i]; add(q.x, q.y, q.r + 0.4); }
+    return P;
+  }
   /* toglie dal disegno del gatto i rettangoli del Corano e del riquadro quiet che lo toccano (coordinate del modello: y in su) */
   function clipOutNo(c, k, jx, Oy) {
     var b = catBox(), L = [], i, n; if (!b || Math.abs(cat.rot) > 0.05) return;
@@ -2108,16 +2206,21 @@
       var jx = cat.jit ? cat.jit * Math.sin(now * 95) : 0; catSp.place(cat.x + jx - ox0, Oy - oy0); catSp.clear();
       var c = catSp.model(k), env = envFor(k);
       if (cat.rot) { c.translate(0, cat.piv); c.rotate(cat.rot); c.translate(0, -cat.piv); }
-      if (cat.gy != null && Math.abs(cat.rot) < 0.5) { var hh = cat.gy - (cat.y - cat.lift); env.shadow = { y: (Oy - cat.gy) / k, k: 1 - 0.6 * sat(hh / 140) }; }
-      if (cat.clipAt != null) env.clipY = (Oy - cat.clipAt) / k;
+      if (cat.gy != null && Math.abs(cat.rot) < 0.5) { var hh = cat.gy - (cat.y - cat.lift); env.shadow = { y: (Oy - cat.gy) / k, k: (1 - 0.6 * sat(hh / 140)) * (cat.shadowA == null ? 1 : cat.shadowA) }; }
+      var bw = B.raw ? null : cat.boxW;                                 /* la scatola (boxWin): dentro si vede solo ciò che sta sopra il bordo, in tutta la larghezza */
+      if (B.raw) env.shadow = null;                                    /* DOT.debug.raw: il gatto intero, senza ritagli né ombra (per misurarlo) */
+      else if (bw && bw.strict) env.clipY = (Oy - bw.y) / k;
+      else if (cat.clipAt != null) env.clipY = (Oy - cat.clipAt) / k;
       else if (rd) env.clipY = (Oy - (world.dock.y + 1.5)) / k;       /* sulla pillola: niente sotto la cima (coda, zampe), così nulla copre i filtri */
       env.pawsOnEdge = cat.paws;
-      c.save(); if (cat.plat && cat.plat.fixed) clipOutNo(c, k, jx, Oy);   /* sul dock, l'ultima guardia: niente sopra il Corano o il riquadro quiet che passano (mentre si abbassa) */
-      if (cat.clipTop != null && cat.clipAt != null) { var yl = (Oy - cat.clipAt) / k, yh = (Oy - cat.clipTop) / k; c.beginPath(); c.rect(-500, yl, 1000, yh - yl); c.clip(); }   /* dentro la scatola: si vede solo la fessura buia */
+      c.save(); if (cat.plat && cat.plat.fixed && !B.raw) clipOutNo(c, k, jx, Oy);   /* sul dock, l'ultima guardia: niente sopra il Corano o il riquadro quiet che passano (mentre si abbassa) */
+      if (cat.clipTop != null && cat.clipAt != null && !B.raw) { var yl = (Oy - cat.clipAt) / k, yh = (Oy - cat.clipTop) / k, sl = bw ? (bw.l - cat.x - jx) / k : -500, sr = bw ? (bw.r - cat.x - jx) / k : 500; c.beginPath(); c.rect(sl, yl, sr - sl, yh - yl); c.clip(); }   /* dentro la scatola: si vede solo la fessura buia (larga quanto la scatola) */
+      if (bw && !bw.strict) { var bx0 = (bw.l - cat.x - jx) / k, bx1 = (bw.r - cat.x - jx) / k, by0 = (Oy - bw.b - 2) / k, by1 = (Oy - bw.y) / k;   /* appena uscito: dietro la faccia davanti della scatola non si vede nulla (né l'ombra) */
+        c.beginPath(); c.rect(-2000, -2000, 4000, 4000); c.rect(bx0, by0, bx1 - bx0, by1 - by0); c.clip("evenodd"); }
       try { look.draw(c, f, env); } catch (e) { if (look !== DOT.looks.base) { look = DOT.looks.base; } }
       c.restore();
-      /* «dietro il bordo» vale solo davanti al riquadro (o alla scatola): ciò che sporge di lato, sotto il bordo, si vede */
-      if (env.clipY != null && cat.hideL != null && cat.clipTop == null && !cat.rot) {
+      /* «dietro il bordo» vale solo davanti al riquadro: ciò che sporge di lato, sotto il bordo, si vede (non per la scatola: lì non sporge nulla) */
+      if (env.clipY != null && cat.hideL != null && cat.clipTop == null && !cat.rot && !bw && !B.raw) {
         var xl = (cat.hideL - cat.x - jx) / k, xr = (cat.hideR - cat.x - jx) / k, ext = frameX(f);
         if (ext[0] < xl || ext[1] > xr) {
           var e2 = envFor(k), cy0 = env.clipY; c.save(); c.beginPath(); c.rect(-500, cy0 - 1000, 500 + xl, 1000); c.rect(xr, cy0 - 1000, 500, 1000); c.clip();
@@ -2234,7 +2337,7 @@
     O = opts || {}; O.tiles = O.tiles || ".t, [data-tile]";
     reduced = !!O.reducedMotion; try { if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) reduced = true; } catch (e) {}
     dark = O.dark != null ? !!O.dark : true; try { if (O.dark == null && window.matchMedia) dark = !matchMedia("(prefers-color-scheme: light)").matches; } catch (e) {}
-    fx().css(); dpr = sprDpr(); B.paused = false; B.followTo = 0; B.evict = null; B.lidA = null; B.lidV = 1; world = { tiles: [], plats: [], no: [], quiet: [], keep: [], sig: "", at: 0 };
+    fx().css(); dpr = sprDpr(); B.paused = false; B.followTo = 0; B.evict = null; B.dropAt = null; B.lidA = null; B.lidV = 1; world = { tiles: [], plats: [], no: [], quiet: [], keep: [], sig: "", at: 0 };
     layer = doc.createElement("div"); layer.className = "dot-layer"; (O.parent && O.parent.nodeType === 1 ? O.parent : doc.body).appendChild(layer);   /* O.parent: un contenitore che taglia ciò che sporge */
     if (O.dock && O.dock.nodeType !== 1) O.dock = null;
     O.strict = O.strict != null ? !!O.strict : !!O.dock;                /* strict: i viaggi non passano davanti alle parole, i posatoi, la regola del seguire */
@@ -2396,7 +2499,9 @@
     walkTo: function (x) { walkTo(x, "none"); }, jumpTo: function (pi, x) { jumpTo(world.plats[pi], x, "sit"); },
     ptr: function (x, y) { ptr.x = x; ptr.y = y; ptr.t = now; ptr.still = 0; },
     idle: function (sec) { lastIn = now - sec; }, platsRaw: function () { return world.plats; }, box: function () { return stageOn ? stage.rim() : null; }, fedUp: function () { fedUp(); },
-    bbox: function () { return catBox(); },                            /* il rettangolo che il gatto occupa adesso, in pagina */
+    bbox: function () { return catBox(); },   /* il rettangolo che il gatto occupa adesso, in pagina */
+    parts: function () { return catParts(); },   /* parts: le parti del gatto come cerchi in pagina (la scatola le usa) */
+    raw: function () { B.raw = true; try { render(0); } finally { B.raw = false; } },   /* ridisegna lo stesso istante senza ritagli né ombra: per misurare il gatto intero */
     dock: function () { var p = world.dock; return p ? { a: p.a, b: p.b, y: p.y, on: !!p.on, tile: { l: p.tile.l, t: p.tile.t, r: p.tile.r, b: p.tile.b } } : null; },
     riding: function () { return riding(); }, follow: function () { return { offT: B.offT || 0, vy: B.vy || 0, still: now - (B.scrollAt || -9), home: atHome(), homeSeen: homeSeen(), now: now }; },
     choice: function () { var c = perchChoice(); return c ? { kind: c.kind, x: c.x, y: c.p ? c.p.y : null } : null; },
