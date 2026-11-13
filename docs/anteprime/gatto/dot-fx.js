@@ -17,6 +17,7 @@
       ".dot-layer canvas{position:absolute;left:0;top:0;pointer-events:none;will-change:transform}",
       ".dot-grab{position:absolute;left:0;top:0;z-index:5;width:76px;height:76px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;pointer-events:auto;touch-action:none;cursor:grab;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}",
       ".dot-grab:active{cursor:grabbing}.dot-grab:focus{outline:none}.dot-grab:focus-visible{outline:2px solid rgba(255,255,255,.7);outline-offset:-8px}",
+      "html.dot-tiene,html.dot-tiene *{cursor:grabbing!important}",   /* col mouse, mentre Dot è tenuto: la mano chiusa anche se il puntatore scappa dalla maniglia per un fotogramma */
       ".dot-fum{position:absolute;left:0;top:0;z-index:6;pointer-events:none;will-change:transform}",
       ".dot-fum__in{position:relative;padding:8px 13px 9px;border-radius:17px;background:rgba(250,249,246,.97);color:#16171d;font:700 14px/1.3 Manrope,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;letter-spacing:-.01em;white-space:nowrap;box-shadow:0 12px 30px -14px rgba(0,0,0,.6),0 0 0 .5px rgba(0,0,0,.07);opacity:0}",
       ".dot-fum--long .dot-fum__in{white-space:normal;width:204px;font-weight:650;font-size:13.5px}",
@@ -129,6 +130,45 @@
     };
     return b;
   };
+  /* ------------------------------------------------------------------ il polpastrello fantasma (il suggerimento: Dot si può toccare)
+     Un cerchio chiaro e traslucido di circa 24 px, come il punto di un tocco in una registrazione dello schermo. Non si muove da solo:
+     draw(x, y, a, sc, press, dark) lo mette in (x, y) del suo strato; a = quanto si vede, sc = grandezza (più grande = più lontano
+     dal vetro), press 0..1 = premuto (un filo più piccolo, l'ombra più corta sul tema chiaro). */
+  fx.Dito = function (layer) {
+    var S = 64, sp = fx.Sprite(layer, S, S, S / 2, S / 2, 9), c = sp.ctx, o = { sp: sp };
+    o.draw = function (x, y, a, sc, press, dark) {
+      var on = a > 0.004; sp.show(on); if (!on) return;
+      sp.place(x, y); sp.clear(); c.setTransform(sp.dpr, 0, 0, sp.dpr, sp.dpr * S / 2, sp.dpr * S / 2);
+      var r = 12 * sc * (1 - 0.1 * press), g;
+      c.save(); c.globalAlpha = clamp(a, 0, 1);
+      if (!dark) { c.shadowColor = "rgba(8,10,24," + (0.26 * (1 - 0.5 * press)).toFixed(3) + ")"; c.shadowBlur = (9 - 4.5 * press) * sp.dpr; c.shadowOffsetY = (2.8 - 1.8 * press) * sp.dpr; }   /* sul chiaro un'ombra morbida: il dito sta sopra il vetro */
+      g = c.createRadialGradient(-r * 0.22, -r * 0.3, 0, 0, 0, r);
+      g.addColorStop(0, dark ? "rgba(255,255,255,.64)" : "rgba(255,255,255,.9)"); g.addColorStop(1, dark ? "rgba(255,255,255," + (0.34 + 0.08 * press).toFixed(3) + ")" : "rgba(244,245,249," + (0.62 + 0.1 * press).toFixed(3) + ")");
+      c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, PI * 2); c.fill();
+      c.shadowColor = "rgba(0,0,0,0)"; c.shadowBlur = 0; c.shadowOffsetY = 0;
+      c.lineWidth = 1; c.strokeStyle = dark ? "rgba(255,255,255,.72)" : "rgba(18,20,32,.36)"; c.beginPath(); c.arc(0, 0, r - 0.5, 0, PI * 2); c.stroke();
+      c.restore();
+    };
+    o.move = function (parent) { if (parent && sp.cv.parentNode !== parent) parent.appendChild(sp.cv); };   /* nello strato fisso o nella pagina, come il gatto */
+    o.remove = function () { sp.remove(); };
+    return o;
+  };
+  /* un anello che si allarga e svanisce: dove il dito preme, dove la zampa batte sul vetro. Va col tempo di chi lo chiama:
+     draw(u), u da 0 a 1 (a 1 se ne va). o: r0, r1 (raggi, px), a (alfa all'inizio), w (spessore), dark */
+  fx.Anello = function (layer, x, y, o) {
+    var r0 = o.r0 || 4, r1 = o.r1 || 16, S = Math.ceil(r1 * 2 + 10), sp = fx.Sprite(layer, S, S, S / 2, S / 2, 8), c = sp.ctx, an = { sp: sp, x: x, y: y, dead: false };
+    sp.place(x, y);
+    an.draw = function (u) {
+      if (an.dead) return; if (u >= 1) { an.dead = true; sp.remove(); return; } if (u < 0) u = 0;
+      var e = 1 - Math.pow(1 - u, 3), r = r0 + (r1 - r0) * e, al = (o.a || 0.5) * Math.pow(1 - u, 1.5), w = (o.w || 1.4) * (1 - 0.45 * u);
+      sp.clear(); c.setTransform(sp.dpr, 0, 0, sp.dpr, sp.dpr * S / 2, sp.dpr * S / 2);
+      if (!o.dark) { c.strokeStyle = "rgba(16,18,30," + (al * 0.5).toFixed(3) + ")"; c.lineWidth = w + 1.2; c.beginPath(); c.arc(0, 0, r, 0, PI * 2); c.stroke(); }   /* sul chiaro un bordo scuro sotto: si legge sul cielo chiaro e sul pelo nero */
+      c.strokeStyle = "rgba(255,255,255," + al.toFixed(3) + ")"; c.lineWidth = w; c.beginPath(); c.arc(0, 0, r, 0, PI * 2); c.stroke();
+    };
+    an.remove = function () { an.dead = true; sp.remove(); };
+    return an;
+  };
+
   function wrapA(a) { while (a > PI) a -= 2 * PI; while (a < -PI) a += 2 * PI; return a; }
   fx.wrapA = wrapA;
 })();

@@ -148,6 +148,7 @@
   var keepRange = null;
   function keepRects(el) {
     var out = [], rl, i, er = el.getBoundingClientRect(), over = false;
+    if (el.getAttribute && el.getAttribute("data-dot-keep") === "box") return [er];   /* un testo che cambia da solo (la città del globo): conta tutto il suo riquadro */
     try { if (!keepRange && doc.createRange) keepRange = doc.createRange(); if (keepRange) { keepRange.selectNodeContents(el); rl = keepRange.getClientRects();
       for (i = 0; i < rl.length; i++) { if (rl[i].left < er.left - 2 || rl[i].right > er.right + 2) over = true; out.push(rl[i]); } } } catch (e) { out = []; }
     if (!out.length || over) return [er];                              /* testo che esce dal suo riquadro (una riga che scorre, come i saluti): conta tutto il riquadro */
@@ -304,6 +305,7 @@
       /* non ci arriva (il Corano in mezzo): se il fez non si vede, o è lì da tanto, si nasconde un attimo dietro il bordo e risale col fez in testa */
       if ((!fezSeen() && now - fez.t0 > 1.5) || now - fez.t0 > 20) return set("dive", { fez: true, wait: 0.7, face: "side", pose: "crouch" });
     }
+    if (sgHold()) return sitFor(rr(1.4, 2.2));                         /* il dito fantasma sta per arrivare: resta seduto dov'è */
     var w = {}, k, base = now - lastIn > 25 ? SLEEPY : IDLE; for (k in base) w[k] = base[k];
     if (now < life.propAt || props.length || !gameRoom()) w.prop = 0;   /* niente oggetti vicino al riquadro quiet */
     if (p.b - p.a < 60) { w.walk = 0.02; w.dive *= 0.5; }
@@ -487,7 +489,7 @@
   /* fermo su un bordo con una parte del corpo davanti al Corano o a una parola (un riordino, un atterraggio storto): si sposta */
   var GUARD = { sit: 1, look: 1, loaf: 1, sleep: 1, groom: 1, yawn: 1, stretch: 1, drape: 1, sulk: 1, pause: 1, purr: 1, meow: 1, hop: 1, greet: 1, shake: 1, annoyed: 1, land: 1, think: 1 };
   function guard() {
-    if (!cat.vis || !cat.plat || cat.plat.fixed || !GUARD[cat.state] || cat.st < 0.12 || drag || fake || now < (life.guardAt || 0)) return;   /* sul dock ci pensa dockWatch() */
+    if (!cat.vis || !cat.plat || cat.plat.fixed || !GUARD[cat.state] || (cat.st < 0.12 && life.guardAt) || drag || fake || now < (life.guardAt || 0)) return;   /* sul dock ci pensa dockLife(); dopo un refresh guarda subito */
     if (cat.plat.low && cat.state === "land") return;                  /* sta per accucciarsi */
     life.guardAt = now + 0.2; var k = covered(); if (!k) return;
     if (O.strict && cat.plat.tile && cat.plat.tile.mode === "perch") return set("dive", { away: true, face: "side", pose: "crouch" });   /* il logo è stretto: niente passi, giù dietro i tasti (torna poi da un posto buono) */
@@ -581,7 +583,8 @@
       }
     },
     land: function (dt, d) {                                           /* schiaccia, rimbalza un filo, si assesta; orecchie e coda arrivano dopo */
-      var st = cat.st, hard = clamp(d.v / 900, 0.3, 1); rig.rate = 18;
+      var st = cat.st, hard = clamp(d.v / 900, d.soft ? 0.12 : 0.3, 1), sf = d.soft ? 1.6 : 1; rig.rate = d.soft ? lerp(6, 12, smooth(0.1, 0.45, st)) : 18;   /* soft: rimesso giù da un dito, si assesta piano sulle zampe */
+      if (d.soft) { st /= sf; rig.grounded = st > 0.2; }                /* la coda che pendeva rientra con la sua molla, non di colpo */
       if (st < 0.09) { rig.pose = "land"; rig.over.sqy = 1 - 0.2 * hard; rig.over.sqx = 1 + 0.12 * hard; }
       else if (st < 0.22) { rig.pose = "crouch"; rig.over.sqy = 1 + 0.035 * hard; rig.over.sqx = 0.985; }
       else { rig.pose = "stand"; delete rig.over.sqy; delete rig.over.sqx; }
@@ -604,7 +607,7 @@
       else if (u < 1) { rig.pose = u < 0.7 ? "air" : "b-reach"; rig.grounded = false; cat.lift = 4 * 22 * u * (1 - u) * px() / 1.5; rig.pitchT = 0.25 * (1 - 2 * u); rig.over.sqy = 1 + 0.06 * (1 - 2 * u); rig.over.sqx = 1 - 0.04 * (1 - 2 * u); }
       else { cat.lift = 0; rig.pitchT = 0; rig.pose = st < 0.7 ? "land" : "sit"; rig.over.sqy = st < 0.66 ? 0.9 : 1; rig.over.sqx = st < 0.66 ? 1.06 : 1; if (st < 0.6) life.fezRollV += 0.4 * cat.dir; }
       if (st > 0.62) { rig.over.eye = st < 1.3 ? 0 : 1; rig.eyeMood = "happy"; }
-      if (st > 1.5) sitFor(rr(1.6, 2.6));
+      if (st > 1.5) { if (typeof d.then === "function") d.then(); else sitFor(rr(1.6, 2.6)); }   /* d.then: il primo tocco, poi le fusa */
     },
     loaf: function (dt, d) { if (cat.st > d.dur) think(); },
     sleep: function (dt, d) {
@@ -648,7 +651,8 @@
     peek: function (dt, d) {                                           /* spunta dal bordo: orecchie, occhi, due zampe; si guarda attorno; poi sale davvero */
       if (!d.p) { cat.vis = false; return set("wait"); }                 /* il suo riquadro non c'è più */
       cat.vis = true; var st = cat.st, p = d.p, k = px(), P0 = rig.poses.peek;
-      if (O.strict && (p.quiet || p.low) && !d.first && !d.ab && st < 1.6) { d.ab = now; d.ay = cat.y; }   /* un filtro ha messo una parola (o il riquadro quiet) sopra quel bordo: torna giù, dietro lo stesso bordo */
+      var pf = O.strict && !d.first && !d.ab ? platFor(p.el, d.x) || p : null;   /* i segni del bordo di adesso (un filtro può aver spostato le parole sopra, anche senza spostare il bordo) */
+      if (pf && (pf.quiet || pf.low || pf.cov)) { d.ab = now; d.ay = cat.y; }   /* una parola (o il riquadro quiet) sopra quel bordo: torna giù, dietro lo stesso bordo */
       if (d.ab) { var ua = seg(now, d.ab, d.ab + 0.2); cat.plat = p; cat.x = d.x; cat.clipAt = p.y; cat.hideL = p.tile.l; cat.hideR = p.tile.r; rig.grounded = false; rig.pose = "peek"; cat.y = lerp(d.ay, p.y + 34 * k, ua * ua);
         if (ua >= 1) { cat.vis = false; cat.plat = null; cat.clipAt = null; cat.hideL = cat.hideR = null; set("wait"); } return; } cat.plat = p; cat.x = d.x; cat.gy = null; cat.clipAt = p.y; cat.hideL = p.tile.l; cat.hideR = p.tile.r; rig.grounded = false;
       if (!d.dir) d.dir = room(p, d.x, 1) > room(p, d.x, -1) ? 1 : -1;
@@ -691,10 +695,19 @@
   var ASLEEP = { sleep: 1, drape: 1 };
   function tap() {
     lastIn = now; cat.taps.push(now); while (cat.taps.length && cat.taps[0] < now - 6) cat.taps.shift();
-    var s = cat.state;
+    var s = cat.state; if (s === "swat") s = "sit";                    /* la zampata è un attimo: conta come seduto */
     if (cat.vis && onQuiet()) { cat.taps = []; if (!reduced && s !== "crouch" && s !== "air" && s !== "land" && s !== "fall" && s !== "fly" && s !== "held") leaveQuiet(); return; }   /* sul riquadro quiet un tocco lo fa solo andare via: niente miao, niente giochi */
     if (reduced) { say("miao", 1.2, "mini"); sound("meow"); return; }
     if (s === "boxed" || s === "box") return boxOut();
+    if (SG.firstNow) {                                                 /* il primo tocco vero della sessione: la risposta più calda, un saltello felice e le fusa */
+      SG.firstNow = false;
+      if (cat.vis && cat.plat && onEdge() && (CALM[s] || ASLEEP[s] || s === "knock" || s === "sulk" || s === "annoyed")) {
+        clearHeld(); cat.mood = null; cat.s = 1; SG.ks = false; cat.taps = [now];
+        var warm = function () { set("purr", { face: "view", pose: narrow() ? "ride" : lowNow() ? "loaf" : "sit", dur: rr(2.4, 3) }); };
+        if (lowNow()) return warm();                                   /* sotto una parola: niente saltello davanti a lei, solo le fusa */
+        cat.lastTap = "hop"; return set("hop", { face: "view", pose: "crouch", then: warm });
+      }
+    }
     if (cat.vis && lowNow() && onEdge()) { cat.taps = []; life.earFlick = 1; var lo = jumpTargets(cat.plat, 420); if (lo.length && s !== "crouch") { lo.sort(function (a, b) { return hyp(a.x - cat.x, a.p.y - cat.y) - hyp(b.x - cat.x, b.p.y - cat.y); }); jumpTo(lo[0].p, lo[0].x, "sit"); } return; }   /* sdraiato sotto una parola: un tocco lo fa spostare dove può sedersi (lì miagola, gioca) */
     if (ASLEEP[s] || (s === "loaf" && cat.st > 3)) return set("annoyed", { face: "view", pose: s === "drape" ? "drape" : "loaf", from: s });
     if (s === "sulk" || s === "annoyed") { rig.tailSwish = 0.8; life.earFlick = 1; say("mrr", 0.9, "mini"); return; }
@@ -718,7 +731,7 @@
   Object.assign(STATES, {
     greet: function (dt, d) {                                          /* «salam, sono Dot.»: la bocca si muove due volte, la testa si inclina, poi un lento battito d'occhi */
       var st = cat.st, T = TS(), at = d.at != null ? d.at : (d.at = d.text ? 0.25 : stageOn && B.openT0 != null ? clamp(T.bubble - T.land - 0.4, 0.15, 0.6) : 0.3);
-      if (st > at && !d.said) { d.said = 1; say(d.text || "salam, sono Dot.", d.sec || 4, d.kind); }
+      if (st > at && !d.said) { d.said = 1; say(d.text || "salam, sono Dot.", d.sec || 4, d.kind); if (!d.text) SG.salamAt = now; }   /* il suggerimento conta da quando questa nuvoletta se ne va */
       var u = st - at; rig.over.mouth = d.said ? 0.45 * bell(seg(u, 0.02, 0.2)) + 0.38 * bell(seg(u, 0.26, 0.48)) : 0;
       rig.over.hr = rig.poses.sit.hr + 0.14 * smooth(0, 0.5, u) * (1 - smooth(2.4, 3.2, u)); rig.over.hp = rig.poses.sit.hp + 0.06 * bell(seg(u, 0, 0.6));
       if (u > 1.3 && !d.slow) { d.slow = 1; life.slow = now; life.flT = now; }
@@ -814,20 +827,34 @@
   var pend = { a: 0, w: 0, px: 0, pvx: 0 };
   /* quanto stanno sopra l'origine le zampe davanti nella posa «slide» (l'origine è sulla faccia del riquadro) */
   function slideTop() { var s = rig.poses.slide; return Math.max(s.f0y, s.f1y) + rig.P.leg.paw * 0.6; }
-  function pickUp() {
+  function pickUp(ghost) {                                             /* ghost: il dito fantasma del suggerimento (fake.ghost): per la collottola, posa «scruff» */
     clearHeld();
-    set("held", { face: "view", pose: "held" }); cat.plat = null; cat.gy = null; pend.a = 0; pend.w = 0; pend.pvx = 0; pend.px = cat.x;
+    set("held", { face: "view", pose: ghost ? "scruff" : "held" }); cat.plat = null; cat.gy = null; pend.a = 0; pend.w = 0; pend.pvx = 0; pend.px = cat.x;
     reanchor(below() - below("held")); rig.rate = 14; lastIn = now;   /* l'origine passa alla collottola: il corpo resta dov'era */
   }
   Object.assign(STATES, {
     held: function (dt, d) {                                           /* per la collottola: gatto lungo, corpo a pendolo, sguardo seccato */
       if (!drag && !fake) { release(0, 0); return; }                  /* nessun dito lo tiene più (un dito perso, un secondo dito): lo si lascia */
-      var h = drag ? drag : fake, tx = h ? h.x : cat.x, ty = h ? h.y : cat.y, k = 1 - Math.exp(-dt * 24), ox = cat.x;
+      var h = drag ? drag : fake, tx = h ? h.x + (h.ox || 0) : cat.x, ty = h ? h.y + (h.oy || 0) : cat.y, k = 1 - Math.exp(-dt * 24), ox = cat.x;
+      if (h && h.ox) { var dk = Math.exp(-dt * 2.6); h.ox *= dk; h.oy *= dk; if (Math.abs(h.ox) + Math.abs(h.oy) < 0.3) h.ox = h.oy = 0; }   /* preso al posto del dito fantasma: la presa resta dov'era e scivola piano sotto il dito vero */
       cat.x = lerp(cat.x, tx, k); cat.y = lerp(cat.y, ty, k); rig.grounded = false;
       var vx = (cat.x - ox) / Math.max(dt, 1e-3), ax = (vx - pend.pvx) / Math.max(dt, 1e-3); pend.pvx = vx;
       pend.w += (-22 * Math.sin(pend.a) - 2.6 * pend.w - clamp(ax, -9000, 9000) / 520 * Math.cos(pend.a)) * dt; pend.a = clamp(pend.a + pend.w * dt, -1.1, 1.1);
       cat.rot = -pend.a; cat.piv = 0; cat.ownRot = true;
-      var sp = Math.abs(vx); rig.longT = clamp(3 + cat.st * 4 + sp / 140, 0, 11);
+      var sp = Math.abs(vx);
+      if (!drag && fake && fake.ghost) {                               /* il dito fantasma: lungo e molle, per niente impressionato, guarda dritto chi guarda */
+        rig.pose = "scruff"; rig.rate = cat.st < 0.45 ? 8 : 12; rig.longT = clamp(1 + cat.st * 4, 0, 4) + sp / 300; rig.over.tc = 0.6;   /* la posa cambia piano mentre sale: le zampe lasciano il bordo poco a poco */
+        if (SG.g && SG.g.ph === "down") { var dw = eIO(seg(now - SG.g.t0, GT.hold, GT.down)); rig.over.te = lerp(-1.3, 0.25, dw); rig.over.tc = lerp(0.6, 0.85, dw); }   /* rimesso giù: la coda sale prima che le zampe tocchino (non buca il bordo) */
+        if (SG.g && SG.g.plat && lastF) {                              /* la coda pende quanto c'è posto sopra il bordo, mai oltre: alzandosi si srotola piano */
+          var hq = drawnPt(lastF.body.hips.x, lastF.body.hips.y), av = SG.g.plat.y - hq.y - 6, tmin = -Math.asin(clamp(av / (rig.P.tail.len * px()), 0, 1));
+          rig.over.te = Math.max(SG.g.ph === "down" ? rig.over.te : rig.poses.scruff.te, tmin);
+        }
+        rig.over.lid = 0.5; rig.over.eye = 0.92; rig.over.brow = 0.14; rig.over.ear = 0.3 + 0.12 * sat(sp / 500); rig.tailSwish = 0.16; rig.tailRate = 1.5;
+        cat.att = null; cat.gz = false; rig.look.ty = clamp(wrap(-PI / 2 - rig.yaw), -0.9, 0.9) * 0.85; rig.look.tp = -0.06; rig.gazeT[0].x = rig.gazeT[1].x = 0; rig.gazeT[0].y = rig.gazeT[1].y = 0.02;
+        return;
+      }
+      if (rig.pose === "scruff") { rig.pose = "held"; delete rig.over.brow; delete rig.over.te; delete rig.over.tc; cat.gz = true; }   /* il dito vero l'ha preso al posto del fantasma */
+      rig.longT = clamp(3 + cat.st * 4 + sp / 140, 0, 11);
       rig.over.lid = 0.42; rig.over.eye = 0.9; rig.over.ear = 0.18 + 0.25 * sat(sp / 900); rig.tailSwish = 0.25; rig.tailRate = 2;
       cat.att = null; cat.gz = true;
     },
@@ -1333,6 +1360,7 @@
   }
   function dockDecide(p) {
     if (dockBlocked(cat.x, 18)) return set("dockdown", { duck: true });
+    if (sgHold()) return sitFor(rr(1.4, 2.2));                         /* il dito fantasma sta per arrivare: resta seduto dov'è */
     var w = { sit: 0.34, look: 0.16, loaf: 0.2, sleep: now - lastIn > 25 ? 0.22 : 0.05, groom: 0.07, yawn: 0.05, walk: p.b - p.a > 90 ? 0.12 : 0, stretch: 0.03 }, k = wpick(w, cat.last); cat.last = k;
     if (k === "walk") { var tx = cat.x, n = 0; while (Math.abs(tx - cat.x) < 40 && n++ < 14) tx = rr(p.a + 4, p.b - 4); var bx = Math.abs(tx - cat.x) >= 30 ? tx : cat.x;
       if (bx !== cat.x && !dockBlocked(bx, 18) && !dockWords(bx)) return walkTo(bx, "sit", { gait: "stroll" }); return sitFor(rr(2.5, 4.5)); }
@@ -1466,6 +1494,291 @@
     } else if (life.watching && now - (life.watchV || 0) > 0.5) { life.watching = 0; life.watch = null; cat.att = null; delete rig.over.hr; delete rig.over.hp; delete rig.over.ear; }
   }
 
+  /* ------------------------------------------------------------------ il suggerimento: Dot si può toccare (CASA.md 2c C)
+     Niente parole, piccolo, solo su Dot, tutto finito in pochi secondi. Solo con DOT.start({ hint: true }) (la casa nuova), mai col
+     movimento ridotto. Tutto va con l'orologio del cervello (now):
+     - vicino: un dito o il puntatore che si avvicina: orecchie su, testa e pupille verso di lui, pupille più larghe;
+     - la zampata: un dito che scorre vicino (o il puntatore mentre la rotella scorre) prende una zampata svelta, non ogni volta;
+     - il dito fantasma, una volta: quattro secondi dopo che «salam, sono Dot.» se n'è andato, se nessuno l'ha ancora toccato, un
+       polpastrello traslucido arriva, preme (un anello), lo prende per la collottola e lo alza un poco lungo un arco (lungo, per niente
+       impressionato), lo tiene mezzo secondo, lo rimette giù (atterra, si scrolla), lascia (un anello) e se ne va; Dot guarda dove è
+       andato, poi chi guarda. È un trascinamento vero: lo stato «held» con un dito finto (fake.ghost), lo stesso cammino del dito vero.
+       Un dito vero in qualsiasi istante lo prende al suo posto, senza salti. Mai più dopo che il visitatore l'ha trascinato (lo
+       ricorda il telefono), al più in due sessioni, mai mentre si scorre o si scrive, con un foglio aperto o con Dot fuori vista;
+     - bussa: se ancora nessuno l'ha toccato e la pagina è ferma da un po' con Dot in vista, viene verso il vetro (due passi, un filo
+       più grande), alza una zampa e bussa due volte (un anello sul vetro a ogni colpo, nessun suono), inclina la testa e aspetta con le
+       pupille grandi; poi si arrende e fa la pagnotta. Due volte per sessione al più;
+     - il primo tocco vero della sessione riceve la risposta più calda: un saltello felice e le fusa. */
+  var SG = { on: false, g: null, fing: null, fp: null, rings: [], gest: 0, ks: false };
+  var SGK = { preso: "dot-preso", visti: "dot-dito-n", sess: "dot-dito", tocco: "dot-tocco", bussa: "dot-bussa" };   /* preso, visti: sul telefono (localStorage); gli altri: in questa sessione */
+  function sgStore(local, k, v) { try { var s = local ? window.localStorage : window.sessionStorage; if (!s) return null; if (v === undefined) return s.getItem(k); s.setItem(k, String(v)); } catch (e) {} return null; }
+  function sgInit(first) {
+    sgClear();
+    SG.on = !!O.hint && !reduced;
+    SG.touched = sgStore(0, SGK.tocco) === "1"; SG.dragged = sgStore(1, SGK.preso) === "1"; SG.seen = +sgStore(1, SGK.visti) || 0;
+    SG.ghostOk = SG.on && !SG.touched && !SG.dragged && sgStore(0, SGK.sess) !== "1" && SG.seen < 2;
+    SG.ghostAt = first ? -1 : now + 8; SG.salamAt = -1; SG.ghostEnd = -1; SG.knocks = +sgStore(0, SGK.bussa) || 0; SG.knockAt = -99;
+    SG.keyAt = -99; SG.resAt = -99; SG.near = 0; SG.nkeys = null; SG.batAt = -99; SG.batG = -1; SG.first = !SG.touched; SG.firstNow = false; SG.t0 = now; SG.chk = 0; SG.att = null;
+  }
+  /* via il dito e gli anelli; se il dito fantasma teneva il gatto, lo rimette seduto dov'era (DOT.stop, una pausa, «Rivedi») */
+  function sgClear() {
+    var g = SG.g, i;
+    if (g && fake && fake.ghost) { fake = null; var p = fresh(g.plat, cat.x); if (p && cat.state === "held") { cat.x = clamp(cat.x, p.a, p.b); landOn(p); cat.voff = 0; cat.voffV = 0; cat.rot = 0; cat.lift = 0; rig.longT = 0; rig.long = 0; sitFor(rr(1.5, 2.5)); rig.snap(rig.pose); } }
+    else if (g && cat.state === "sit" && cat.d.ghost) cat.d.dur = cat.st + 1;
+    if (g) SG.ghostEnd = now; SG.g = null;
+    if (SG.fing) { SG.fing.remove(); SG.fing = null; }
+    for (i = 0; i < SG.rings.length; i++) SG.rings[i].remove(); SG.rings = [];
+  }
+  /* un dito vero su Dot: la sessione lo ricorda; il primo della sessione riceve la risposta calda (tap) */
+  function sgTouch() { if (!SG.touched) { SG.touched = true; SG.firstNow = SG.on && SG.first; sgStore(0, SGK.tocco, "1"); } SG.ghostOk = false; }
+  function sgDragged() { if (!SG.dragged) { SG.dragged = true; sgStore(1, SGK.preso, "1"); } }
+  /* il puntatore: c'è adesso (il mouse sulla pagina e mosso da poco; un dito giù, o appena alzato) e dov'è in pagina */
+  function ptrLive() { if (ptr.x < -1e3) return false; if (ptr.kind === "mouse") return !ptr.out && now - ptr.t < 3; return ptr.down || now - (ptr.upAt || -9) < 0.6; }
+  function ptrPage() { if (ptr.kind === "mouse" && ptr.cx != null) return { x: ptr.cx + view.sx, y: ptr.cy + view.sy }; return { x: ptr.x, y: ptr.y }; }   /* il mouse resta fermo sullo schermo mentre la pagina scorre; un dito resta sulla pagina */
+  function typing() { var a = doc.activeElement, t = a && a.tagName; return now - SG.keyAt < 3 || !!(a && (t === "INPUT" || t === "TEXTAREA" || t === "SELECT" || a.isContentEditable)); }
+  /* un punto del modello (unità, y in alto) dove è disegnato adesso, in pagina: con lo scarto dell'origine e la rotazione */
+  function drawnPt(mx, my) { var k = px(), Oy = cat.y - cat.lift - cat.voff * k, cr = Math.cos(cat.rot), sr = Math.sin(cat.rot), yy = my - cat.piv; return { x: cat.x + (mx * cr - yy * sr) * k, y: Oy - (mx * sr + yy * cr + cat.piv) * k }; }
+  /* la collottola: dietro la testa, dal lato della schiena (di tre quarti la testa copre il collo: il dito sta sul bordo di dietro della
+     testa, mai sugli occhi) */
+  var FR = 12;                                                         /* il raggio del polpastrello, px (dot-fx.js, Dito) */
+  function scruffPt(f) {   /* in alto, sul bordo di dietro della testa: il punto più vicino al contorno da cui il polpastrello non copre un occhio (continuo: niente scatti) */
+    var c = f.body.chest, h = f.head, bx = Math.abs(c.x - h.x) > 0.4 ? (c.x > h.x ? 1 : -1) : -cat.dir, R = FR / px(), th = 0.66, cx = bx * h.rx * Math.cos(th), cy = h.ry * Math.sin(th), m, i, E, ok, x = 0, y = 0;
+    for (m = 0.94; m < 1.9; m += 0.02) { x = h.x + cx * m; y = h.y + cy * m; ok = true;
+      for (i = 0; i < f.eyes.length; i++) { E = f.eyes[i]; if (E.vis > 0.12 && hyp(x - E.x, y - E.y) < R + E.r * 1.12 + 0.6) { ok = false; break; } }
+      if (ok) break; }
+    return drawnPt(x, y);
+  }
+  /* la zampa più bassa e il punto più basso della coda, in pagina (px, y in basso) */
+  function lowPts(f) { var i, l, q, lo = -1e9, tl = -1e9, P = f.tail.pts;
+    for (i = 0; i < 4; i++) { l = f.legs[i]; q = drawnPt(l.fx, l.fy - l.paw * 0.85); if (q.y > lo) lo = q.y; }
+    for (i = 0; i < P.length; i++) { q = drawnPt(P[i].x, P[i].y - P[i].r); if (q.y > tl) tl = q.y; }
+    return { paw: lo, tail: tl }; }
+  function sgGeo() {
+    var f = lastF, k = px(), i, q, e = [], g = SG.g, P = g ? g.plat : cat.plat; if (!f) return null; var lp = lowPts(f);
+    for (i = 0; i < f.eyes.length; i++) if (f.eyes[i].vis > 0.12) { q = drawnPt(f.eyes[i].x, f.eyes[i].y); e.push({ x: q.x, y: q.y, r: f.eyes[i].r * k }); }
+    return { eyes: e, paw: lp.paw, tail: lp.tail, ground: P ? P.y : null, fing: SG.fp ? { x: SG.fp.x, y: SG.fp.y, r: FR * SG.fp.sc * (1 - 0.1 * SG.fp.press), a: SG.fp.a } : null, ph: g ? g.ph : null, s: cat.state, k: k };
+  }
+  function sgRing(x, y, o) {   /* un anello sul vetro (x, y in pagina adesso); nello strato fisso, se c'è: resta sul vetro anche se la pagina si muove */
+    var par = flayer || layer; if (!par) return; o = o || {}; o.dark = dark;
+    var r = fx().Anello(par, x - (flayer ? view.sx : 0), y - (flayer ? view.sy : 0), o); r.t0 = now; r.dur = o.dur || 0.42; SG.rings.push(r);
+  }
+  function sgDraw() {
+    var i, r, F = SG.fp;
+    if (SG.fing && F) { var par = flayer || layer; SG.fing.move(par); SG.fing.draw(F.x - (flayer ? view.sx : 0), F.y - (flayer ? view.sy : 0), F.a, F.sc, F.press, dark); if (!SG.g && F.a <= 0.004) { SG.fing.remove(); SG.fing = null; } }
+    for (i = SG.rings.length - 1; i >= 0; i--) { r = SG.rings[i]; r.draw((now - r.t0) / r.dur); if (r.dead) SG.rings.splice(i, 1); }
+  }
+  /* il dito fantasma sta per arrivare: intanto Dot resta seduto dov'è (decide() non lo manda a dormire o lontano) */
+  function sgHold() { return SG.on && SG.ghostOk && !SG.g && SG.ghostAt >= 0 && now > SG.ghostAt - 3.2 && now < SG.ghostAt + 20; }
+  var GHOSTOK = { sit: 1, look: 1, pause: 1 };
+  function sgClearArea(x0, y0, x1, y1, ctlOnly) {   /* nessuna parola (o nessun comando) né il Corano in questo rettangolo della pagina */
+    var i, n, L = world.keep; for (i = 0; i < world.no.length; i++) { n = world.no[i]; if (!n.m && x1 > n.l && x0 < n.r && y1 > n.t && y0 < n.b) return false; }
+    if (O.strict) for (i = 0; i < L.length; i++) { n = L[i]; if ((!ctlOnly || n.c) && x1 > n.l && x0 < n.r && y1 > n.t && y0 < n.b) return false; }
+    return true;
+  }
+  function ghostCan() {
+    if (drag || fake || !cat.vis || !cat.plat || !onEdge() || !GHOSTOK[cat.state] || cat.st < 0.35 || (bubble && bubble.on)) return false;
+    if (now - (B.scrollAt || -9) < 1.2 || typing() || now - SG.resAt < 1.5 || now - (ptr.downAt || -9) < 1) return false;
+    if (cat.plat.quiet || cat.plat.low || onQuiet() || !gameRoom() || underNo(cat.x, cat.y)) return false;
+    var b = catBox(); if (!b || !lastF) return false; var up = 26 * K / 1.5 + 12, rd = riding();   /* alzato almeno di 26 (fino a 34 se c'è posto: ghostStart), più quel poco perché le zampe non entrino nel bordo */
+    if (b.y0 - up < view.sy + view.ti + 4 || b.y1 > view.sy + view.vh - (rd ? 0 : view.bi) + (rd ? 6 : -4) || b.x0 < view.sx + 8 || b.x1 > view.sx + view.vw - 8) return false;   /* tutto in vista, anche alzato col dito sopra */
+    return sgClearArea(b.x0 - 14, b.y0 - up, b.x1 + 14, b.y1 - 4, rd);   /* alzato non copre il Corano né una parola; sul dock (dove la pagina gli passa dietro) né un comando */
+  }
+  function ghostSide() {                                              /* da che parte va l'arco: verso il centro dello schermo, via dalla scatola, dove il bordo ha posto */
+    var s = cat.x < view.sx + view.vw / 2 ? 1 : -1, p = cat.plat;
+    if (stageOn) { try { var r = stage.rim(); if (r && Math.abs(r.x - cat.x) < 150 && Math.abs(r.y - cat.y) < 70) s = cat.x < r.x ? -1 : 1; } catch (e) {} }
+    if (p && room(p, cat.x, s) < 20 && room(p, cat.x, -s) > room(p, cat.x, s)) s = -s;
+    return s;
+  }
+  /* i tempi del dito fantasma (secondi dall'arrivo): arriva, preme, prende, alza, tiene, rimette giù */
+  var GT = { press: 0.42, grab: 0.52, lift: 0.55, up: 1.15, hold: 1.65, down: 2.12, set: 0.24, out: 0.34 };
+  function ghostStart() {
+    var f = lastF, p = cat.plat; if (!f || !p || !(layer || flayer)) return false;
+    var side = -cat.dir, s0 = scruffPt(f), as = ghostSide() === side ? side : 0;   /* il dito arriva da dietro (dal lato della schiena); l'arco va da quella parte se c'è posto, se no dritto su */
+    SG.ghostOk = false; sgStore(0, SGK.sess, "1"); sgStore(1, SGK.visti, SG.seen + 1);
+    sitFor(60, { ghost: true });                                      /* seduto, fermo: guarda il dito che arriva */
+    var b = catBox(), room = b ? b.y0 - (view.sy + view.ti + 6) - 8 : 1e9;   /* sotto il bordo di sopra dello schermo: alzato un po' meno se non c'è posto */
+    SG.g = { t0: now, ph: "in", plat: p, side: side, as: as, H: clamp(room, 26 * K / 1.5, 34 * K / 1.5), x: s0.x + side * 30, y: s0.y - 38, sx: 0, sy: 0 };
+    SG.fp = { x: SG.g.x, y: SG.g.y, a: 0, sc: 1.18, press: 0 };
+    if (!SG.fing) SG.fing = fx().Dito(flayer || layer);
+    return true;
+  }
+  /* il dito se ne va: si alza dal vetro (un filo più grande) e svanisce, muovendosi; quick: più svelto (annullato) */
+  function ghostLeave(quick) { var g = SG.g, F = SG.fp; g.ph = "out"; g.tOut = now; g.ox = F.x; g.oy = F.y; g.ex = F.x + g.side * (quick ? 12 : 18); g.ey = F.y - (quick ? 18 : 26); g.quick = !!quick; g.p0 = F.press; }
+  /* rimesso giù: i piedi toccano il bordo; l'origine torna sotto il corpo senza che il disegno salti, poi atterra e si scrolla */
+  function ghostPut() {
+    var g = SG.g, p = fresh(g.plat, cat.x); fake = null;
+    if (!p) { reanchor(below() - below("air")); set("fall", { vy: 0, face: "view", pose: "air" }); ghostLeave(false); sgRing(SG.fp.x, SG.fp.y, { r0: 5, r1: 17, a: 0.42 }); return; }
+    reanchor(below() - below("land")); reanchor((p.y - cat.y) / px());
+    cat.x = clamp(cat.x, p.a, p.b); landOn(p);
+    set("land", { v: 160, soft: true, face: "view", pose: "land", then: "shake" });
+    g.ph = "set"; g.tSet = now; g.plat = p;
+  }
+  /* un dito vero, uno scorrimento, la tastiera, un tocco altrove: il dito fantasma lascia stare, pulito. why = "touch": il dito vero l'ha già preso */
+  function ghostCancel(why) {
+    var g = SG.g; if (!g || g.cancel) return; var F = SG.fp, ph = g.ph;
+    g.cancel = why; SG.ghostEnd = now;
+    if (ph === "in" || ph === "press") { if (cat.state === "sit" && cat.d.ghost) cat.d.dur = cat.st + rr(0.6, 1.4); }   /* riprende la sua vita (resta seduto ancora un attimo) */
+    else if (ph === "lift" || ph === "hold" || ph === "down") {
+      if (fake && fake.ghost) fake = null;
+      if (why !== "touch" && cat.state === "held") { var p = fresh(g.plat, cat.x); reanchor(below() - below("air")); set("fall", { p: p, vy: 0, face: "view", pose: "air" }); sgRing(F.x, F.y, { r0: 5, r1: 17, a: 0.42 }); }   /* lasciato: ricade sul suo bordo */
+    }
+    if (ph !== "out" && ph !== "after") ghostLeave(true);
+  }
+  function ghostStep() {
+    var g = SG.g, t = now - g.t0, F = SG.fp, f = lastF, k = px(), u, e, s;
+    if (g.ph !== "out" && g.ph !== "after" && !g.cancel && (now - (B.scrollAt || -9) < 0.05 || now - SG.keyAt < 0.05)) ghostCancel("scroll");   /* chi legge scorre o scrive: lascia stare */
+    if (g.ph === "in" || g.ph === "press") {
+      if (cat.state !== "sit" || !cat.d.ghost || drag) return ghostCancel("state");
+      s = f ? scruffPt(f) : { x: g.x, y: g.y }; u = seg(t, 0, GT.press); e = eOut(u);
+      F.x = lerp(g.x, s.x, e) + g.side * 6 * bell(u); F.y = lerp(g.y, s.y, e); F.a = eOut(seg(t, 0, 0.3)); F.sc = lerp(1.2, 1, eIO(u));   /* arriva lungo un arco, scendendo verso il vetro */
+      if (t < GT.press) { cat.att = t > 0.1 ? { x: F.x, y: F.y } : null; return; }   /* lo guarda arrivare */
+      g.ph = "press"; F.x = s.x; F.y = s.y; F.press = eOut(seg(t, GT.press, GT.press + 0.07)); cat.att = null;
+      if (!g.r1) { g.r1 = 1; sgRing(F.x, F.y, { r0: 6, r1: 19, a: 0.46 }); life.earFlick = 1; life.earSide = g.side; }
+      if (t < GT.grab) { rig.over.sqy = 1 - 0.035 * eOut(seg(t, GT.press, GT.grab)); rig.over.lid = 0.3; return; }   /* il dito preme: si fa un filo più basso, socchiude */
+      g.ph = "lift"; pickUp(true); fake = { x: cat.x, y: cat.y, ghost: true }; g.sx = cat.x; g.sy = cat.y;   /* preso per la collottola: l'origine passa al punto di presa, il disegno resta dov'era */
+      return;
+    }
+    if (g.ph === "lift" || g.ph === "hold" || g.ph === "down") {
+      if (cat.state !== "held" || !fake || !fake.ghost) return ghostCancel("state");
+      F.press = 1; F.a = 1; F.sc = 1;
+      if (f && t < GT.hold) {                                           /* le zampe lasciano il bordo, non ci entrano: mentre il corpo si allunga il dito sale quanto basta */
+        var lp = lowPts(f), ov = lp.paw - (g.plat.y + g.pw0); if (g.pw0 == null) { g.pw0 = Math.min(lp.paw - g.plat.y, 5); g.ey2 = 0; ov = 0; }
+        if (ov > 0.05) { g.ey2 += ov; cat.y -= ov; }
+      }
+      if (t < GT.up) { e = eIO(seg(t, GT.lift, GT.up)); fake.x = g.sx + g.as * 9 * Math.pow(e, 1.6); fake.y = g.sy - g.H * e - (g.ey2 || 0); }   /* su lungo un arco: prima in alto, poi un poco di lato */
+      else if (t < GT.hold) { g.ph = "hold"; u = t - GT.up; fake.x = g.sx + g.as * 9 + 0.5 * Math.sin(u * 6.1); fake.y = g.sy - g.H - (g.ey2 || 0) + 0.45 * Math.sin(u * 4.3 + 1); g.tx = fake.x; g.ty = fake.y; }   /* tenuto: un dito non è mai fermo del tutto */
+      else {
+        g.ph = "down"; var p = fresh(g.plat, cat.x); if (!p) return ghostCancel("lost"); g.plat = p;
+        var lo = -1e9, i, l, q; if (f) for (i = 0; i < 4; i++) { l = f.legs[i]; q = drawnPt(l.fx, l.fy - l.paw * 0.85); if (q.y > lo) lo = q.y; }
+        if (g.tx == null) { g.tx = fake.x; g.ty = fake.y; }
+        u = seg(t, GT.hold, GT.down); e = eIO(u); var ty = p.y - (lo > -1e8 ? lo - cat.y : 30 * k);   /* dove deve stare il dito perché le zampe tocchino il bordo */
+        fake.x = lerp(g.tx, g.sx + g.as * 3, e); fake.y = lerp(g.ty, ty, e);
+        if ((lo > -1e8 && lo >= p.y - 0.8 && u > 0.5) || u >= 1) { if (f) { s = scruffPt(f); F.x = s.x; F.y = s.y; } ghostPut(); return; }
+      }
+      if (f) { s = scruffPt(f); F.x = s.x; F.y = s.y; } return;         /* il dito sta sulla collottola del gatto appeso (il gatto pende dal punto di presa) */
+    }
+    if (g.ph === "set") {                                               /* appoggiato: il dito resta sulla collottola mentre si assesta */
+      if (f) { s = scruffPt(f); F.x = lerp(F.x, s.x, 0.5); F.y = lerp(F.y, s.y, 0.5); }
+      if (now - g.tSet >= GT.set) { sgRing(F.x, F.y, { r0: 5, r1: 17, a: 0.42 }); ghostLeave(false); }   /* lascia: un anello */
+      return;
+    }
+    if (g.ph === "out") {
+      u = seg(now, g.tOut, g.tOut + (g.quick ? 0.2 : GT.out)); e = eIn(u);
+      F.press = g.p0 * (1 - eOut(seg(now, g.tOut, g.tOut + 0.08))); F.x = lerp(g.ox, g.ex, 1 - Math.pow(1 - u, 2)); F.y = lerp(g.oy, g.ey, 1 - Math.pow(1 - u, 2)); F.sc = 1 + 0.16 * u; F.a = 1 - e;
+      if (u >= 1) { F.a = 0; if (g.cancel) { SG.g = null; return; } g.ph = "after"; g.tAft = now; }
+      return;
+    }
+    if (g.ph === "after") {                                             /* si è scrollato: guarda dove è andato il dito, poi chi guarda (un lento battito d'occhi) */
+      var at = now - g.tAft; s = cat.state;
+      if (s === "sit" && !g.sat) { g.sat = now; cat.d.dur = Math.max(cat.d.dur || 0, cat.st + 2.4); }
+      if (g.sat) { var a2 = now - g.sat; if (a2 < 0.8) cat.att = { x: g.ex, y: g.ey }; else if (!g.bl) { g.bl = 1; cat.att = null; life.slow = now + 0.12; }
+        if (a2 > 1.7 || s !== "sit") { SG.g = null; SG.ghostEnd = now; } }
+      else if ((s !== "land" && s !== "shake") || at > 4) { SG.g = null; SG.ghostEnd = now; }
+    }
+  }
+  /* bussa sul vetro: ancora nessun tocco, la pagina ferma da un po', Dot in vista e tranquillo */
+  var KNOCKOK = { sit: 1, look: 1, pause: 1, loaf: 1 };
+  function knockCan() {
+    if (SG.touched || SG.knocks >= 2 || SG.g || drag || fake || !cat.vis || !cat.plat || !onEdge() || !KNOCKOK[cat.state] || cat.st < 1.2 || (bubble && bubble.on)) return false;
+    var gate = SG.ghostOk ? (SG.ghostAt >= 0 && now > SG.ghostAt + 40 ? 0 : 1e9) : Math.max(SG.ghostEnd + 18, SG.t0 + 24);   /* prima il dito fantasma, se c'è ancora da fare; se da 40 s non trova un posto (sui grandi schermi la mensola di casa ha poco cielo sopra), bussa intanto */
+    if (SG.knocks > 0) gate = Math.max(gate, SG.knockAt + 45);
+    if (now < gate || now - lastIn < 7 || now - (B.scrollAt || -9) < 7 || typing() || now - SG.resAt < 3) return false;
+    if (cat.plat.quiet || cat.plat.low || onQuiet() || !gameRoom() || underNo(cat.x, cat.y)) return false;
+    var b = catBox(); if (!b) return false; var m = 0.12 * (b.x1 - b.x0) + 4, rd = riding();
+    if (b.y0 - 16 < view.sy + view.ti + 4 || b.y1 > view.sy + view.vh - (rd ? 0 : view.bi) + (rd ? 6 : -4) || b.x0 - m < view.sx + 6 || b.x1 + m > view.sx + view.vw - 6) return false;
+    return sgClearArea(b.x0 - m, b.y0 - m * 1.6, b.x1 + m, b.y1 - 4, rd);   /* più grande (viene verso il vetro): non copre una parola né il Corano */
+  }
+  /* la zampata: il puntatore che passa vicino mentre la pagina scorre (una volta per gesto, non sempre) */
+  var BATOK = { sit: 1, look: 1, pause: 1 };
+  function batCheck() {
+    if (SG.gest === SG.batG || !BATOK[cat.state] || cat.st < 0.3 || !cat.vis || !cat.plat || !onEdge() || drag || fake || SG.g || lowNow() || cat.plat.quiet || !lastF) return;
+    if (Math.abs(B.vy || 0) < 160 || now - (B.scrollAt || -9) > 0.1 || !ptrLive() || now < SG.batAt + 16 || !gameRoom()) return;
+    var pp = ptrPage(), h = drawnPt(lastF.head.x, lastF.head.y), c = drawnPt(lastF.body.chest.x, lastF.body.chest.y), R = 78 * K / 1.5;
+    if (Math.min(hyp(pp.x - h.x, pp.y - h.y), hyp(pp.x - c.x, pp.y - c.y)) > R) return;
+    SG.batG = SG.gest; if (rnd() > 0.6) return;                         /* deve restare una sorpresa */
+    SG.batAt = now; var fr = (pp.x - cat.x) * cat.dir > -12 * K / 1.5;   /* davanti: la zampata, senza girarsi; da dietro: si volta a guardare, di scatto */
+    set("swat", { face: "view", pose: narrow() ? "ride" : "sit", at: pp, look: !fr });
+  }
+  var NEAROK = { sit: 1, look: 1, pause: 1, loaf: 1, think: 1 };
+  /* prima dello stato: il dito fantasma, l'inizio di un gesto, la grandezza lasciata da chi bussava; i valori del «vicino» di prima via */
+  function sgPre(dt) {
+    var i, ks = SG.nkeys; if (ks) { for (i = 0; i < ks.length; i++) delete rig.over[ks[i]]; SG.nkeys = null; }
+    if (SG.ks && cat.state !== "knock") { cat.s = lerp(cat.s, 1, 1 - Math.exp(-dt * 9)); if (Math.abs(cat.s - 1) < 0.002) { cat.s = 1; SG.ks = false; } }   /* interrotto mentre bussava: torna piano alla sua grandezza */
+    if (!SG.on) return;
+    if (SG.salamAt >= 0 && SG.ghostAt < 0 && bubble && !bubble.on && bubble.sc < 0.02) SG.ghostAt = now + 4;   /* «salam, sono Dot.» se n'è andato: fra quattro secondi */
+    if (SG.g) { ghostStep(); return; }
+    if (now < SG.chk) return; SG.chk = now + 0.2;
+    if (SG.ghostOk && SG.ghostAt >= 0 && now >= SG.ghostAt && now < SG.ghostAt + 120 && !SG.touched && ghostCan()) { ghostStart(); return; }
+    if (knockCan()) { SG.knocks++; SG.knockAt = now; sgStore(0, SGK.bussa, SG.knocks); SG.ks = true; set("knock", { face: "front", pose: narrow() ? "ride" : "sit" }); }
+  }
+  /* dopo lo stato: il dito vicino (orecchie su, pupille larghe, lo guarda), la zampata */
+  function sgPost(dt) {
+    if (!SG.on) return;
+    var on = 0, s = cat.state, f = lastF;
+    if (cat.vis && f && !drag && !fake && NEAROK[s] && ptrLive()) {
+      var pp = ptrPage(), h = drawnPt(f.head.x, f.head.y), d = hyp(pp.x - h.x, pp.y - h.y), R = 150 * K / 1.5;
+      if (d < R) on = (1 - smooth(R * 0.5, R, d)) * (ptr.kind === "mouse" ? 1 - smooth(2, 3, now - ptr.t) : 1);
+      if (on > 0.5 && cat.state !== "walk") { cat.att = pp; SG.att = pp; }   /* la testa e le pupille vanno al dito */
+    }
+    if (on <= 0.5 && SG.att) { if (cat.att === SG.att) cat.att = null; SG.att = null; }   /* il dito se n'è andato: non resta a guardare il punto dov'era */
+    SG.near += (on - SG.near) * (1 - Math.exp(-dt * (on > SG.near ? 7 : 2.4)));
+    if (NEAROK[s]) rig.pupilT = 0.8 + 0.2 * SG.near;                   /* le pupille si allargano */
+    if (SG.near > 0.01 && NEAROK[s]) {
+      var base = rig.poses[rig.pose] || rig.poses.sit, keys = [];
+      if (!rig.over.hasOwnProperty("ear")) { rig.over.ear = Math.min(base.ear || 0, 0.06) - 0.16 * SG.near; keys.push("ear"); }   /* orecchie su, in avanti */
+      if (!rig.over.hasOwnProperty("eye")) { rig.over.eye = (base.eye || 1) * (1 + 0.07 * SG.near); keys.push("eye"); }
+      if (s === "loaf" && !rig.over.hasOwnProperty("hp")) { rig.over.hp = (base.hp || 0) + 0.08 * SG.near; keys.push("hp"); }   /* a pagnotta alza la testa */
+      SG.nkeys = keys;
+    }
+    batCheck();
+  }
+  Object.assign(STATES, {
+    /* la zampata: si accorge (occhi grandi, si abbassa un filo), la zampa scatta verso il dito e torna; poi lo segue con gli occhi */
+    swat: function (dt, d) {
+      var st = cat.st, base = narrow() ? "ride" : "sit", k = px(), pp = ptrLive() ? ptrPage() : d.at, h = lastF ? drawnPt(lastF.head.x, lastF.head.y) : { y: cat.y - 30 * k };
+      cat.face = "view"; cat.att = pp; cat.gz = true;
+      if (d.look) { rig.pose = base; rig.rate = 16; rig.over.ear = 0.3 * (1 - seg(st, 0.3, 0.9)); rig.over.eye = 1.16 - 0.1 * seg(st, 0.4, 1); rig.pupilT = 1; rig.pupilDotT = 0.5 * (1 - seg(st, 0.2, 0.6)); life.tailKick = Math.max(life.tailKick || 0, 0.5 * (1 - seg(st, 0, 0.2)));
+        if (st > 1.1) sitFor(rr(1.6, 2.6)); return; }                  /* da dietro: si volta (la testa, le pupille), orecchie indietro un attimo */
+      if (st < 0.09) { rig.pose = base; rig.rate = 22; rig.over.ear = 0.18; rig.over.eye = 1.16; rig.over.hp = -0.06; rig.over.sqy = 0.97; rig.pupilT = 1; return; }
+      if (st < 0.27) {                                                 /* la zampa sul vetro: la pianta verso chi guarda, uno strofinone di lato verso il dito */
+        var Kg = rig.poses["knock-glass"], u2 = seg(st, 0.09, 0.27); rig.pose = "knock-glass"; rig.rate = 24; delete rig.over.sqy; delete rig.over.hp; rig.over.ear = 0.04; rig.over.eye = 1.12;
+        rig.over.f0y = clamp(Kg.f0y + (h.y - pp.y) / k * 0.25, 11, 19); rig.over.fo0 = (Kg.fo0 || 0) + 5.5 * eOut(u2) - 2.5 * eIn(u2); rig.over.hr = (Kg.hr || 0) * 0.6; return; }
+      if (st < 0.52) { rig.pose = base; rig.rate = 14; delete rig.over.f0y; delete rig.over.fo0; delete rig.over.hr; rig.over.eye = 1.08; rig.over.ear = 0; return; }
+      rig.pupilT = 0.95; delete rig.over.eye; if (st > 1.3) sitFor(rr(1.6, 2.6));
+    },
+    /* bussa sul vetro, da dentro lo schermo */
+    knock: function (dt, d) {
+      var st = cat.st, T0 = 0.62, base = narrow() ? "ride" : "sit", u = st - T0, P0 = rig.poses[base] || rig.poses.sit;
+      cat.face = "front"; SG.ks = true; rig.headMax = null;
+      if (st < T0) {                                                   /* viene verso il vetro: passi sul posto, si fa un filo più grande */
+        rig.pose = "stand"; rig.walkT = st < T0 - 0.14 ? 1 : 0; rig.speedU = 0; rig.gaitT = 0.36; cat.att = null;
+        cat.s = lerp(1, 1.1, eIO(seg(st, 0.06, T0 - 0.04))); return;
+      }
+      rig.walkT = 0; cat.s = 1.1; cat.gz = false; rig.look.ty = 0; rig.look.tp = 0.03; rig.gazeT[0].x = rig.gazeT[1].x = 0; rig.gazeT[0].y = rig.gazeT[1].y = 0.05;   /* guarda dritto chi guarda */
+      if (u < 0.26) { rig.pose = base; rig.rate = 12; return; }         /* si siede davanti al vetro */
+      if (u < 0.46) { rig.pose = "knock"; rig.rate = 13; rig.over.eye = 1.08; return; }   /* la zampa si alza verso il vetro: la carica */
+      if (u < 1.02) {                                                  /* due colpi: avanti svelta fino al vetro, il colpo, indietro */
+        var n = u < 0.74 ? 1 : 2, kk = u - (n === 1 ? 0.46 : 0.74), hit = kk >= 0.065 && kk < 0.13;
+        rig.pose = kk < 0.13 ? "knock-glass" : "knock"; rig.rate = kk < 0.13 ? 30 : 17; rig.over.eye = 1.1;
+        if (hit) rig.over.sqy = 0.985; else delete rig.over.sqy;
+        if (kk >= 0.065 && !d["h" + n] && lastF) { d["h" + n] = 1; var l = lastF.legs[0], q = drawnPt(l.fx, l.fy); sgRing(q.x, q.y, { r0: 3, r1: 14 * K / 1.5, a: 0.5, w: 1.3, dur: 0.44 }); }   /* un anello sul vetro, nessun suono */
+        return;
+      }
+      if (u < 3.05) {                                                  /* la testa si inclina, aspetta con le pupille grandi */
+        delete rig.over.sqy; rig.pose = base; rig.rate = 9; rig.pupilT = 1; rig.over.eye = 1.13; rig.over.ear = -0.12;
+        var tl = 0.3 * eBack(seg(u, 1.02, 1.42), 1.6) - 0.42 * eIO(seg(u, 2.05, 2.45)) * (1 - eIO(seg(u, 2.7, 3.05)));   /* inclina, poi un filo dall'altra parte, curioso */
+        rig.over.hr = (P0.hr || 0) + tl; if (u > 2.5 && !d.bl) { d.bl = 1; life.blinkT = now; }
+        return;
+      }
+      if (u < 3.75) {                                                  /* si arrende: un piccolo sospiro, si accuccia, torna indietro dal vetro */
+        delete rig.over.hr; rig.over.eye = 1; delete rig.over.ear; rig.pupilT = 0.8;
+        rig.over.sqy = 1 - 0.04 * bell(seg(u, 3.05, 3.4)); rig.over.lid = 0.3 * seg(u, 3.1, 3.5); rig.pose = u > 3.28 ? "loaf" : base; rig.rate = 7;
+        cat.s = lerp(1.1, 1, eIO(seg(u, 3.2, 3.75))); return;
+      }
+      cat.s = 1; SG.ks = false; set("loaf", { dur: rr(6, 9), face: "view", pose: "loaf" });
+    }
+  });
+
   /* ------------------------------------------------------------------ lo sguardo, le palpebre, le orecchie, il fez */
   function gaze(dt) {
     if (!cat.gz) return;
@@ -1521,7 +1834,7 @@
   function step(dt) {
     now += dt; readView();
     var dsy = B.lsy == null ? 0 : view.sy - B.lsy; B.lsy = view.sy;      /* quanto scorre la pagina (px al secondo, smussato) */
-    if (dt > 0) B.vy = lerp(B.vy || 0, dsy / dt, 1 - Math.exp(-dt * 12)); if (Math.abs(dsy) > 0.5) B.scrollAt = now;
+    if (dt > 0) B.vy = lerp(B.vy || 0, dsy / dt, 1 - Math.exp(-dt * 12)); if (Math.abs(dsy) > 0.5) { if (now - (B.scrollAt || -9) > 0.35) SG.gest++; B.scrollAt = now; }   /* SG.gest: un gesto di scorrimento nuovo (la zampata ci prova una volta per gesto) */
     if (O.dock) { dockSync(false); if (onDock() && onEdge() && cat.state !== "dockup" && cat.state !== "dockdown") { var dp = world.dock; cat.y = dp.y; cat.gy = dp.y; if (cat.state !== "walk") cat.x = clamp(cat.x, dp.tile.l + 6, dp.tile.r - 6); } }   /* sul dock: segue la pillola, fotogramma per fotogramma */
     if (now < (B.followTo || 0)) { readWorld(true); if (stageOn && stage.place && O.home && O.home.nodeType === 1) { var hp0 = homePoint(); if (Math.abs(hp0.x - B.home.x) > 0.3 || Math.abs(hp0.y - B.home.y) > 0.3) { B.home = hp0; stage.place(hp0.x, hp0.y); } } }   /* DOT.refresh(secondi): segue i riquadri mentre si muovono */
     else if (now - world.at > 0.8) readWorld();
@@ -1530,8 +1843,9 @@
     if (B.lidA && stageOn) { var la = B.lidA, lu = seg(now, la.t0, la.t0 + la.dur); B.lidV = lerp(la.a, la.b, eIO(lu)); try { stage.lid(B.lidV); } catch (e) {} if (lu >= 1) B.lidA = null; }   /* il coperchio si apre e si chiude, non scatta */
     if (script) { var i; for (i = script.length - 1; i >= 0; i--) if (now >= script[i].t) { var fn = script[i].fn; script.splice(i, 1); fn(); } }
     cat.st += dt; rig.yawT = yawFor(cat.face, cat.dir);
+    sgPre(dt); rig.yawT = yawFor(cat.face, cat.dir);                     /* il suggerimento (il dito fantasma muove il dito finto prima dello stato) */
     rig.tailSwish -= life.flAdd || 0; var S = STATES[cat.state]; if (S) S(dt, cat.d);
-    applyMood(); turnStep(dt);
+    applyMood(); sgPost(dt); turnStep(dt);
     if (bubble && (bubble.on || bubble.a > 0.01) && cat.vis && world.quiet.length && onQuiet()) bubble.hide(true);   /* sul riquadro quiet nessuna nuvoletta, nemmeno una rimasta da prima */
     if (CALM[cat.state] && now > (life.flAt || 0) && !reduced) { life.flAt = now + rr(3, 7); life.flT = now; }
     life.tailKick = (life.tailKick || 0) * Math.exp(-dt * 3.5);
@@ -1550,7 +1864,7 @@
     if (Math.abs(cat.voff) < 0.01 && Math.abs(cat.voffV) < 0.05) { cat.voff = 0; cat.voffV = 0; }
     gaze(dt); lifeStep(dt); guard();
     rig.wx = cat.x / K; rig.wy = -cat.y / K;
-    rig.step(dt);
+    if (rig.spring && rig.rate > 24 && dt > 0.009) { rig.step(dt / 2); rig.step(dt / 2); } else rig.step(dt);   /* una molla rapida (rate oltre 24: lo scatto del salto, il colpo sul vetro) a un passo per fotogramma diverge: occhi e orecchie impazziscono. Due mezzi passi */
     stepFez(dt); stepProps(dt); if (bubble) bubble.phys(dt);
     for (var j = scratches.length - 1; j >= 0; j--) { scratches[j].step(dt); if (scratches[j].dead) scratches.splice(j, 1); }
     /* fuori dalla vista: torna */
@@ -1638,9 +1952,10 @@
       if (dockOn() && !(drag && drag.moved)) { var dk = world.dock.tile, gt = gyp - 38; if (gxp + 38 > dk.l && gxp - 38 < dk.r && gt + 76 > dk.t) gh = Math.floor(dk.t - 1 - gt); }
       if (gh < 30) free = false;
       else if (O.strict && !(drag && drag.moved)) { var j, kn, gx0 = gxp - 34, gx1 = gxp + 34, gy0 = gyp - 38, gy1 = gyp - 38 + gh; for (j = 0; j < world.keep.length; j++) { kn = world.keep[j]; if (kn.c && gx1 > kn.l && gx0 < kn.r && gy1 > kn.t && gy0 < kn.b) { free = false; break; } } }   /* sopra un comando la maniglia non c'è: il tocco arriva al comando */
-      else { grab.style.transform = "translate3d(" + (gxp - 38 - gox).toFixed(1) + "px," + (gyp - 38 - goy).toFixed(1) + "px,0)"; if (grab.style.display === "none") grab.style.display = "block";
+      if (free) { grab.style.transform = "translate3d(" + (gxp - 38 - gox).toFixed(1) + "px," + (gyp - 38 - goy).toFixed(1) + "px,0)"; if (grab.style.display === "none") grab.style.display = "block";
         if (gh !== B.grabH) { B.grabH = gh; grab.style.height = gh + "px"; } } }
     if (!free && grab.style.display !== "none" && !(drag && drag.moved)) grab.style.display = "none";
+    if (SG.fing || SG.rings.length) sgDraw();                           /* il dito fantasma e gli anelli sul vetro, sopra il gatto */
     if (bubble) { var ax = cat.x + f.head.x * k, ay = Oy - (f.head.y + f.head.ry + (rig.fezOn ? 9 : 3)) * k; bubble.place(ax - ox0, ay - oy0, cat.y + 6 - oy0, view.sx - ox0, view.sy + view.ti - oy0, view.vw, on && cat.state !== "held" && cat.state !== "fly"); }
   }
 
@@ -1661,18 +1976,22 @@
     if (!B.on || B.paused || !canGrab() && !reduced) return; if (e.button && e.button !== 0) return;
     if (drag) { if (e.cancelable) e.preventDefault(); return; }       /* un secondo dito sul gatto: conta solo il primo */
     try { grab.setPointerCapture(e.pointerId); } catch (er) {}
-    drag = { id: e.pointerId, x: e.pageX, y: e.pageY, x0: e.pageX, y0: e.pageY, t0: now, moved: false, pet: false, hist: [{ x: e.pageX, y: e.pageY, t: now, rt: perf() }] };
+    drag = { id: e.pointerId, x: e.pageX, y: e.pageY, x0: e.pageX, y0: e.pageY, t0: now, moved: false, pet: false, mouse: e.pointerType === "mouse", hist: [{ x: e.pageX, y: e.pageY, t: now, rt: perf() }] };
     lastIn = now; if (e.cancelable) e.preventDefault();
+    sgTouch();                                                         /* un dito vero: la sessione lo ricorda (niente dito fantasma, niente bussare) */
+    if (SG.g) { var hg = cat.state === "held" && fake && fake.ghost; ghostCancel("touch"); if (hg) { drag.moved = true; drag.ox = cat.x - drag.x; drag.oy = cat.y - drag.y; sgDragged(); grabbing(true); } }   /* il dito fantasma lo teneva: lo prende il dito vero, dal punto dov'è (held lo porta piano sotto il dito) */
   }
+  /* col mouse, la mano chiusa su tutta la pagina mentre Dot è tenuto */
+  function grabbing(on) { var r = doc.documentElement; if (!r || !r.classList) return; if (on && drag && drag.mouse) r.classList.add("dot-tiene"); else r.classList.remove("dot-tiene"); }
   function perf() { return window.performance && performance.now ? performance.now() / 1000 : Date.now() / 1000; }
   function onMove(e) {
     if (!drag || e.pointerId !== drag.id) return; drag.x = e.pageX; drag.y = e.pageY; lastIn = now;
     drag.hist.push({ x: e.pageX, y: e.pageY, rt: perf() }); if (drag.hist.length > 10) drag.hist.shift();
-    if (!drag.moved && hyp(e.pageX - drag.x0, e.pageY - drag.y0) > 8 && !reduced) { drag.moved = true; if (canGrab()) pickUp(); }
+    if (!drag.moved && hyp(e.pageX - drag.x0, e.pageY - drag.y0) > 8 && !reduced) { drag.moved = true; if (canGrab()) { pickUp(); sgDragged(); grabbing(true); } }   /* trascinato davvero: il telefono lo ricorda (il dito fantasma non serve più) */
   }
   function onUp(e) {
     if (!drag || (e && e.pointerId !== drag.id)) return;               /* si alza un altro dito: il primo tiene ancora il gatto */
-    var d = drag; drag = null;
+    var d = drag; drag = null; grabbing(false);
     try { grab.releasePointerCapture(d.id); } catch (er) {}
     if (!d.moved) { if (d.pet) { if (cat.state === "pet") { cat.jit = 0; life.slow = now + 0.2; sitFor(rr(2, 3)); } } else if (e && e.type !== "pointercancel") tap(); return; }
     if (cat.state !== "held") return;
@@ -1681,14 +2000,19 @@
     if (!a) { release(0, 0); return; }
     var dtt = Math.max(0.016, rt - a.rt); release(clamp((b.x - a.x) / dtt, -2400, 2400), clamp((b.y - a.y) / dtt, -2400, 2400));
   }
-  function onKey(e) { if (B.paused) return; if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") { e.preventDefault(); tap(); } }
+  function onKey(e) { if (B.paused) return; if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") { e.preventDefault(); sgTouch(); if (SG.g) ghostCancel("touch"); tap(); } }
   function onPtr(e) {
     var t = now, dx = e.pageX - ptr.x, dy = e.pageY - ptr.y, dd = hyp(dx, dy), dtp = t - ptr.t;
     if (dtp > 0.0001) ptr.sp = dd / dtp; if (dd > 3) ptr.still = 0;
     ptr.x = e.pageX; ptr.y = e.pageY; ptr.t = t; ptr.touch = e.pointerType === "touch"; lastIn = now;
+    ptr.cx = e.clientX; ptr.cy = e.clientY; ptr.kind = e.pointerType || "mouse"; ptr.out = false;
   }
+  function onPtrUp(e) { if (e.pointerType !== "mouse") { ptr.down = false; ptr.upAt = now; } }
+  function onPtrOut(e) { if (!e.relatedTarget && ptr.kind === "mouse") ptr.out = true; }   /* il mouse è uscito dalla finestra */
+  function onKeyAny() { SG.keyAt = now; if (SG.g) ghostCancel("type"); }
   function onPtrDown(e) {
-    if (B.paused) return; onPtr(e); ptr.still = 0;
+    if (B.paused) return; onPtr(e); ptr.still = 0; ptr.downAt = now; if (e.pointerType !== "mouse") ptr.down = true;
+    if (SG.g && e.target !== grab) ghostCancel("elsewhere");          /* un tocco altrove: il dito fantasma lascia stare */
     if (stageOn && stage.hit && stage.hit(e.pageX, e.pageY) && (cat.state === "boxed" || cat.state === "box")) { boxOut(); return; }
     if (lastF && cat.vis && e.target !== grab) { var dx = e.pageX - cat.x, dy = e.pageY - (cat.y - 25 * px()); if (hyp(dx, dy) < 170) { life.earFlick = 1; life.earSide = dx > 0 ? 1 : -1; } }
   }
@@ -1742,6 +2066,8 @@
     grab.addEventListener("keydown", onKey); grab.addEventListener("contextmenu", function (e) { e.preventDefault(); });
     window.addEventListener("pointermove", onPtr, { passive: true }); window.addEventListener("pointerdown", onPtrDown, { passive: true });
     window.addEventListener("scroll", onScroll, { passive: true }); window.addEventListener("resize", onResize); doc.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pointerup", onPtrUp, { passive: true }); window.addEventListener("pointercancel", onPtrUp, { passive: true }); window.addEventListener("mouseout", onPtrOut, { passive: true });
+    window.addEventListener("keydown", onKeyAny, { passive: true }); doc.addEventListener("input", onKeyAny, { passive: true });   /* chi scrive: niente suggerimenti */
     if (window.ResizeObserver) { try { RO = new ResizeObserver(function () { world.at = -9; }); RO.observe(doc.body); } catch (e) { RO = null; } }
     stillI = setInterval(stillTick, 250);
     B.fromKeys = !!O.keysFormed;                                        /* keysFormed: l'intro ha già messo i nove tasti al loro posto: l'apertura parte da lì (stage.TS.keys) */
@@ -1760,6 +2086,7 @@
     B.lidA = null; readWorld();
     var p = platBelow(h.x, h.y - 4, true) || world.plats[0];
     if (first && underNo(h.x, h.y)) first = false;                       /* la casa sta sotto il Corano (non dovrebbe mai): niente apertura lì */
+    sgInit(first);                                                       /* il suggerimento: dopo l'apertura conta da «salam, sono Dot.», se no da adesso */
     if (first) { B.lidV = 1; if (stageOn) { try { stage.lid(null); } catch (e) {} } B.openT0 = now - (fromKeys && stageOn && TS().keys ? TS().keys : 0); cat.vis = false; cat.x = h.x; cat.y = h.y; set("opening", { first: true, p: p, x: p ? clamp(h.x, p.a, p.b) : h.x }); }
     else {
       B.openT0 = null; B.lidV = 0;
@@ -1805,6 +2132,8 @@
   DOT.stop = function () {
     if (!B.on) return; B.on = false; B.paused = false; cancelAnimationFrame(raf); clearInterval(stillI); sound("purr", false);
     window.removeEventListener("pointermove", onPtr); window.removeEventListener("pointerdown", onPtrDown); window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onResize); doc.removeEventListener("visibilitychange", onVis);
+    window.removeEventListener("pointerup", onPtrUp); window.removeEventListener("pointercancel", onPtrUp); window.removeEventListener("mouseout", onPtrOut); window.removeEventListener("keydown", onKeyAny); doc.removeEventListener("input", onKeyAny);
+    sgClear(); SG.on = false; drag = null; grabbing(false); if (fake && fake.ghost) fake = null;
     if (RO) { try { RO.disconnect(); } catch (e) {} RO = null; }
     if (stageOn && stage.unmount) { try { stage.unmount(); } catch (e) {} } stageOn = false; B.mounted = false;
     killFez(); props = []; scratches = []; if (layer && layer.parentNode) layer.parentNode.removeChild(layer); layer = null; catSp = null; cat.state = "off";
@@ -1822,15 +2151,16 @@
   /* rilegge i riquadri dopo un cambio di impaginazione (riordinati, ridimensionati, nascosti). Dot resta col suo riquadro; se il suo bordo
      non c'è più, o ora sta sotto il Corano o sotto il riquadro quiet, va su un bordo buono e visibile. sec > 0: continua a seguire i riquadri
      a ogni fotogramma per sec secondi (mentre un'animazione li sposta: Dot ci resta sopra) */
-  DOT.refresh = function (sec) { if (!B.on) return; relayout(false); if (sec > 0) B.followTo = Math.max(B.followTo || 0, now + sec); };
+  DOT.refresh = function (sec) { if (!B.on) return; relayout(false); life.guardAt = 0; if (sec > 0) B.followTo = Math.max(B.followTo || 0, now + sec); };   /* la guardia guarda subito il posto nuovo */
   /* congela tutto mentre un foglio copre la pagina: nessun fotogramma, nessun suono, nessuna nuvoletta, nessun tocco */
   DOT.pause = function () {
     if (!B.on || B.paused) return; B.paused = true; cancelAnimationFrame(raf); raf = 0; clearInterval(stillI); stillI = 0; sound("purr", false);
-    if (drag) { try { grab.releasePointerCapture(drag.id); } catch (e) {} drag = null; }
+    if (drag) { try { grab.releasePointerCapture(drag.id); } catch (e) {} drag = null; } grabbing(false);
+    if (SG.g || SG.fing || SG.rings.length) sgClear();                 /* un foglio si apre: il dito fantasma lascia stare (il gatto torna seduto dov'era) */
     if (grab) grab.style.visibility = "hidden"; if (bubble && bubble.el) bubble.el.style.visibility = "hidden";
   };
   DOT.resume = function () {
-    if (!B.on || !B.paused) return; B.paused = false; last = 0; world.at = -9;   /* al primo passo rilegge i riquadri: mentre era fermo l'impaginazione può essere cambiata */
+    if (!B.on || !B.paused) return; B.paused = false; last = 0; world.at = -9; SG.resAt = now;   /* al primo passo rilegge i riquadri: mentre era fermo l'impaginazione può essere cambiata */
     if (grab) grab.style.visibility = ""; if (bubble && bubble.el) bubble.el.style.visibility = "";
     if (cat.state === "purr" && cat.d.said) sound("purr", true);
     stillI = setInterval(stillTick, 250); raf = requestAnimationFrame(loop);
@@ -1870,6 +2200,15 @@
     dockdown: function () { if (onDock()) set("dockdown", { away: true }); },
     blocked: function (x, e) { return dockBlocked(x, e); }, dockFree: function () { var p = world.dock, x, o = { n: 0, q: 0, c: 0, w: 0 }; if (!p) return o; for (x = p.a + 8; x <= p.b - 8; x += 6) { o.n++; if (!dockBlocked(x, 4)) { o.q++; if (!dockWords(x, true)) { o.c++; if (!dockWords(x)) o.w++; } } } return o; }, no: function () { return world.no.map(function (n) { return { l: n.l, t: n.t, r: n.r, b: n.b, m: n.m }; }); },
     home: function () { leaveThen(function () { var h = homeSpot(); if (h) arrive({ kind: "home", p: h.p, x: h.x }); }); },
-    look: function () { return look; }, rig: function () { return rig; }, cat: cat, life: life
+    look: function () { return look; }, rig: function () { return rig; }, cat: cat, life: life,
+    /* il suggerimento, per gli strumenti: hint() lo stato; hintGo() il dito fantasma adesso (se si può: ritorna true); hintKnock() bussa adesso;
+       hintReset() dimentica tutto quello che ricordano sessione e telefono; hintAt(s) il dito fantasma fra s secondi */
+    hint: function () { var g = SG.g; return { on: SG.on, ok: SG.ghostOk, at: SG.ghostAt, salam: SG.salamAt, end: SG.ghostEnd, touched: SG.touched, dragged: SG.dragged, seen: SG.seen, knocks: SG.knocks, knockAt: SG.knockAt, near: SG.near, gest: SG.gest, batAt: SG.batAt,
+      ph: g ? g.ph : null, t: g ? now - g.t0 : null, cancel: g ? g.cancel || null : null, fing: SG.fp && (SG.fing || g) ? { x: SG.fp.x, y: SG.fp.y, a: SG.fp.a, sc: SG.fp.sc, press: SG.fp.press } : null, rings: SG.rings.length, fake: fake ? { x: fake.x, y: fake.y, ghost: !!fake.ghost } : null, now: now }; },
+    hintGeo: function () { return sgGeo(); },                          /* dove sono adesso gli occhi, la zampa più bassa, la coda, il bordo, il dito (px, in pagina) */
+    hintGo: function () { if (SG.g || !SG.on) return false; return ghostStart(); }, hintCan: function () { return ghostCan(); },
+    hintKnock: function () { if (!SG.on || SG.g) return false; SG.knocks++; SG.knockAt = now; SG.ks = true; set("knock", { face: "front", pose: narrow() ? "ride" : "sit" }); return true; },
+    hintReset: function () { [SGK.sess, SGK.tocco, SGK.bussa].forEach(function (k) { try { sessionStorage.removeItem(k); } catch (e) {} }); [SGK.preso, SGK.visti].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} }); },
+    hintAt: function (s) { SG.ghostOk = SG.on; SG.ghostAt = now + (s || 0); SG.chk = 0; }
   };
 })();
