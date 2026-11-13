@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
 <script>
 /* prima del primo disegno: il tema (?theme=light|dark, per le fotografie), le fotografie (?shot=1: niente intro, tutto fermo),
-   e l'intro, che per ora parte a ogni caricamento. Non parte con «meno movimento», se la pagina si apre già su un riquadro
+   e l'intro, che parte a ogni arrivo da fuori (non per chi torna: più sotto). Non parte con «meno movimento», se la pagina si apre già su un riquadro
    (?open= o #citta, #saluti, #corano) o per le fotografie (shot=1 senza seek=1). */
 (function () {
   var q = new URLSearchParams(location.search), r = document.documentElement;
@@ -18,22 +18,61 @@
   var shot = q.get("shot") === "1", seek = q.get("seek") === "1";
   if (shot) r.classList.add("is-shot");
   var calm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  /* tornando indietro (il tasto o il gesto indietro) la casa non rifà l'intro: torna com'era (moto.css posa il riquadro da cui si era usciti) */
-  var back = (performance.getEntriesByType && performance.getEntriesByType("navigation")[0] || {}).type === "back_forward" || !!(performance.navigation && performance.navigation.type === 2);
+  /* L'intro è per chi arriva da fuori: da Instagram, da un indirizzo battuto, ricaricando la casa. Non per chi torna: con il tasto o il
+     gesto indietro, da una delle nostre pagine (il referrer sullo stesso sito, sotto la cartella della casa: in locale /casa/, online
+     /anteprima/), o se in questa scheda la casa si è già vista. Chi torna trova la casa com'era, con Dot già fuori dalla scatola
+     (window.__casaRitorno, letto da casa.js). Ricaricare la rifà sempre; ?seek=1 e ?v= la chiedono sempre (gli strumenti) */
+  var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")[0]) || {};
+  var back = nav.type === "back_forward" || !!(performance.navigation && performance.navigation.type === 2);
+  var reload = nav.type === "reload" || !!(!nav.type && performance.navigation && performance.navigation.type === 1);
+  var p = location.pathname, base = /\/home\/(index\.html)?$/.test(p) ? p.replace(/home\/(index\.html)?$/, "") : p.replace(/\/?(index\.html)?$/, "/");
+  var ours = false, seen = false;
+  try { var ref = document.referrer ? new URL(document.referrer) : null; ours = !!ref && ref.host === location.host && (ref.pathname + "/").indexOf(base) === 0; } catch (er) { }
+  try { seen = sessionStorage.getItem("imad.casa.vista") === "1"; sessionStorage.setItem("imad.casa.vista", "1"); } catch (er) { }
+  var forced = seek || q.has("v"), ritorno = !forced && !reload && (back || ours || seen);
+  window.__casaRitorno = ritorno;
+  /* il posto della pagina: chi esce da un nostro link (una pagina interna) lo ritrova tornando. Il tasto indietro lo rimette da sé */
+  var torna = null, mosso = false;
+  try { torna = JSON.parse(sessionStorage.getItem("imad.casa.y") || "null"); sessionStorage.removeItem("imad.casa.y"); } catch (er) { torna = null; }
+  if (!torna || !ritorno || back || !(torna.y > 0) || Math.abs(torna.w - window.innerWidth) > 1 || !(Date.now() - torna.t < 3600000)) torna = null;
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+    if (!a || a.target === "_blank" || a.origin !== location.origin || a.pathname === location.pathname) return;
+    try { sessionStorage.setItem("imad.casa.y", JSON.stringify({ y: Math.round(window.pageYOffset || 0), w: window.innerWidth, t: Date.now() })); } catch (er) { }
+  }, true);
+  /* rimesso più volte mentre la pagina si compone (dopo il markup, a DOMContentLoaded, con i caratteri, a load), finché il visitatore
+     non scorre da sé */
+  window.__casaTorna = function () { if (torna && !mosso) window.scrollTo(0, torna.y); };
+  if (torna) {
+    var fermo = function () { mosso = true; };
+    ["wheel", "touchstart", "keydown", "mousedown"].forEach(function (k) { window.addEventListener(k, fermo, { capture: true, passive: true, once: true }); });
+    var basta = function () { window.__casaTorna(); setTimeout(function () { window.__casaTorna(); torna = null; }, 250); };
+    document.addEventListener("DOMContentLoaded", function () {
+      window.__casaTorna();
+      var f = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+      Promise.race([f, new Promise(function (res) { setTimeout(res, 2600); })]).then(window.__casaTorna);
+    });
+    window.addEventListener("load", basta);
+  }
   /* la transizione tra documenti che arriva qui (tornando da una pagina; moto.css, CASA.md 2d E). Sta nella testa perché pagereveal può
      arrivare prima di moto.js: il riquadro da cui si era usciti (sessionStorage imad.vt, scritto da moto.js al tocco) si chiama
-     «riquadro» se si vede, e si posa al suo posto; finita la transizione il nome si toglie. Con l'intro, niente transizione */
+     «riquadro» se si vede, e si posa al suo posto; finita la transizione il nome si toglie. Con l'intro, niente transizione.
+     Una transizione saltata (da noi o dal browser) rifiuta ready e finished: si raccolgono qui, niente errori in console */
   window.addEventListener("pagereveal", function (e) {
     var id = ""; try { id = sessionStorage.getItem("imad.vt") || ""; sessionStorage.removeItem("imad.vt"); } catch (er) { }
     var vt = e.viewTransition; if (!vt) return;
-    if (r.classList.contains("ni-on")) { vt.skipTransition(); return; }
+    var zitto = function () { };
+    if (vt.ready && vt.ready.catch) vt.ready.catch(zitto);
+    if (vt.updateCallbackDone && vt.updateCallbackDone.catch) vt.updateCallbackDone.catch(zitto);
+    if (r.classList.contains("ni-on")) { if (vt.finished && vt.finished.catch) vt.finished.catch(zitto); vt.skipTransition(); return; }
+    window.__casaTorna();
     var t = /^[a-z]+$/.test(id) ? document.querySelector('.grid > [data-tile="' + id + '"]') : null, b = t ? t.getBoundingClientRect() : null;
     if (b && b.bottom > 0 && b.top < window.innerHeight) t.style.viewTransitionName = "riquadro";
     window.__vtCorso = true;
     var via = function () { window.__vtCorso = false; if (t) t.style.viewTransitionName = ""; };
     vt.finished.then(via, via);
   });
-  if (seek || (!shot && !calm && !back && !q.get("open") && !location.hash)) {
+  if (seek || (!shot && !calm && !q.get("open") && !location.hash && !ritorno)) {
     r.classList.add("ni-on", "is-locked");
     /* se lo script dell'intro non parte, la pagina non resta coperta */
     setTimeout(function () { if (!window.__niStarted) r.classList.remove("ni-on", "is-locked"); }, 5000);
@@ -223,6 +262,7 @@
     <p class="foot__cred">Il cubo ha i colori Kukko del gioco di Imad, un fork di «The Cube» di Boris Šehovac. Le terre del globo vengono da Natural Earth. Foto provvisoria di Torino: Konstantin&nbsp;Dacosta, CC&nbsp;BY&nbsp;3.0. Il Corano: testo di quran.com, traduzione di Hamza Roberto Piccardo.</p>
   </footer>
 </main>
+<script>/* chi torna da una pagina ritrova il suo posto prima del primo disegno (la testa, __casaTorna) */ if (window.__casaTorna) window.__casaTorna();</script>
 
 <!-- Dot: il suo strato sta sopra i riquadri e sotto le pagine aperte; taglia ciò che sporge di lato -->
 <div class="dot-clip" id="dotclip" data-media="../../gatto/media/"></div>

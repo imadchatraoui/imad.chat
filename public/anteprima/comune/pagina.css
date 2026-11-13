@@ -2,10 +2,10 @@
    COME SI USA (vedi esempio.html, che non va online):
      <link rel="stylesheet" href="../comune/pagina.css">          (da casa/<nome>/; da casa/<nome>/<sotto>/ è ../../comune/)
      <body class="pg-corpo">  poi lo sfondo vivo:  <div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
-     <header class="pg-testa"> con il logo a nove caratteri che torna alla casa (href="../home/index.html") e il titolo piccolo della pagina
+     <header class="pg-testa"> con il logo a nove caratteri che torna alla home (href="../home/index.html") e il titolo piccolo della pagina
      <main class="pg"> il contenuto: .pg-h1 (il titolo grande), .pg-lead (la riga sotto), .pg-h2, .pg-p, .pg-card (vetro), .pg-pill (pulsante),
                        .pg-griglia (schede in colonna sul telefono, due o tre affiancate sui più larghi), .pg-nota (testo piccolo e grigio)
-     <footer class="pg-piede"> il fondo: torna alla casa, il cielo di Torino
+     <footer class="pg-piede"> il fondo: torna alla home, il cielo di Torino
      <script src="../../shared/astro-lite.js"></script> (facoltativo: senza, lo sfondo resta nei colori di base) e <script src="../comune/pagina.js"></script>
    Gli stessi token della casa (colori, raggi, caratteri, movimento), chiaro e scuro seguono il telefono (?theme=light|dark per le foto).
    Dal giro «casa bella» (CASA.md 2d D): la pagina è il cielo di Torino adesso, fermo (pagina.js calcola --cielo-*), le schede sono vetro
@@ -127,7 +127,7 @@ html { background: var(--cielo-alto); }
 :root[data-theme="dark"] .wall__g { opacity: .72; }
 .is-shot .wall { position: absolute; }
 
-/* ------------------------------------------------------------------ la testa: il logo che torna alla casa e il titolo piccolo */
+/* ------------------------------------------------------------------ la testa: il logo che torna alla home e il titolo piccolo */
 .pg-testa {
   position: -webkit-sticky; position: sticky; top: 0; z-index: 30;
   display: flex; align-items: center; gap: 6px; min-height: 56px;

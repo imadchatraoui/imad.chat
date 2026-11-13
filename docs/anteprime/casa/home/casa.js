@@ -179,7 +179,8 @@
   $$(".citta__now").forEach(function (e) { e.setAttribute("data-dot-keep", "box"); });
   /* la prima volta in questa sessione del browser? (deciso al caricamento: l'intro deve saperlo prima di finire) */
   var first = true; try { first = sessionStorage.getItem("imad.dot.aperto") !== "1"; } catch (e) { }
-  if (I.shot || Q.get("primo") === "0") first = false;
+  /* chi torna da una nostra pagina (la testa di index.html: window.__casaRitorno) trova Dot già fuori dalla scatola, come l'aveva lasciato */
+  if (I.shot || Q.get("primo") === "0" || window.__casaRitorno) first = false;
   if (Q.get("primo") === "1") first = true;
   /* dove sta la scatola sull'hero: la regola di DOT (homePoint in dot-brain.js), con questo numero passato come homeX */
   var HOME_X = 0.58, started = false;

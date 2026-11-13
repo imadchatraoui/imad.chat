@@ -274,7 +274,7 @@
 
   /* ---------------------------------------------------------------- pagine aperte sopra la casa */
   var sheetEl = $("#sheet"), card = $("#sheetCard"), bg = $("#sheetBg"), body = $("#sheetBody"), scrim = $("#sheetScrim"), closeBtn = $("#sheetClose"), grab = $(".sheet__grab");
-  var S = { open: null, src: null, pushed: false, busy: false, cleanup: null, tick: null, anims: [] };
+  var S = { open: null, src: null, pushed: false, busy: false, opening: false, wantClose: null, cleanup: null, tick: null, anims: [] };
   function track(a) { S.anims.push(a); return a; }
   function dropAnims() { S.anims.forEach(function (a) { try { a.cancel(); } catch (e) { } }); S.anims = []; }
 
@@ -464,14 +464,19 @@
   function openSheet(id, src, o) {
     o = o || {};
     var page = PAGES[id]; if (!page || S.open || S.busy) return;
-    S.open = id; S.src = src || null; S.busy = true; S.tick = null;
+    S.open = id; S.src = src || null; S.busy = true; S.opening = true; S.wantClose = null; S.tick = null;
     card.setAttribute("data-mat", page.mat); card.className = "sheet__card" + (page.dark ? " on-dark" : "");
     body.className = "sheet__body" + (page.cls ? " " + page.cls : ""); body.innerHTML = ""; body.scrollTop = 0;
     card.style.transform = ""; card.style.opacity = "";
     sheetEl.hidden = false; root.classList.add("is-sheet", "is-locked"); inert(true); dot("pause");
     S.cleanup = page.build(body) || null;
     if (o.push !== false) { try { history.pushState({ imadSheet: id }, "", "#" + id); S.pushed = true; } catch (e) { S.pushed = false; } } else S.pushed = !!o.pushed;
-    function done() { S.busy = false; card.classList.add("is-open"); ghost.hidden = true; var t = $("#sheetTitle", body); try { (t || card).focus({ preventScroll: true }); } catch (e) { } }
+    function done() {
+      if (S.open !== id || !S.opening) return;
+      S.busy = false; S.opening = false; card.classList.add("is-open"); ghost.hidden = true; var t = $("#sheetTitle", body); try { (t || card).focus({ preventScroll: true }); } catch (e) { }
+      /* la X, Escape o il velo toccati mentre il foglio si apriva: si chiude appena l'apertura è finita */
+      if (S.wantClose) { var w = S.wantClose; S.wantClose = null; closeSheet(w); }
+    }
     var from = !o.instant && onScreen(src) ? src.getBoundingClientRect() : null;
     if (o.instant) { done(); return; }
     if (reduced() || !from) {
@@ -501,13 +506,15 @@
     sheetEl.hidden = true; ghost.hidden = true; body.innerHTML = ""; card.style.transform = ""; card.style.opacity = ""; card.style.borderRadius = ""; card.style.overflow = ""; scrim.style.opacity = "";
     root.classList.remove("is-sheet", "is-locked"); inert(false); behind.forEach(function (n) { n.style.transformOrigin = ""; });
     if (src) { src.classList.remove("is-source"); var f = $(".tile__hit", src) || src; try { f.focus({ preventScroll: true }); } catch (e) { } }
-    S.open = null; S.src = null; S.cleanup = null; S.tick = null; S.busy = false;
+    S.open = null; S.src = null; S.cleanup = null; S.tick = null; S.busy = false; S.opening = false; S.wantClose = null;
     if (location.hash && !S.pushed) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { } }
     dot("resume");
   }
   function closeSheet(o) {
     o = o || {};
-    if (!S.open || (S.busy && !o.force)) return;
+    if (!S.open) return;
+    if (S.busy && !o.force) { if (S.opening) S.wantClose = o; return; }   /* mentre si apre: la richiesta non si perde (done(), sopra) */
+    S.opening = false; S.wantClose = null;
     if (S.pushed && !o.fromPop) { S.pushed = false; try { history.back(); return; } catch (e) { } }
     S.busy = true; card.classList.remove("is-open");
     var src = S.src, from = onScreen(src) ? src.getBoundingClientRect() : null;

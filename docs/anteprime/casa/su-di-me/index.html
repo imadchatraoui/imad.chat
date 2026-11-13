@@ -11,6 +11,8 @@
 (function () {
   var r = document.documentElement, id = "";
   r.classList.add("is-pagina");
+  /* una transizione saltata (dal browser, o tornando con un gesto) rifiuta ready: si raccoglie qui, niente errori in console */
+  window.addEventListener("pagereveal", function (e) { var vt = e.viewTransition, z = function () { }; if (vt && vt.ready && vt.ready.catch) { vt.ready.catch(z); vt.finished.catch(z); } });
   try { id = sessionStorage.getItem("imad.vt") || ""; } catch (e) { }
   if (/^[a-z]+$/.test(id)) {
     r.classList.add("vt-" + id);
@@ -51,7 +53,7 @@
 <div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
 
 <header class="pg-testa">
-  <a class="pg-casa" href="../home/index.html" aria-label="imad.chat, torna alla casa"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <a class="pg-casa" href="../home/index.html" aria-label="imad.chat, torna alla home"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
   <p class="pg-titolo">Su di me</p>
 </header>
 

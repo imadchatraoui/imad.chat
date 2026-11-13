@@ -714,7 +714,8 @@
       /* il solido sta tutto tra l'etichetta e il titolo: nessuna linea tocca una lettera. Con la prospettiva (cam 3,6) quello che si
          vede è largo 0,752 R al più: rv, il raggio che si vede, lascia 4 px sopra e sotto, fino a 30 px (nei riquadri alti dei computer
          fino a un quinto della larghezza, come prima). Le due righe del commit hanno il loro posto dal primo disegno (vivi.css), quindi
-         la fascia non cambia quando arrivano i dati: a 390 px rv è 26, a 360 px 20,5. Sotto 24 px di fascia (i telefoni sotto 340 px,
+         la fascia non cambia quando arrivano i dati: a 390 px rv è 19, a 360 px 13,5 (più piccolo da quando il tempo del commit ha una
+         riga sua: 2026-11-13). Sotto 24 px di fascia (i telefoni sotto 340 px,
          dove il titolo va a capo) il solido non si disegna. Un filo di sfumatura resta sul bordo del titolo */
       var rv = Math.min(Math.max(30, f.W * 0.2), (band - 8) * 0.5, f.W * 0.4);
       G = { W: f.W, H: f.H, dpr: f.dpr, cx: f.W * 0.5, cy: topY + band * 0.5, R: rv / 0.752, rv: rv, fade0: botY - 2, fade1: botY + 3, no: band < 24 || rv < 8 };
@@ -771,9 +772,21 @@
       var li = doc.createElement("li"), a = doc.createElement("span"), b = doc.createElement("span");
       a.className = "ip__msg" + (vuoto ? " ip__msg--vuoto" : ""); a.textContent = msg;
       b.className = "ip__ago"; b.textContent = quando || " ";
-      /* come una riga di git log: prima quando (tenue), poi il titolo; tutte e due nelle stesse due righe al più */
-      /* tra il tempo e il titolo uno spazio vero: senza, «FA» e «Remove» erano una parola sola e a 320 px si spezzava a metà («Remo|ve») */
+      /* come una riga di git log: prima quando (tenue, una riga sua), poi il titolo (due righe al più: vivi.css). Lo spazio tra i due
+         resta per chi legge il testo di seguito (un lettore di schermo, il copia e incolla) */
       li.appendChild(b); li.appendChild(doc.createTextNode(" ")); li.appendChild(a); return li;
+    }
+    /* il titolo sta nelle sue due righe (tre sui computer)? Si misura senza il taglio. Se a 13 px non ci sta (a 360 px un titolo di una
+       quarantina di lettere), si prova a 12 px (ip__msg--stretto, vivi.css); se non ci sta neanche così torna a 13 px e finisce con i puntini */
+    function quanteRighe(m) { m.style.display = "block"; var h = m.offsetHeight, lh = parseFloat(getComputedStyle(m).lineHeight) || 17; m.style.display = ""; return Math.round(h / lh); }
+    function stringi() {
+      Array.prototype.forEach.call(log.querySelectorAll(".ip__msg:not(.ip__msg--vuoto)"), function (m) {
+        var max = parseInt(getComputedStyle(m).webkitLineClamp, 10) || 2;
+        m.classList.remove("ip__msg--stretto");
+        if (quanteRighe(m) <= max) return;
+        m.classList.add("ip__msg--stretto");
+        if (quanteRighe(m) > max) m.classList.remove("ip__msg--stretto");
+      });
     }
     function dati(j) {
       var L = j && j.ok ? j.learning : null;
@@ -791,6 +804,7 @@
       if (!righe.length && L.pushedAt && fa(L.pushedAt)) righe.push(riga("Ultimo aggiornamento", fa(L.pushedAt)));
       if (!righe.length) return;
       log.innerHTML = ""; righe.forEach(function (li) { log.appendChild(li); });
+      stringi();
       if (!I.still()) { log.classList.remove("is-nuovo"); void log.offsetWidth; log.classList.add("is-nuovo"); }
       fit(); still();                                    /* per sicurezza: il posto delle due righe c'era già, il solido resta com'era */
       var aria = "Sto imparando: Three.js Journey. Ultimo: " + righe[0].lastChild.textContent + ", " + righe[0].firstChild.textContent + ". Apri il repository su GitHub, in una nuova scheda";
@@ -802,7 +816,7 @@
        fuori dallo schermo) il solido riprende da dove era, non salta avanti del tempo passato */
     var clock = 0, ultimo = -1;
     function still() { draw(clock); }
-    onResize(tile, function () { fit(); still(); });
+    onResize(tile, function () { stringi(); fit(); still(); });
     still();
     /* gira piano: trenta disegni al secondo bastano (un quarto di grado ciascuno) e costano la metà; mentre si sveglia, tutti.
        Spento e in vista (a pagina libera, almeno il 35% sopra il dock: non sotto il dock, dove nessuno lo vedrebbe) per 6 s senza che

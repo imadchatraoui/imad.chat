@@ -150,8 +150,8 @@
 
 /* ------------------------------------------------------------------ Sto imparando: Three.js Journey, sul vetro
    Il fil di ferro (vivi.js) prende i colori da --ip-line (gli spigoli) e --ip-dot (i vertici), terne «r g b»: inchiostro sul vetro chiaro,
-   luce su quello scuro. Sotto, un commit solo, come una riga di git log: quando (la voce della macchina) in testa al titolo, tutto in un
-   paragrafo di due righe al più. Il solido ha la fascia tra l'etichetta e il titolo. */
+   luce su quello scuro. Sotto, un commit solo, come una riga di git log: quando (la voce della macchina) su una sua riga piccola, poi il
+   titolo del commit su due righe al più. Il solido ha la fascia tra l'etichetta e il titolo. */
 .imparando { --ip-line: 22 23 29; --ip-dot: 22 23 29; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .imparando { --ip-line: 227 231 244; --ip-dot: 240 242 252; } }
 :root[data-theme="dark"] .imparando { --ip-line: 227 231 244; --ip-dot: 240 242 252; }
@@ -159,22 +159,23 @@
 .ip { display: flex; flex-direction: column; justify-content: flex-end; margin-top: 0; }
 /* «Three.js Journey» su una riga (a 360 px e nei riquadri stretti dei computer ci sta di misura: −.04em); sotto 340 px va a capo */
 .ip__t { letter-spacing: -.04em; white-space: nowrap; }
-/* il commit è un paragrafo solo, due righe al più (a capo tra le parole): «IERI» in testa, nella voce della macchina, poi il titolo.
-   Il posto delle due righe c'è dal primo disegno (min-height): quando arrivano i dati il titolo e il solido non si spostano */
-.ip__log { margin-top: 5px; min-height: 34px; }
+/* il commit: «2 GIORNI FA» su una riga piccola, nella voce della macchina, poi il titolo su due righe al più (a capo tra le parole; uno
+   più lungo finisce con i puntini). In riga con il tempo, un titolo corto come «Remove empty line from README.md» restava tagliato a 390 e
+   820 px, e a 360 il tempo prendeva una riga intera. Il posto delle tre righe c'è dal primo disegno (min-height 14 + 2 × 17): quando
+   arrivano i dati il titolo e il solido non si spostano */
+.ip__log { margin-top: 4px; min-height: 48px; }
 .ip__log li {
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-width: 0;
-  font: 600 13px/17px var(--font-sans); letter-spacing: -.01em; color: var(--t-ink); text-wrap: pretty; overflow-wrap: break-word;
+  min-width: 0; font: 600 13px/17px var(--font-sans); letter-spacing: -.01em; color: var(--t-ink); overflow-wrap: break-word;
 }
 .ip__log li + li { margin-top: 6px; }
 .ip__ago {
-  display: inline; margin-right: 3px;                 /* più lo spazio vero che segue (vivi.js riga()): circa 6 px in tutto */
-  font: var(--f-meta, 500 10.5px/16px var(--font-mono)); letter-spacing: var(--ls-meta, .06em); text-transform: uppercase; color: var(--t-ink-2); white-space: nowrap;
+  display: block; overflow: hidden; text-overflow: ellipsis;
+  font: var(--f-meta, 500 10.5px/16px var(--font-mono)); line-height: 14px; letter-spacing: var(--ls-meta, .06em); text-transform: uppercase; color: var(--t-ink-2); white-space: nowrap;
 }
-/* niente nodo (l'anello di 6 px): in riga con il titolo toglieva 12 px, e a 360 px «README.md» finiva tagliato. Il tempo in maiuscolo
-   della voce della macchina basta a staccarlo */
+/* niente nodo (l'anello di 6 px): il tempo in maiuscolo della voce della macchina basta a staccarlo */
 .ip__msg--vuoto + .ip__ago { display: none; }         /* «Si aggiorna tra poco»: niente nodo né tempo */
-.ip__msg { display: inline; }
+.ip__msg { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-wrap: pretty; }
+.ip__msg--stretto { font-size: 12px; line-height: 16px; letter-spacing: -.008em; }   /* un titolo che a 13 px non sta nelle sue righe (vivi.js stringi) */
 .ip__msg--vuoto { color: var(--t-ink-2); font-weight: 500; }
 /* i dati arrivati: il testo si accende soltanto, niente si sposta */
 .ip__log.is-nuovo li { animation: ip-in 220ms var(--ease-out) both; }
@@ -182,11 +183,15 @@
 @keyframes ip-in { from { opacity: 0; } to { opacity: 1; } }
 /* sui computer il riquadro è alto (due colonne per tre righe): il commit può prendere tre righe, il solido ha posto lo stesso */
 @media (min-width: 1100px) {
-  .ip__log { min-height: 51px; }
-  .ip__log li { -webkit-line-clamp: 3; }
+  .ip__log { min-height: 65px; }
+  .ip__msg { -webkit-line-clamp: 3; }
 }
 @media (max-width: 339px) {
-  .ip__t { white-space: normal; }                     /* «Three.js / Journey»: il solido allora non c'è (vivi.js: la fascia è troppo bassa) */
+  .ip__t { white-space: normal; line-height: 19px; }  /* «Three.js / Journey»: il solido allora non c'è (vivi.js: la fascia è troppo bassa) */
+  /* il riquadro è alto 106 px dentro: con il titolo su due righe, il tempo e il commit si stringono di quel tanto che basta per starci */
+  .ip__log { margin-top: 2px; min-height: 44px; }
+  .ip__ago { line-height: 12px; }
+  .ip__msg { font-size: 12px; line-height: 16px; letter-spacing: -.008em; }
 }
 
 /* ------------------------------------------------------------------ puntatore fine, meno movimento, fotografie */

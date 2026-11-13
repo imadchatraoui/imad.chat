@@ -40,11 +40,17 @@
     if (!nome || /\s/.test(nome)) return null;
     return { url: h, nome: nome };
   }
+  /* niente emoji sul sito: dalla descrizione di GitHub si tolgono i pittogrammi (le coppie di surrogati da U+1F000 a U+1FBFF, bandiere
+     comprese; i simboli e i dingbat da U+2600 a U+27BF; la stella U+2B50; il tasto U+20E3; i segni invisibili che li compongono, U+FE0F,
+     U+200D e i tag U+E0020-E007F), poi gli spazi doppi. ES2017: niente \p{...} */
+  function senzaEmoji(t) {
+    return t.replace(/[\uD83C-\uD83E][\uDC00-\uDFFF]|\uDB40[\uDC20-\uDC7F]|[\u2600-\u27BF\u2B50\u2B55\u20E3\uFE0F\u200D]/g, "").replace(/\s{2,}/g, " ").trim();
+  }
   function soloGithub(u) { return typeof u === "string" && /^https:\/\/github\.com\//.test(u) ? u : null; }
 
   function scheda(r) {
     var url = soloGithub(r.url) || PROFILO + "/" + encodeURIComponent(r.name), q = quando(r.pushedAt), s = sito(r.homepage);
-    var desc = r.description ? String(r.description).trim() : "";
+    var desc = r.description ? senzaEmoji(String(r.description)) : "";
     /* senza descrizione la scheda è corta: la riga sotto il nome segue il nome, senza la fascia vuota di una riga che manca */
     var h = '<li class="pg-card pj-r' + (desc ? "" : " pg-card--corta") + '">';
     h += '<h3 class="pj-r__n"><a class="pj-r__a" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(r.name) + '<span class="sr">, su GitHub, in una nuova scheda</span></a></h3>';
