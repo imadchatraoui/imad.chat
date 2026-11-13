@@ -339,12 +339,12 @@ html { scroll-padding-top: calc(var(--st-top) + 132px + 12px); scroll-padding-bo
    sua) una sfocatura non sfocherebbe niente e sotto si leggerebbero le tessere */
 .st-menu {
   position: absolute; left: 6px; bottom: calc(100% + 8px); width: min(300px, calc(100vw - 48px)); padding: 6px; border-radius: 22px; z-index: 2;
-  background: rgba(251, 251, 254, .97);
+  background: rgb(251, 251, 254);
   box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--hair), 0 18px 40px -16px rgb(var(--sh) / .55);
   transform-origin: 30px 100%; animation: st-menu 220ms cubic-bezier(.2, .9, .25, 1);
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .st-menu { background: rgba(30, 32, 44, .97); } }
-:root[data-theme="dark"] .st-menu { background: rgba(30, 32, 44, .97); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .st-menu { background: rgb(30, 32, 44); } }
+:root[data-theme="dark"] .st-menu { background: rgb(30, 32, 44); }
 @keyframes st-menu { from { transform: translateY(6px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
 .st-menu__v { display: block; width: 100%; padding: 10px 14px; border-radius: 16px; text-align: left; min-height: 52px; }
 .st-menu__v b { display: block; font: 700 15px/20px var(--font-sans); letter-spacing: -.014em; color: var(--ink); }
