@@ -685,7 +685,19 @@
       doc.body.removeChild(ta);
       if (fatto) ok(); else bolla("Qui non si può copiare: tieni premuto sul testo.");
     }
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(ok, vecchio); else vecchio();
+    if (copiaOra(s)) { ok(); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(ok, function () { bolla("Qui non si può copiare: tieni premuto sul testo."); }); else vecchio();
+  }
+  function copiaOra(testo) {   /* subito, dentro il tocco: il modo che Safari su iPhone accetta sempre (gli appunti moderni lì possono rifiutare) */
+    var ta = doc.createElement("textarea"), ok = false, prima = doc.activeElement;
+    ta.value = testo; ta.setAttribute("readonly", ""); ta.setAttribute("aria-hidden", "true"); ta.setAttribute("data-appunti", "");
+    ta.style.cssText = "position:fixed;top:0;left:0;width:2em;height:2em;padding:0;margin:0;border:0;opacity:0;font-size:16px;pointer-events:none;";
+    doc.body.appendChild(ta);
+    try { ta.focus({ preventScroll: true }); ta.select(); ta.setSelectionRange(0, testo.length); ok = !!doc.execCommand("copy"); } catch (e) { ok = false; }
+    doc.body.removeChild(ta);
+    try { var s = window.getSelection(); if (s) s.removeAllRanges(); } catch (e) { }
+    try { if (prima && prima.focus && /^(BUTTON|A)$/.test(prima.tagName)) prima.focus({ preventScroll: true }); } catch (e) { }
+    return ok;
   }
   ["bPng", "bPngCond", "bCopiaCod", "bCopiaHex"].forEach(function (id) { var b = $(id); b.addEventListener("animationend", function () { b.classList.remove("is-fatto"); }); });
 

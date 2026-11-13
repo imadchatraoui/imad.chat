@@ -215,7 +215,7 @@
   });
   /* con la tastiera del telefono aperta la barra si toglie di mezzo (torna quando il campo perde il fuoco) */
   var grosso = matchMedia("(pointer: coarse)");
-  doc.addEventListener("focusin", function (e) { if (grosso.matches && e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName) && e.target.type !== "file" && e.target.type !== "range") { clearTimeout(barra.__t); barra.classList.add("is-via"); } });
+  doc.addEventListener("focusin", function (e) { if (grosso.matches && e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName) && !e.target.hasAttribute("data-appunti") && e.target.type !== "file" && e.target.type !== "range") { clearTimeout(barra.__t); barra.classList.add("is-via"); } });
   doc.addEventListener("focusout", function () { clearTimeout(barra.__t); barra.__t = setTimeout(function () { barra.classList.remove("is-via"); }, 120); });
 
   /* ---------------------------------------------------------------- le categorie: tocco, frecce */

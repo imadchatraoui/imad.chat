@@ -46,15 +46,21 @@
   };
 
   /* ---------------------------------------------------------------- copiare */
+  function copiaOra(testo) {   /* subito, dentro il tocco: il modo che Safari su iPhone accetta sempre (gli appunti moderni lì possono rifiutare) */
+    var ta = doc.createElement("textarea"), ok = false, prima = doc.activeElement;
+    ta.value = testo; ta.setAttribute("readonly", ""); ta.setAttribute("aria-hidden", "true"); ta.setAttribute("data-appunti", "");
+    ta.style.cssText = "position:fixed;top:0;left:0;width:2em;height:2em;padding:0;margin:0;border:0;opacity:0;font-size:16px;pointer-events:none;";
+    doc.body.appendChild(ta);
+    try { ta.focus({ preventScroll: true }); ta.select(); ta.setSelectionRange(0, testo.length); ok = !!doc.execCommand("copy"); } catch (e) { ok = false; }
+    doc.body.removeChild(ta);
+    try { var s = G.getSelection(); if (s) s.removeAllRanges(); } catch (e) { }
+    try { if (prima && prima.focus && /^(BUTTON|A)$/.test(prima.tagName)) prima.focus({ preventScroll: true }); } catch (e) { }
+    return ok;
+  }
   CV.copia = function (testo) {
-    function vecchioModo() {
-      try {
-        var ta = doc.createElement("textarea"); ta.value = testo; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "0"; ta.style.left = "0"; ta.style.opacity = "0"; ta.style.fontSize = "16px";
-        doc.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, testo.length); var ok = doc.execCommand("copy"); doc.body.removeChild(ta); return ok;
-      } catch (e) { return false; }
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(testo).then(function () { return true; }, function () { return vecchioModo(); });
-    return Promise.resolve(vecchioModo());
+    if (copiaOra(testo)) return Promise.resolve(true);
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(testo).then(function () { return true; }, function () { return false; });
+    return Promise.resolve(false);
   };
   /* la parola che sale sopra il bottone; una alla volta in tutta la pagina */
   var ultima = null;

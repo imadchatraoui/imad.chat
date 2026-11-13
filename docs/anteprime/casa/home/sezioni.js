@@ -452,10 +452,22 @@
   function ghUrl(u, d) { return (typeof u === "string" && /^https:\/\/github\.com\/[A-Za-z0-9_.\-]+(\/[A-Za-z0-9_.\-]+)?\/?$/.test(u)) ? u : d; }
   function fitCv(cv, cap) { return I.fit(cv, cap || 2); }
   /* copia negli appunti, con un ripiego per i browser vecchi */
+  function copiaOra(testo) {   /* subito, dentro il tocco: il modo che Safari su iPhone accetta sempre (gli appunti moderni lì possono rifiutare) */
+    var ta = doc.createElement("textarea"), ok = false, prima = doc.activeElement;
+    ta.value = testo; ta.setAttribute("readonly", ""); ta.setAttribute("aria-hidden", "true"); ta.setAttribute("data-appunti", "");
+    ta.style.cssText = "position:fixed;top:0;left:0;width:2em;height:2em;padding:0;margin:0;border:0;opacity:0;font-size:16px;pointer-events:none;";
+    doc.body.appendChild(ta);
+    try { ta.focus({ preventScroll: true }); ta.select(); ta.setSelectionRange(0, testo.length); ok = !!doc.execCommand("copy"); } catch (e) { ok = false; }
+    doc.body.removeChild(ta);
+    try { var s = window.getSelection(); if (s) s.removeAllRanges(); } catch (e) { }
+    try { if (prima && prima.focus && /^(BUTTON|A)$/.test(prima.tagName)) prima.focus({ preventScroll: true }); } catch (e) { }
+    return ok;
+  }
   function copia(text) {
     return new Promise(function (res) {
       function old() { try { var t = doc.createElement("textarea"); t.value = text; t.setAttribute("readonly", ""); t.style.position = "fixed"; t.style.top = "-1000px"; doc.body.appendChild(t); t.select(); var ok = doc.execCommand("copy"); doc.body.removeChild(t); res(ok); } catch (e) { res(false); } }
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { res(true); }, old); else old();
+      if (copiaOra(text)) { res(true); return; }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { res(true); }, function () { res(false); }); else old();
     });
   }
   /* le cifre che rotolano (l'idea del Counter di React Bits, David Haz, MIT + Commons Clause), in ES2017 e CSS:
