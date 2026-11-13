@@ -18,7 +18,7 @@
 .l9 { display: grid; grid-template-columns: repeat(3, 8px); grid-auto-rows: 8px; gap: 3px; color: var(--ink); }
 .l9 i { display: block; border-radius: 2.4px; background: currentColor; opacity: .88; }
 .l9 i:nth-child(2n) { opacity: .6; }
-.l9 .s { border-radius: 50%; background: var(--gold-ink, #d9a441); opacity: 1; transform: scale(.8); box-shadow: 0 0 7px 1.5px rgba(232, 180, 88, .7); }
+.l9 .s { border-radius: 50%; background: var(--accent-ink); opacity: 1; transform: scale(.8); box-shadow: 0 0 7px 1.5px rgb(var(--accent-glow) / .7); }   /* il punto: l'accento */
 
 /* ------------------------------------------------------------------ la testa: l'hero e «Ciao, sono Imad.» */
 .testa {
@@ -27,11 +27,13 @@
   grid-template-areas: "hero hero hero hero" "ciao ciao ciao ciao";
 }
 .hero { grid-area: hero; }
-.ciao { grid-area: ciao; align-self: center; padding: 24px 4px 16px 6px; }
-.ciao__t { font: 800 clamp(30px, calc(var(--cell) * .45), 46px)/1.02 var(--font-sans); letter-spacing: -.05em; margin-left: -.03em; text-wrap: balance; }
+/* «Ciao»: una copertina sulla pagina, non un modulo. Il testo sull'asse (gutter + --p), come il marchio e le etichette */
+.ciao { grid-area: ciao; align-self: start; padding: 20px var(--p) 36px; }
+.ciao__t { font: var(--f-h1); letter-spacing: var(--ls-h1); margin-left: -.035em; text-wrap: balance; }
 /* la frase sua non c'è ancora: questa riga è nostra e lo dice */
-.ciao__p { margin-top: 10px; font: 500 16px/22px var(--font-sans); letter-spacing: -.012em; color: var(--ink-3); }
-.ciao__b { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+.ciao__p { margin-top: 12px; font: 500 17px/24px var(--font-sans); letter-spacing: -.014em; color: var(--ink-3); text-wrap: pretty; }
+/* prima l'azione (la capsula d'oro), poi GitHub come collegamento di testo: l'ordine è quello del DOM, anche per il fuoco */
+.ciao__b { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .pill {
   position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 17px 0 16px; border-radius: 22px;
   font: 600 15px/1 var(--font-sans); letter-spacing: -.012em; color: var(--ink); white-space: nowrap;
@@ -42,12 +44,27 @@
 }
 .pill:active { transform: scale(.96); }
 .pill svg { flex: none; opacity: .72; }
-.pill--clay { color: #fff; background: linear-gradient(180deg, var(--clay-a) 0%, var(--clay-b) 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .34), inset 0 0 0 .5px rgba(255, 255, 255, .1), 0 10px 18px -10px rgba(150, 70, 44, .8); -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* in «Ciao»: 40 px da vedere, 44 da toccare */
+.ciao__b .pill { min-height: 40px; padding: 0 16px 0 15px; border-radius: 20px; gap: 7px; font: 700 15px/1 var(--font-sans); letter-spacing: -.016em; }
+.ciao__b .pill::before { content: ""; position: absolute; top: -2px; right: 0; bottom: -2px; left: 0; }
+/* la capsula d'oro (la classe ha il nome di prima: l'argilla ora è solo per gli avvisi). Il testo scuro sull'oro: da 10,4 a 12,8 : 1 */
+.pill--clay { color: #2b2210; background: linear-gradient(180deg, #f8e7b9 0%, #ebd08a 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 0 0 .5px rgba(120, 86, 20, .18), 0 1px 2px rgba(120, 86, 20, .18), 0 8px 18px -10px rgba(150, 110, 30, .5);
+  -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* nel tema scuro niente alone d'oro: l'ombra è solo ombra */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pill--clay { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 0 0 .5px rgba(120, 86, 20, .2), 0 1px 2px rgba(0, 0, 0, .3), 0 8px 18px -10px rgba(0, 0, 0, .6); }
+}
+:root[data-theme="dark"] .pill--clay { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 0 0 .5px rgba(120, 86, 20, .2), 0 1px 2px rgba(0, 0, 0, .3), 0 8px 18px -10px rgba(0, 0, 0, .6); }
+.pill--clay .stardot { width: 6px; height: 6px; margin-right: 1px; background: #2b2210; box-shadow: none; }
+/* GitHub accanto: un collegamento di testo, senza vetro */
+.ciao__b .pill:not(.pill--clay) { padding: 0 10px; color: var(--ink-2); font-weight: 650; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ciao__b .pill:not(.pill--clay) svg { width: 14px; height: 14px; margin-left: -1px; opacity: .7; }
 
 /* ------------------------------------------------------------------ i nove riquadri: telefono, 4 colonne */
 .grid {
   display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-auto-rows: var(--cell); gap: var(--gap);
-  justify-content: center; padding: 0 var(--gutter); margin-top: 6px;
+  justify-content: center; padding: 0 var(--gutter); margin-top: 0;      /* sul telefono la griglia comincia subito sotto «Ciao» */
   grid-template-rows: calc(var(--cell) * 2.82);              /* la riga del Corano; le altre sono celle */
   grid-template-areas:
     "corano corano corano corano"
@@ -92,6 +109,58 @@
     "heatmap heatmap heatmap heatmap" "heatmap heatmap heatmap heatmap"
     "saluti saluti saluti saluti" "saluti saluti saluti saluti";
 }
+/* Nel mondo vuoto, sul telefono: le stesse quattro mappe con una riga sola per lui (le altre misure non cambiano) */
+@media (max-width: 699px) {
+  .grid[data-mondo="vuoto"] {
+    grid-template-areas:
+      "corano corano corano corano"
+      "citta citta citta citta" "citta citta citta citta" "citta citta citta citta" "citta citta citta citta"
+      "mondo mondo mondo mondo"
+      "sudime sudime progetti progetti" "sudime sudime progetti progetti"
+      "sudime sudime imparando imparando" "sudime sudime imparando imparando"
+      "tools tools tools tools" "tools tools tools tools" "tools tools tools tools"
+      "heatmap heatmap heatmap heatmap" "heatmap heatmap heatmap heatmap"
+      "saluti saluti saluti saluti" "saluti saluti saluti saluti";
+  }
+  .grid[data-mondo="vuoto"][data-filtro="sudime"] {
+    grid-template-areas:
+      "corano corano corano corano"
+      "sudime sudime imparando imparando" "sudime sudime imparando imparando"
+      "sudime sudime progetti progetti" "sudime sudime progetti progetti"
+      "heatmap heatmap heatmap heatmap" "heatmap heatmap heatmap heatmap"
+      "saluti saluti saluti saluti" "saluti saluti saluti saluti"
+      "citta citta citta citta" "citta citta citta citta" "citta citta citta citta" "citta citta citta citta"
+      "mondo mondo mondo mondo"
+      "tools tools tools tools" "tools tools tools tools" "tools tools tools tools";
+  }
+  .grid[data-mondo="vuoto"][data-filtro="progetti"] {
+    grid-template-areas:
+      "corano corano corano corano"
+      "progetti progetti sudime sudime" "progetti progetti sudime sudime"
+      "imparando imparando sudime sudime" "imparando imparando sudime sudime"
+      "heatmap heatmap heatmap heatmap" "heatmap heatmap heatmap heatmap"
+      "citta citta citta citta" "citta citta citta citta" "citta citta citta citta" "citta citta citta citta"
+      "mondo mondo mondo mondo"
+      "tools tools tools tools" "tools tools tools tools" "tools tools tools tools"
+      "saluti saluti saluti saluti" "saluti saluti saluti saluti";
+  }
+  .grid[data-mondo="vuoto"][data-filtro="tools"] {
+    grid-template-areas:
+      "corano corano corano corano"
+      "tools tools tools tools" "tools tools tools tools" "tools tools tools tools"
+      "citta citta citta citta" "citta citta citta citta" "citta citta citta citta" "citta citta citta citta"
+      "mondo mondo mondo mondo"
+      "sudime sudime progetti progetti" "sudime sudime progetti progetti"
+      "sudime sudime imparando imparando" "sudime sudime imparando imparando"
+      "heatmap heatmap heatmap heatmap" "heatmap heatmap heatmap heatmap"
+      "saluti saluti saluti saluti" "saluti saluti saluti saluti";
+  }
+  /* la riga: il titolo e la frase centrati in altezza, la freccia sulla loro mezzeria */
+  .grid[data-mondo="vuoto"] .mondo .tile__in { justify-content: center; padding: 0 calc(var(--p) + 26px) 0 var(--p); }
+  .grid[data-mondo="vuoto"] .mondo__t { font: 700 20px/24px var(--font-sans); letter-spacing: -.03em; margin-left: 0; }
+  .grid[data-mondo="vuoto"] .mondo__p { margin-top: 2px; font: var(--f-small); letter-spacing: var(--ls-small); }
+  .grid[data-mondo="vuoto"] .mondo .tile__go { top: 50%; margin-top: -9px; }
+}
 .grid > [data-tile="corano"] { grid-area: corano; }
 .grid > [data-tile="citta"] { grid-area: citta; }
 .grid > [data-tile="mondo"] { grid-area: mondo; }
@@ -113,17 +182,27 @@ html, body { overflow-anchor: none; }
 
 /* ------------------------------------------------------------------ dentro i riquadri */
 /* una piccola freccia: questo riquadro apre una pagina (›) o un altro sito (↗); le pagine aperte qui sopra non ce l'hanno */
-.tile__go { position: absolute; z-index: 3; top: 16px; right: 16px; width: 18px; height: 18px; color: var(--t-ink-2); opacity: .8; pointer-events: none; }
+/* centrata sulla riga del nome (la riga di testa: 20 px da --p − 2) */
+.tile__go { position: absolute; z-index: 3; top: calc(var(--p) - 1px); right: calc(var(--p) - 3px); width: 18px; height: 18px; color: var(--t-ink-2); opacity: .7; pointer-events: none; }
 .win .tile__go { color: #fff; filter: drop-shadow(0 1px 6px rgba(4, 6, 18, .5)); }
 
-/* la luce: da dove sta il sole su Torino (i valori li scrive vivo.js ogni mezzo minuto) */
+/* la luce: una sola, da dove sta il sole su Torino (i valori li scrive vivo.js ogni mezzo minuto). Ogni riquadro ha un filo sul bordo,
+   chiaro dal lato del sole e debole dall'altro, e un'ombra in quattro strati gettata lontano dal sole: un orlo di mezzo pixel, il contatto,
+   l'ombra vicina, quella lontana. Le tinte e le forze sono del materiale (--filo-1..3, --ombra, --o1..3: style.css); nel tema scuro
+   anche i riquadri gettano ombra */
 :root { --sun-ang: 180deg; --sun-a: .05; --sun-rgb: 255 246 232; --shx: 0px; --shy: 12px; }
 .tile {
-  box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgb(var(--sh) / calc(var(--s1) * .35)),
-    var(--shx) var(--shy) 28px -12px rgb(var(--sh) / var(--s1)), calc(var(--shx) * 2.4) calc(var(--shy) * 2.6) 64px -36px rgb(var(--sh) / var(--s2));
+  box-shadow: 0 0 0 .5px rgb(var(--ombra) / calc(var(--o1) * .45)), 0 1px 2px rgb(var(--ombra) / var(--o1)),
+    var(--shx) var(--shy) 26px -12px rgb(var(--ombra) / var(--o2)), calc(var(--shx) * 2.4) calc(var(--shy) * 2.8) 72px -30px rgb(var(--ombra) / var(--o3));
 }
 @supports ((-webkit-mask-composite: xor) or (mask-composite: exclude)) {
-  .tile::after { background: linear-gradient(var(--sun-ang), var(--e1) 0%, var(--e2) 34%, var(--e3) 100%); }
+  .tile::after { background: linear-gradient(var(--sun-ang), var(--filo-1) 0%, var(--filo-2) 38%, var(--filo-3) 100%); }
+}
+/* l'hero è una finestra sul cielo: un'ombra più scura, e la sua luce che cade sulla pagina sotto (--hero-spill) e, di notte nel tema
+   scuro, sulla mensola sopra, dove sta la scatola di Dot (--hero-alone). Scritto .tile.hero perché vinca sulla regola qui sopra */
+.tile.hero {
+  box-shadow: 0 0 0 .5px var(--hero-o1), 0 1px 2px var(--hero-o2), var(--shx) var(--shy) 30px -12px var(--hero-o3),
+    0 36px 72px -30px var(--hero-spill), 0 -18px 44px -26px var(--hero-alone);
 }
 .luce { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 1; border-radius: inherit; pointer-events: none;
   background: linear-gradient(var(--sun-ang), rgb(var(--sun-rgb) / var(--sun-a)) 0%, rgb(var(--sun-rgb) / 0) 50%); }
@@ -138,49 +217,54 @@ html, body { overflow-anchor: none; }
 .win .tile__in { z-index: 3; }
 .win .label, .win .me__line { text-shadow: 0 1px 10px rgba(4, 6, 18, .5); }
 
-/* Le città: il globo a puntini, e sotto la città di turno con la sua ora */
-.citta .tile__in { padding: 16px 18px 15px; justify-content: space-between; }
+/* Le città: il globo a puntini su un pezzo di notte con le stelline (le stesse dell'hero di notte), e sotto la città di turno:
+   il nome piccolo sopra, l'ora grande */
+.citta { background: var(--stelle-tex, none) 0 0 / 220px 220px, var(--grain, none) 0 0 / var(--gs) var(--gs), var(--notte); }
+.citta .tile__in { padding: calc(var(--p) - 2px) var(--p) calc(var(--p) - 2px); justify-content: space-between; }
 .citta .tile__hit { touch-action: pan-y; cursor: grab; }
 .citta .tile__hit:active { cursor: grabbing; }
-.citta__now { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-height: 24px; font: 600 15px/22px var(--font-sans); letter-spacing: -.012em; transition: opacity 260ms ease; }
-.citta__now.is-out { opacity: 0; }
-.citta__now b { font-weight: 700; font-size: 17px; letter-spacing: -.025em; }
-.citta__now time { font-weight: 700; font-size: 20px; letter-spacing: -.03em; }
-.citta__now i { margin-left: 9px; font-size: 13px; color: rgba(255, 255, 255, .74); }
+.citta__now { display: block; min-height: 52px; transition: opacity 260ms ease, transform 420ms var(--ease-out); }
+/* una città che cambia scende appena mentre sparisce, e la nuova sale al suo posto */
+.citta__now.is-out { opacity: 0; transform: translateY(5px); }
+.citta__now b { display: block; font: 600 13px/18px var(--font-sans); letter-spacing: -.004em; color: rgba(255, 255, 255, .8); }
+.citta__now > span { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }   /* solo la riga dell'ora: le cifre di moto.js sono span anche loro */
+.citta__now time { font: var(--f-big); letter-spacing: -.045em; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.citta__now i { margin-left: 0; font: 600 13px/18px var(--font-sans); letter-spacing: -.004em; color: rgba(255, 255, 255, .72); }
 
-/* Nel mondo: fermo e sobrio; le parole sono sue */
-.mondo .tile__in { padding: 20px var(--p) 18px; justify-content: flex-end; }   /* titolo e riga in basso, come una copertina */
-.mondo__t { font: 700 calc(var(--cell) * .4)/1 var(--font-sans); letter-spacing: -.045em; margin-left: -.02em; }
-.mondo__p { margin-top: 10px; font: 500 15px/21px var(--font-sans); letter-spacing: -.012em; color: var(--t-ink-2); }
+/* Nel mondo: fermo e sobrio; le parole sono sue. Da 700 px, e sul telefono quando Imad ha scritto (data-mondo="scritto", lo mette
+   app.js), è una copertina di 4x2: titolo e riga in basso. Sul telefono, finché non ha scritto, è una riga sola, onesta
+   (le mappe «vuoto» più sotto): è l'unico rettangolo che cambia, e l'intro e Dot leggono i rettangoli mentre la pagina gira */
+.mondo .tile__in { padding: calc(var(--p) - 2px) var(--p) var(--p); justify-content: flex-end; }
+.mondo__t { font: var(--f-big); letter-spacing: var(--ls-big); margin-left: -.02em; }
+.mondo__p { margin-top: 8px; font: var(--f-body); letter-spacing: var(--ls-body); color: var(--t-ink-2); }
 
-/* Su di me: una finestra su una foto (provvisoria) */
-.me .win__scrim { background: linear-gradient(180deg, rgba(6, 8, 20, .46) 0%, rgba(6, 8, 20, 0) 30%, rgba(6, 8, 20, .1) 46%, rgba(6, 8, 20, .82) 100%); }
-.me .tile__in { padding: 15px 17px 17px; }
-.me__name { margin-top: auto; font: 800 clamp(26px, calc(var(--cell) * .4), 34px)/1 var(--font-sans); letter-spacing: -.045em; text-shadow: 0 2px 18px rgba(4, 6, 18, .5); }
-.me__line { margin-top: 8px; font: 500 13.5px/1.44 var(--font-sans); letter-spacing: -.006em; color: rgba(255, 255, 255, .88); text-wrap: pretty; }
+/* Su di me: una finestra su una foto (provvisoria). Il velo in alto è più scuro: l'etichetta sul cielo chiaro della foto era a 4,35 : 1,
+   ora sopra 5 (con margine: la foto vera di Imad cambierà i numeri); un orlo bianco di mezzo pixel chiude la finestra */
+.me .win__scrim { background: linear-gradient(180deg, rgba(6, 8, 20, .7) 0%, rgba(6, 8, 20, .24) 22%, rgba(6, 8, 20, 0) 36%, rgba(6, 8, 20, .1) 46%, rgba(6, 8, 20, .82) 100%);
+  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .1); }
+.me .tile__in { padding: calc(var(--p) - 2px) var(--p) var(--p); }
+/* il nome del riquadro da solo, senza la riga di testa: 2 px più in basso, così sta dove stanno gli altri */
+.me .tile__in > .label { margin-top: 2px; align-self: flex-start; }
+.me__name { margin-top: auto; font: var(--f-big); letter-spacing: var(--ls-big); text-shadow: 0 2px 18px rgba(4, 6, 18, .5); }
+.me__line { margin-top: 6px; font: var(--f-small); letter-spacing: var(--ls-small); color: rgba(255, 255, 255, .88); text-wrap: pretty; }
 
-/* Progetti: il cubo che si mescola e si risolve da solo */
-.progetti .tile__in { padding: 6px var(--ps) 15px; }
+/* Progetti: il cubo che si mescola e si risolve da solo (il disegno arriva quasi al bordo alto: il titolo è in basso, sull'asse) */
+.progetti .tile__in { padding: 6px var(--p) var(--p); }
 .cubo__cv { flex: 1 1 0; min-height: 0; width: 100%; display: block; }
 
 /* i tre riquadri vivi: qui c'è solo il posto; il contenuto lo mettono vivi.css e vivi.js */
 .vivo { position: relative; flex: 1 1 auto; min-height: 0; margin-top: 10px; }
 .vivo--tocca { pointer-events: auto; }
 .vivo__riposo { font: 500 13px/18px var(--font-sans); letter-spacing: -.006em; color: var(--t-ink-2); }
-.imparando .tile__in { padding: var(--ps); }
-.tools .tile__in, .heatmap .tile__in { padding: 18px var(--p) 16px; }
+/* Sto imparando, Tools e Heatmap: il margine di tutti (style.css, .tile__in) */
 
-/* Saluti: le parole scorrono per tutta la larghezza; sotto, la tua stella se l'hai accesa */
-.saluti .title + .sub { margin-top: 3px; }
-.saluti__mine { display: flex; align-items: center; gap: 8px; margin-top: 12px; font: 600 13px/18px var(--font-sans); letter-spacing: -.006em; color: var(--t-ink-2); white-space: nowrap; }
+/* Saluti: vetro nei due temi. Le parole scorrono in alto per tutta la larghezza (style.css, .marq); in fondo il titolo e la frase,
+   e per ultima la tua stella se l'hai accesa */
+.saluti .title { margin-top: auto; }
+.saluti .title + .sub { margin-top: 2px; }
+.saluti__mine { display: flex; align-items: center; gap: 8px; margin-top: 10px; font: 600 13px/18px var(--font-sans); letter-spacing: -.006em; color: var(--t-ink-2); white-space: nowrap; }
 .saluti__mine b { color: var(--t-ink); }
-.saluti .stardot { background: var(--gold-ink); box-shadow: 0 0 0 2.5px rgba(232, 180, 88, .22), 0 0 8px 0 rgba(232, 180, 88, .55); }
-/* nel tema scuro i saluti stanno nel cielo di notte (diventano stelle): sotto, dopo il vetro degli Strumenti e l'inchiostro
-   della Heatmap, un materiale diverso; di giorno restano vetro */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .saluti { --mat: var(--night-mat); --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .72); --fill: rgba(255, 255, 255, .1); --hair: rgba(255, 255, 255, .16); --sh: 22 28 84; --e1: rgba(255, 255, 255, .3); --e2: rgba(255, 255, 255, .09); --e3: rgba(255, 255, 255, .04); }
-}
-:root[data-theme="dark"] .saluti { --mat: var(--night-mat); --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .72); --fill: rgba(255, 255, 255, .1); --hair: rgba(255, 255, 255, .16); --sh: 22 28 84; --e1: rgba(255, 255, 255, .3); --e2: rgba(255, 255, 255, .09); --e3: rgba(255, 255, 255, .04); }
+.saluti .stardot { background: var(--accent-ink); box-shadow: 0 0 0 2.5px rgb(var(--accent-glow) / .22), 0 0 8px 0 rgb(var(--accent-glow) / .55); }
 
 /* ------------------------------------------------------------------ la riga dei saluti, sotto imad.chat_ */
 .riga { display: flex; align-items: center; min-height: 18px; margin-top: 3px; font: 500 13px/18px var(--font-mono); letter-spacing: -.01em; color: rgba(255, 255, 255, .95); white-space: nowrap; text-shadow: 0 1px 10px rgba(6, 10, 44, .3); }
@@ -192,19 +276,20 @@ html, body { overflow-anchor: none; }
 .dock {
   position: fixed; z-index: 50; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 12px); margin: 0 auto;
   display: flex; width: -webkit-max-content; width: max-content; max-width: calc(100vw - 24px); padding: 4px; border-radius: 26px;
-  background: var(--bar-glass);
-  -webkit-backdrop-filter: saturate(1.8) blur(22px); backdrop-filter: saturate(1.8) blur(22px);
-  box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--hair), 0 16px 34px -14px rgb(var(--sh) / .45);
+  /* vetro spesso: è l'oggetto più alto, il solo (con i pulsanti tondi) che sfoca ciò che gli passa sotto */
+  background: var(--dock-vetro);
+  -webkit-backdrop-filter: saturate(1.8) blur(26px); backdrop-filter: saturate(1.8) blur(26px);
+  box-shadow: inset 0 1px 0 var(--dock-filo), inset 0 -1px 0 var(--dock-fondo), 0 0 0 .5px rgb(var(--dock-ombra) / calc(var(--dock-o) * .5)),
+    0 2px 5px rgb(var(--dock-ombra) / calc(var(--dock-o) * .45)), 0 22px 44px -14px rgb(var(--dock-ombra) / var(--dock-o));
   transition: opacity 320ms ease, transform 560ms var(--spring, cubic-bezier(.2, .9, .25, 1));
 }
-.dock__b { position: relative; z-index: 1; height: 44px; padding: 0 14px; border-radius: 22px; font: 600 14px/44px var(--font-sans); letter-spacing: -.012em; color: var(--ink-2); white-space: nowrap; transition: color 240ms ease; }
+.dock__b { position: relative; z-index: 1; height: 44px; padding: 0 14px; border-radius: 22px; font: 600 14px/44px var(--font-sans); letter-spacing: -.012em; color: var(--dock-ink-2, var(--ink-2)); white-space: nowrap; transition: color 240ms ease; }
 .dock__b[aria-pressed="true"] { color: var(--ink); }
 .dock__b:focus-visible { outline-offset: -2px; }
 /* la pillola che scivola sotto il filtro scelto: dice dov'è, senza parole */
-.dock__pill { position: absolute; z-index: 0; top: 4px; left: 0; height: 44px; width: 60px; border-radius: 22px; background: #fff; box-shadow: 0 1px 2px rgb(var(--sh) / .12), 0 6px 14px -8px rgb(var(--sh) / .4);
+/* la pillola del filtro scelto è un tasto alzato (i due temi stanno nei token --dock-tasto*) */
+.dock__pill { position: absolute; z-index: 0; top: 4px; left: 0; height: 44px; width: 60px; border-radius: 22px; background: var(--dock-tasto); box-shadow: var(--dock-tasto-ombra);
   transition: transform 460ms var(--spring, cubic-bezier(.2, .9, .25, 1)), width 460ms var(--spring, cubic-bezier(.2, .9, .25, 1)); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dock__pill { background: rgba(255, 255, 255, .15); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12); } }
-:root[data-theme="dark"] .dock__pill { background: rgba(255, 255, 255, .15); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12); }
 .dock.is-still .dock__pill { transition: none; }
 .is-sheet .dock { opacity: 0; pointer-events: none; transform: translateY(18px); }
 .is-shot .dock { display: none; }
@@ -232,19 +317,28 @@ html, body { overflow-anchor: none; }
 .is-shot.ni-done .hero__word .cur { animation: none; }
 
 /* ------------------------------------------------------------------ fondo pagina */
-.foot { display: flex; flex-direction: column; align-items: center; padding: 50px calc(var(--gutter) + 8px) 0; text-align: center; color: var(--ink-2); }   /* sopra il logo 3x3 c'è il posto per Dot seduto sulla fila di tasti in alto, senza coprire i saluti */
+.foot { display: flex; flex-direction: column; align-items: center; padding: 56px calc(var(--gutter) + 8px) 0; text-align: center; color: var(--ink-2); }   /* sopra il logo 3x3 c'è il posto per Dot seduto sulla fila di tasti in alto, senza coprire i saluti */
+/* il 3x3 come nove tasti veri: una faccia del cubo, con il punto d'oro al centro (le misure non cambiano: Dot ci si siede) */
 .l9--big { grid-template-columns: repeat(3, 38px); grid-auto-rows: 38px; gap: 5px; margin-bottom: 20px; }
-.l9--big i, .l9--big i:nth-child(2n) { display: grid; place-items: center; border-radius: 11px; background: var(--fill); opacity: 1; box-shadow: inset 0 0 0 1px var(--hair); font: 800 18px/1 var(--font-sans); letter-spacing: -.03em; color: var(--ink); }
-.l9--big .s { position: relative; transform: none; border-radius: 11px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); }
-.l9--big .s::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--gold-ink, #d9a441); box-shadow: 0 0 8px 2px rgba(232, 180, 88, .62); }
-.foot__sky { display: inline-flex; align-items: flex-start; gap: 9px; text-align: left; max-width: 25em; font: 500 13px/19px var(--font-sans); letter-spacing: -.006em; text-wrap: pretty; }
-.foot__sky .skydot { margin-top: 3px; }
-.foot__cred { margin-top: 14px; max-width: 30em; font: 500 12px/18px var(--font-sans); letter-spacing: 0; color: var(--ink-3); text-wrap: pretty; }
+.l9--big i, .l9--big i:nth-child(2n), .l9--big .s { display: grid; place-items: center; border-radius: 11px; opacity: 1; color: var(--ink);
+  font: 750 17px/1 var(--font-sans); letter-spacing: -.02em;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .1) 0%, rgba(255, 255, 255, 0) 100%), var(--fill);
+  box-shadow: inset 0 1px 0 var(--filo-2), inset 0 0 0 .5px var(--hair), inset 0 -2px 0 rgb(var(--ombra) / .1), 0 1px 2px rgb(var(--ombra) / .3), 0 6px 12px -8px rgb(var(--ombra) / .5); }
+.l9--big .s { position: relative; transform: none; }
+.l9--big .s::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--accent-ink); box-shadow: 0 0 8px 2px rgb(var(--accent-glow) / .62); }
+/* la riga di Torino: centrata sotto il logo come il colophon, il pallino del cielo in testa alla prima riga */
+.foot__sky { display: block; max-width: 28em; text-align: center; font: var(--f-small); letter-spacing: var(--ls-small); color: var(--ink-2); text-wrap: balance; }
+.foot__sky .skydot { display: inline-block; vertical-align: -2px; margin-right: 7px; }
+.foot__sky .js-tortime { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+/* i crediti: un colophon, sotto una riga sottile */
+.foot__cred { position: relative; margin-top: 18px; padding-top: 16px; max-width: 32em; font: 500 11.5px/17px var(--font-sans); letter-spacing: .002em; color: var(--ink-3); text-wrap: balance; }
+.foot__cred::before { content: ""; position: absolute; top: 0; left: 50%; width: 28px; height: 1px; margin-left: -14px; background: var(--hair); }
 
 /* ------------------------------------------------------------------ tablet: 8 colonne; l'hero e «Ciao» uno accanto all'altro */
 @media (min-width: 700px) {
   .testa { grid-template-rows: calc(var(--cell) * 2 + var(--gap)); grid-template-areas: "hero hero hero hero ciao ciao ciao ciao"; }
-  .ciao { padding: 0 0 4px 14px; }
+  /* accanto all'hero: in basso, sulla sua linea di base */
+  .ciao { align-self: end; padding: 0 0 2px calc(var(--p) + 6px); }
   .grid {
     margin-top: var(--gap); grid-template-rows: none;
     grid-template-areas:
@@ -299,16 +393,14 @@ html, body { overflow-anchor: none; }
       "sudime sudime imparando imparando saluti saluti saluti saluti";
   }
   .bar { padding-left: calc(var(--gutter) - 2px); padding-right: calc(var(--gutter) - 4px); }
-  .mondo__t { font-size: calc(var(--cell) * .42); }
 }
 
 /* ------------------------------------------------------------------ computer: 12 colonne, tre pile di quattro */
 @media (min-width: 1100px) {
   .home { max-width: 1140px; margin: 0 auto; }
   .testa { grid-template-areas: "hero hero hero hero hero hero ciao ciao ciao ciao ciao ciao"; }
-  .ciao { padding-left: 26px; }
-  .ciao__t { font-size: 50px; }
-  .ciao__p { font-size: 17px; line-height: 24px; }
+  .ciao { padding-left: 30px; }
+  .ciao__t { font-size: 56px; }
   .grid {
     grid-template-areas:
       "corano corano corano corano citta citta citta citta sudime sudime progetti progetti"
@@ -349,8 +441,7 @@ html, body { overflow-anchor: none; }
       "saluti saluti saluti saluti citta citta citta citta heatmap heatmap heatmap heatmap"
       "saluti saluti saluti saluti citta citta citta citta heatmap heatmap heatmap heatmap";
   }
-  .me__name { font-size: 28px; }
-  .mondo__t { font-size: 34px; }
+  .me__name { font-size: 30px; line-height: 30px; }
 }
 
 /* ------------------------------------------------------------------ puntatore fine */
@@ -364,6 +455,7 @@ html, body { overflow-anchor: none; }
 /* ------------------------------------------------------------------ meno movimento, fotografie */
 @media (prefers-reduced-motion: reduce) {
   .win__img { animation: none; }
+  .citta__now.is-out { transform: none; }
   .pill, .dock, .dock__b, .dock__pill, .ciao { transition: none; }
   /* il cursore resta acceso, fermo; il punto non pulsa (html davanti: questo file viene prima di intro.css) */
   html.ni-done .hero__word .cur, html.ni-done[data-ni] .hero__word .dot { animation: none; }

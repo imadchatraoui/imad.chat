@@ -69,8 +69,9 @@
   function fromLch(c) { return [c[0], c[1] * Math.cos(c[2]), c[1] * Math.sin(c[2])]; }
   /* come mixLab, ma la tinta gira lungo l'arco breve: dal viola all'arancio si passa dal rosa, non dal grigio */
   function mixLch(a, b, t, boost) { var A_ = toLch(a), B = toLch(b), dh = B[2] - A_[2]; if (dh > Math.PI) dh -= 2 * Math.PI; if (dh < -Math.PI) dh += 2 * Math.PI; return fromLch([A_[0] + (B[0] - A_[0]) * t, (A_[1] + (B[1] - A_[1]) * t) * (boost || 1), A_[2] + dh * t]); }
-  /* stessa tinta di un colore, con luminosità e croma scelte: serve allo sfondo nei due temi */
-  function tone(rgb, L, C) { var c = toLch(toLab(rgb)); return toRgb(fromLch([L, C, c[2]])); }
+  /* stessa tinta di un colore, con luminosità e croma scelte: serve allo sfondo nei due temi (toneLab: lo stesso, da un colore OKLab) */
+  function toneLab(lab, L, C) { var c = toLch(lab); return toRgb(fromLch([L, C, c[2]])); }
+  function tone(rgb, L, C) { return toneLab(toLab(rgb), L, C); }
 
   /* altezza del Sole (gradi) → zenit, mezzo cielo, orizzonte, bagliore. I toni restano abbastanza profondi da reggere il testo bianco. */
   var SKY = [
@@ -134,6 +135,10 @@
 
   /* ---------------------------------------------------------------- riferimenti al DOM */
   var home = $("#home"), heroSky = $("#heroSky"), grid = $("#grid"), dotClip = $("#dotclip"), dock = $("#dock");
+  /* Nel mondo: finché Imad non ha scritto, sul telefono il riquadro è una striscia (#grid[data-mondo="vuoto"], il valore del markup);
+     quando build.mjs ha scritto i titoli dei suoi testi (.mondo__titoli) torna la copertina. Subito, prima di ogni misura: l'intro e Dot
+     leggono i rettangoli dei riquadri */
+  if (grid && $(".mondo .mondo__titoli")) grid.setAttribute("data-mondo", "scritto");
 
   function layout() {
     var cs = getComputedStyle(root), cols = parseInt(cs.getPropertyValue("--cols"), 10) || 4;
@@ -169,9 +174,17 @@
   }
 
   /* ---------------------------------------------------------------- il cielo di Torino adesso: sfondo, hero, fondo pagina */
-  /* lo sfondo: quattro campi presi dal cielo di Torino, profondi nel tema scuro e pallidi in quello chiaro */
+  /* lo sfondo. I quattro campi --wd-1..4 / --wl-1..4 (profondi nel tema scuro, pallidi in quello chiaro) restano: li usano le pagine aperte.
+     Poi IL CIELO DELLA PAGINA (CASA.md 2d B): la pagina dietro i riquadri è il cielo di Torino a quest'ora, dall'alto in basso, con i colori
+     dell'hero: --cielo-alto (lo zenit), --cielo-mezzo (il mezzo cielo), --cielo-basso (verso l'orizzonte: il mezzo cielo mescolato in LCh
+     all'orizzonte, .62), riportati con tone() alla luminosità e alla croma del tema. Nel tema scuro, di notte, è quasi il nero dell'intro
+     (le finestre sul cielo, l'hero e il globo, si leggono accese); di giorno, e nel tema chiaro, è il cielo pallido della stessa ora.
+     Con lui: il bagliore dal lato del sole, la luce che l'hero getta sulla pagina (sotto e, di notte, sopra sulla mensola), il vetro dei
+     riquadri e quanto si vedono le stelle. Si ricalcola a ogni minuto (paintLive) e quando cambia il tema (onTheme, più sotto). */
+  var lastTor = null;
   function paintWall(st) {
-    var k = st.sky, day = clamp((st.alt + 4) / 14, 0, 1), dusk = clamp(1 - Math.abs(st.alt) / 9, 0, 1), rs = root.style;
+    var k = st.sky, alt = st.alt, day = clamp((alt + 4) / 14, 0, 1), dusk = clamp(1 - Math.abs(alt) / 9, 0, 1), rs = root.style;
+    lastTor = st;
     rs.setProperty("--wd-1", css(tone(k.zen, 0.25 + 0.13 * day, 0.105 + 0.03 * day)));
     rs.setProperty("--wd-2", css(tone(k.mid, 0.27 + 0.14 * day, 0.1)));
     rs.setProperty("--wd-3", css(tone(k.rose, 0.26 + 0.1 * dusk + 0.14 * day, 0.09 + 0.02 * dusk)));
@@ -180,6 +193,32 @@
     rs.setProperty("--wl-2", css(tone(k.mid, 0.9, 0.052)));
     rs.setProperty("--wl-3", css(tone(k.rose, 0.915, 0.045 + 0.012 * dusk)));
     rs.setProperty("--wl-4", css(tone(k.hor, 0.925, 0.045 + 0.02 * dusk)));
+
+    /* il crepuscolo del cielo della pagina è centrato appena sotto l'orizzonte (−1°) e più largo di quello dei campi qui sopra */
+    var tw = clamp(1 - Math.abs(alt + 1) / 10, 0, 1), night = clamp((-alt - 6) / 8, 0, 1), dark = isDark();
+    var Z = toLab(k.zen), M = toLab(k.mid), Hh = toLab(k.hor), low = mixLch(M, Hh, 0.62), a, b, c, ga, spill;
+    if (dark) {
+      a = toneLab(Z, 0.13 + 0.12 * day, 0.022 + 0.055 * day);
+      b = toneLab(M, 0.15 + 0.12 * day + 0.025 * tw, 0.026 + 0.045 * day + 0.015 * tw);
+      c = toneLab(low, 0.175 + 0.06 * tw + 0.11 * day, 0.03 + 0.05 * tw + 0.02 * day);
+      ga = 0.04 + 0.3 * tw * (1 - 0.6 * day); spill = 0.22 + 0.16 * tw;
+    } else {
+      a = toneLab(Z, 0.962, 0.016 + 0.012 * day);
+      b = toneLab(M, 0.948, 0.022 + 0.01 * day + 0.008 * tw);
+      c = toneLab(low, 0.93 - 0.006 * tw, 0.03 + 0.03 * tw);
+      ga = 0.06 + 0.34 * tw; spill = 0.28 + 0.12 * tw;
+    }
+    rs.setProperty("--cielo-alto", css(a)); rs.setProperty("--cielo-mezzo", css(b)); rs.setProperty("--cielo-basso", css(c));
+    rs.setProperty("--cielo-bagliore", rgba(k.glow, ga));
+    rs.setProperty("--cielo-gx", st.gx + "%");                                         /* = --sky-gx: il lato del sole */
+    rs.setProperty("--stelle", (dark ? night : 0).toFixed(3));
+    rs.setProperty("--hero-spill", rgba(toRgb(mixLch(M, Hh, 0.5)), spill));
+    rs.setProperty("--hero-alone", dark ? rgba(toneLab(mixLch(Z, M, 0.5), 0.62, 0.09), 0.16 + 0.1 * night) : "rgba(0, 0, 0, 0)");
+    /* il vetro scuro prende un filo del cielo: di notte croma .028 (era .018, un grigio quasi neutro), di giorno .03 come prima */
+    rs.setProperty("--vetro-base", dark ? rgba(toneLab(M, 0.265 + 0.04 * day, 0.028 + 0.002 * day), 0.9 - 0.12 * day) : rgba(toneLab(M, 0.985, 0.006), 0.62));
+    /* la barra del browser prende il colore della cima della pagina, nei due temi */
+    $$('meta[name="theme-color"]').forEach(function (m) { m.setAttribute("content", css(a)); });
+    stelle();
   }
   function moonSVG(mp, size) {
     var r = 18, k = mp.fraction, rx = (r * Math.abs(1 - 2 * k)).toFixed(2);
@@ -198,7 +237,10 @@
     paintWall(tor);
     heroSky.innerHTML = myStar();
     $(".js-moon").innerHTML = moonSVG(A.moonPhase(d), 18);
-    $(".js-tortime").textContent = tor.time; $(".js-torpart").textContent = tor.label; setSky($(".js-tordot"), tor.sky, tor.gx, 0.6);
+    /* l'ora e la parte del giorno di Torino: nel fondo pagina e nella riga di data dell'hero (tutte le .js-tortime e .js-torpart) */
+    $$(".js-tortime").forEach(function (el) { el.textContent = tor.time; });
+    $$(".js-torpart").forEach(function (el) { el.textContent = tor.label; });
+    var tdot = $(".js-tordot"); if (tdot) setSky(tdot, tor.sky, tor.gx, 0.6);
   }
 
   /* due file di saluti che scorrono in versi opposti; la seconda comincia da metà elenco, così le due file non si somigliano */
@@ -539,8 +581,7 @@
     var op = t.closest("[data-open]"); if (!op || S.open) return;
     openSheet(op.getAttribute("data-open"), op.closest(".tile[data-mat]") || op);
   });
-  grid.addEventListener("pointerdown", function (e) { var h = e.target.closest ? e.target.closest(".tile__hit") : null; if (h) h.parentNode.classList.add("is-pressed"); });
-  ["pointerup", "pointercancel", "pointerleave", "dragstart"].forEach(function (n) { grid.addEventListener(n, function () { $$(".tile.is-pressed", grid).forEach(function (t) { t.classList.remove("is-pressed"); }); }, true); });
+  /* la pressione dei riquadri è di moto.js (CASA.md 2d E): qui non si mette più .is-pressed al pointerdown */
   if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
     grid.addEventListener("pointermove", function (e) { var t = e.target.closest ? e.target.closest(".tile") : null; if (!t) return; var r = t.getBoundingClientRect(); t.style.setProperty("--mx", (e.clientX - r.left) + "px"); t.style.setProperty("--my", (e.clientY - r.top) + "px"); });
   }
@@ -557,6 +598,98 @@
       root.style.setProperty("--grain", "url(" + cv.toDataURL("image/png") + ")");
     } catch (e) { /* senza canvas: superfici lisce, va bene lo stesso */ }
   })();
+
+  /* --stelle-tex: una tessera di 220 px con 26 stelline (seme 1111), disegnata una volta a densità 2, per i materiali di notte
+     (l'hero di notte, Le città dietro il globo). Puntini tondi e basta: niente forme di stella */
+  (function () {
+    try {
+      var n = 220, cv = doc.createElement("canvas"); cv.width = cv.height = n * 2;
+      var ctx = cv.getContext("2d"), r = rng(1111); ctx.scale(2, 2);
+      for (var i = 0; i < 26; i++) {
+        var x = r() * n, y = r() * n, big = r() < 0.12, rad = big ? 0.75 + r() * 0.35 : 0.3 + r() * 0.35, al = big ? 0.55 + r() * 0.25 : 0.18 + r() * 0.3;
+        ctx.fillStyle = "rgba(255,250,240," + al.toFixed(3) + ")"; ctx.beginPath(); ctx.arc(x, y, rad, 0, 6.2832); ctx.fill();
+      }
+      root.style.setProperty("--stelle-tex", "url(" + cv.toDataURL("image/png") + ")");
+    } catch (e) { /* senza canvas: i materiali di notte senza stelline */ }
+  })();
+
+  /* ---------------------------------------------------------------- le stelle dell'intro, dietro i riquadri
+     Di notte, nel tema scuro, sul cielo della pagina restano, deboli, le stelle su cui l'intro ha battuto imad.chat: lo stesso elenco di
+     drawSky in ../../intro/intro-gatto.js (seme 41, 84 stelle, le stesse estrazioni nello stesso ordine: x, y, raggio, luce e le tre del
+     respiro; grande una su sette; y = r()^1.25), negli stessi punti dello schermo (x·larghezza, y·altezza·0,96), più tenui (luce ×0,46,
+     meno verso il basso) e un poco più piccole. Tre tele, le stelle a turno: ognuna respira con il suo ritmo (vivi.css, .wall__sc--1..3),
+     tutte insieme seguono --stelle (l'opacità di .wall__s). Densità al più 1,5 (tre tele grandi quanto lo schermo: a 390×844 circa 9 MB);
+     esistono e si disegnano solo mentre --stelle > 0: di giorno e nel tema chiaro le tele tornano 0 × 0 (memoria liberata). */
+  var SKY_I = (function () {
+    var r = rng(41), a = [];
+    for (var i = 0; i < 84; i++) {
+      var big = i % 7 === 0, x = r(), y = Math.pow(r(), 1.25), rr = big ? 1.15 + r() * 0.75 : 0.35 + r() * 0.6, al = big ? 0.7 + r() * 0.25 : 0.28 + r() * 0.42;
+      r(); r(); r();                                   /* il periodo, la fase e il ritardo del respiro dell'intro: qui respirano le tele */
+      a.push({ x: x, y: y, r: rr, a: al, big: big });
+    }
+    return a;
+  })();
+  var wallEl = $(".wall"), sBox = null, sCv = [], sW = 0, sH = 0, sFree = 0, sRz = 0;
+  /* le parole di «Ciao» stanno sul cielo: una stella proprio dietro una lettera si legge come un segno («Imad..»). Le stelle il cui
+     centro cade nei rettangoli del titolo, della riga e dei due pulsanti (più 10 px intorno), con la pagina in cima, non si disegnano:
+     mancano dal momento in cui le parole entrano con l'atterraggio dell'intro (ni-ciao); le altre restano dove le ha lasciate l'intro.
+     I rettangoli sono quelli della pagina (offsetTop: la trasformazione dell'entrata non conta), letti a ogni disegno */
+  function sottoParole() {
+    var rs = [];
+    [".ciao__t", ".ciao__p", ".ciao__b"].forEach(function (sel) {
+      var el = $(sel); if (!el || !el.offsetWidth) return;
+      var x = 0, y = 0; for (var e = el; e; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; }
+      rs.push([x - 10, y - 10, x + el.offsetWidth + 10, y + el.offsetHeight + 10]);
+    });
+    return rs;
+  }
+  function stelleV() { return parseFloat(root.style.getPropertyValue("--stelle")) || 0; }
+  function stelle() {
+    if (!wallEl) return;
+    if (stelleV() <= 0) {
+      /* le tele si svuotano dopo la dissolvenza (2,4 s in vivi.css), se intanto non è tornata la notte */
+      if (sW && !sFree) sFree = setTimeout(function () { sFree = 0; if (stelleV() > 0) return; sCv.forEach(function (c) { c.width = 0; c.height = 0; }); sW = sH = 0; }, 2600);
+      return;
+    }
+    if (sFree) { clearTimeout(sFree); sFree = 0; }
+    var W = window.innerWidth, H = window.innerHeight;
+    if (W < 2 || H < 2 || (W === sW && H === sH)) return;                           /* già disegnate a questa misura */
+    try {
+      if (!sBox) {
+        sBox = doc.createElement("i"); sBox.className = "wall__s"; sBox.setAttribute("aria-hidden", "true");
+        for (var k = 0; k < 3; k++) { var cv = doc.createElement("canvas"); cv.className = "wall__sc wall__sc--" + (k + 1); sBox.appendChild(cv); sCv.push(cv); }
+        wallEl.insertBefore(sBox, $(".wall__g", wallEl) || null);
+      }
+      /* densità al più 1,5; sugli schermi grandi ogni tela resta sotto 1,2 milioni di pixel (non sotto 0,75: stelline morbide) */
+      var dpr = Math.min(window.devicePixelRatio || 1, 1.5), via = sottoParole();
+      if (W * H * dpr * dpr > 1.2e6) dpr = Math.max(0.75, Math.sqrt(1.2e6 / (W * H)));
+      sCv.forEach(function (cv, k) {
+        cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + "px"; cv.style.height = H + "px";
+        var ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+        for (var i = k; i < SKY_I.length; i += 3) {
+          var s = SKY_I[i], x = s.x * W, y = s.y * H * 0.96, al = s.a * 0.46 * (1 - 0.35 * s.y), rr = s.r * 0.86, sotto = false;
+          for (var v = 0; v < via.length; v++) if (x >= via[v][0] && x <= via[v][2] && y >= via[v][1] && y <= via[v][3]) sotto = true;
+          if (sotto) continue;
+          if (s.big) {
+            var gR = rr * 5, g = ctx.createRadialGradient(x, y, 0, x, y, gR);
+            g.addColorStop(0, "rgba(255,240,212," + (0.3 * al).toFixed(3) + ")"); g.addColorStop(1, "rgba(255,240,212,0)");
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, gR, 0, 6.2832); ctx.fill();
+          }
+          ctx.fillStyle = "rgba(255,250,238," + al.toFixed(3) + ")"; ctx.beginPath(); ctx.arc(x, y, rr, 0, 6.2832); ctx.fill();
+        }
+      });
+      sW = W; sH = H;
+    } catch (e) { /* senza tele: il cielo senza stelle, va bene lo stesso */ }
+  }
+  window.addEventListener("resize", function () { clearTimeout(sRz); sRz = setTimeout(stelle, 160); });
+  /* i caratteri veri cambiano le misure delle parole di «Ciao»: arrivati loro, le stelle si ridisegnano una volta */
+  if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(function () { if (sW) { sW = sH = 0; stelle(); } });
+
+  /* il tema cambia (il telefono passa al chiaro o allo scuro, o il bottone del tema scrive data-theme): il cielo della pagina,
+     il vetro e le stelle si rifanno subito, senza aspettare il minuto */
+  function onTheme() { if (lastTor) paintWall(lastTor); }
+  if (mqDark.addEventListener) mqDark.addEventListener("change", onTheme); else if (mqDark.addListener) mqDark.addListener(onTheme);
+  if ("MutationObserver" in window) new MutationObserver(onTheme).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
 
   /* ---------------------------------------------------------------- window.IMAD: gli aiuti comuni della pagina */
   /* un solo giro di fotogrammi per tutte le tele vive: gira solo se almeno una si vede, mai a scheda nascosta,

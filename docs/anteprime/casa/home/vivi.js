@@ -10,8 +10,12 @@
                            (IMAD.api, dopo l'intro). La prima volta che i quadrati si vedono quasi tutti, sopra il dock, si accendono a onda;
                            un dito o il mouse che passa sopra dice il giorno e il conto; le frecce fanno lo stesso da tastiera.
                            Senza dati: quadrati vuoti e «Si aggiorna tra poco», nessun numero. Con n: null, i livelli e niente conti.
-     Sto imparando (#impara)  Three.js Journey, gli ultimi commit di learning.commits (da /api/github/progetti) con «3 giorni fa»,
-                           un icosaedro a fil di ferro che gira piano su una tela 2D (i bordi lontani più tenui).
+     Sto imparando (#impara)  Three.js Journey, l'ultimo commit di learning.commits (da /api/github/progetti): quando, nella voce
+                           della macchina, in testa al titolo, tutto in un paragrafo di due righe al più (tre sui computer); un
+                           icosaedro a fil di ferro che gira piano su una tela 2D (i bordi lontani più tenui), nella fascia tra
+                           l'etichetta e il titolo, che non cambia quando arrivano i dati. Il risveglio dopo l'intro:
+                           IMAD.vivo.impara.prime() / .wake(ms) (moto.js); da sé solo dopo 6 s in vista sopra il dock.
+   I colori delle tele vengono dai token del riquadro in vivi.css (--hm-*, --ip-line, --ip-dot) e si rileggono quando cambia il tema.
 
    Niente gira fuori dallo schermo, a scheda nascosta, durante l'intro o sotto una pagina aperta (IMAD.loop, o un giro breve
    che finisce da sé). Con «meno movimento» o ?shot=1 (IMAD.still) si disegna subito lo stato finale. */
@@ -23,7 +27,11 @@
   var clamp = I.clamp, DAY = 86400000;
   var MESI = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
   var GIORNI = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"];          /* lunedì = 0 */
-  var INIZIALI = "GFMAMGLASOND";
+  /* il tema cambia (il telefono, o data-theme scritto dal bottone del tema): fn() rilegge i token e ridisegna */
+  function onTema(fn) {
+    if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", fn); else if (mq.addListener) mq.addListener(fn); }
+    if ("MutationObserver" in window) new MutationObserver(fn).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  }
   var coarse = window.matchMedia ? window.matchMedia("(pointer: coarse)") : { matches: false };
   function fmt(n) { try { return Number(n).toLocaleString("it-IT"); } catch (e) { return String(n); } }
   function eOut(t) { t = 1 - t; return 1 - t * t * t; }
@@ -33,6 +41,21 @@
   function onResize(el, fn) {
     var raf = 0, go = function () { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; fn(); }); };
     if ("ResizeObserver" in window) new ResizeObserver(go).observe(el); else window.addEventListener("resize", go);
+  }
+  /* si vede davvero? Almeno il 35% del riquadro sopra il dock: la stessa prova del risveglio di moto.js. s.ok si aggiorna da solo
+     (un IntersectionObserver, niente misure nel giro dei fotogrammi); senza IntersectionObserver vale sempre sì */
+  function inVista(el) {
+    var s = { ok: true };
+    if (!el || !("IntersectionObserver" in window)) return s;
+    s.ok = false;
+    var dock = doc.getElementById("dock"), dh = dock ? Math.round(dock.getBoundingClientRect().height + 12) : 0;
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        var rh = e.rootBounds ? e.rootBounds.height : window.innerHeight;
+        s.ok = e.isIntersecting && e.intersectionRect.height / Math.max(1, Math.min(e.boundingClientRect.height, rh)) >= 0.35;
+      });
+    }, { rootMargin: "0px 0px -" + dh + "px 0px", threshold: [0, 0.2, 0.35, 0.5, 0.75, 1] }).observe(el);
+    return s;
   }
   /* una tela cade su pixel interi del dispositivo, o il browser la ricampiona e si sfoca. La posizione dei riquadri può avere
      mezzi pixel (celle di 80,5 px su un telefono x3) e cambia con i filtri del dock: si riallinea all'avvio, al cambio di misura
@@ -100,7 +123,7 @@
     if (!input || !cv || !cv.getContext) return;
     if (!Q) { input.disabled = true; tipo.textContent = "Il codice QR non è arrivato"; val.textContent = "Ricarica la pagina per riprovare."; return; }
 
-    var PROVA = "https://imad.chat", INK = "#16171d", FAINT = "#dcdde4";
+    var PROVA = "https://imad.chat", INK = "#16171d", FAINT = "#c3c5d0";
     var LOOK = { shape: "uniti", eye: "tondo" };
     var SALVA = { size: 1024, dpr: 1, quiet: 4, shape: LOOK.shape, eye: LOOK.eye, fg: INK, bg: "#ffffff", style: false };
     var ctx = cv.getContext("2d"), lay = doc.createElement("canvas"), old = doc.createElement("canvas"), octx = old.getContext("2d");
@@ -361,7 +384,13 @@
     var wave = null, played = false, half = false, raf = 0;
     var hover = -1, lifts = {}, mode = "totale", holdT = 0, touch = null, touchT = 0;
 
-    function colori() { var cs = getComputedStyle(tile); C = [0, 1, 2, 3, 4].map(function (i) { return rgba(cs.getPropertyValue("--hm-" + i).trim()); }); }
+    /* tutti i colori della tela vengono dai token del riquadro (vivi.css): la stessa tela va sull'inchiostro e sul vetro chiaro */
+    var K = { label: [227, 231, 244, 0.64], today: [244, 245, 250, 0.95], up0: [58, 61, 76, 1], up1: [92, 99, 126, 1], ring: [255, 255, 255, 0.85], shade: [4, 6, 18, 0.75] };
+    function tok(cs, n, d) { var v = cs.getPropertyValue(n).trim(); return v ? rgba(v) : d; }
+    function colori() {
+      var cs = getComputedStyle(tile); C = [0, 1, 2, 3, 4].map(function (i) { return rgba(cs.getPropertyValue("--hm-" + i).trim()); });
+      K = { label: tok(cs, "--hm-label", K.label), today: tok(cs, "--hm-today", K.today), up0: tok(cs, "--hm-up-0", K.up0), up1: tok(cs, "--hm-up-1", K.up1), ring: tok(cs, "--hm-ring", K.ring), shade: tok(cs, "--hm-shade", K.shade) };
+    }
 
     /* i giorni nelle colonne: una colonna per settimana, il lunedì in alto; l'indice col*7+riga segue il calendario */
     function costruisci(list) {
@@ -379,7 +408,7 @@
       for (var c = 0; c < 53; c++) for (var r = 0; r < 7; r++) {
         var x = cells[c * 7 + r]; if (!x) continue;
         var dt = new Date(x.ms);
-        if (dt.getUTCDate() === 1 && c - lastCol >= 3) { months.push({ c: c, t: INIZIALI.charAt(dt.getUTCMonth()) }); lastCol = c; }
+        if (dt.getUTCDate() === 1 && c - lastCol >= 7) { months.push({ c: c, t: MESI[dt.getUTCMonth()].toUpperCase() }); lastCol = c; }   /* GEN, FEB…: almeno 7 colonne tra due */
       }
     }
     function vuoti() {
@@ -394,7 +423,7 @@
       var d = dprOf(3), g = Math.max(1, Math.round(d)), Wd = Math.floor(avW * d);
       var p = Math.floor((Wd + g) / 53), s = p - g, maxS = Math.round(10 * d);
       if (s > maxS) { s = maxS; p = s + g; }
-      var mh = Math.round(15 * d);
+      var mh = Math.round(19 * d);
       /* se in altezza non ci sta, i quadrati si stringono (mai sotto i 3 px) */
       while (avH > 20 && (mh + 7 * p - g) / d > avH && s > Math.round(3 * d)) { s--; p--; }
       G = { dpr: d, s: s, g: g, p: p, mh: mh, W: 53 * p - g, H: mh + 7 * p - g };
@@ -413,12 +442,12 @@
     }
     function draw(now) {
       if (!G.W) return;
-      var d = G.dpr, s = G.s, p = G.p, rad = Math.max(1, Math.round(s * 0.24)), top = G.mh;
+      var d = G.dpr, s = G.s, p = G.p, rad = Math.max(1, Math.round(s * 0.3)), top = G.mh;
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, G.W, G.H);
-      /* le iniziali dei mesi */
-      ctx.font = "600 " + Math.round(10 * d) + "px Manrope, -apple-system, sans-serif";
-      ctx.textBaseline = "alphabetic"; ctx.fillStyle = "rgba(227,231,244,.46)";
-      for (var m = 0; m < months.length; m++) ctx.fillText(months[m].t, months[m].c * p, Math.round(10 * d));
+      /* i mesi, nella voce della macchina (Geist Mono, maiuscolo); quello che uscirebbe dalla tela a destra non si scrive */
+      ctx.font = "500 " + Math.round(10.5 * d) + "px 'Geist Mono', ui-monospace, monospace";
+      ctx.textBaseline = "alphabetic"; ctx.fillStyle = css(K.label);
+      for (var m = 0; m < months.length; m++) { var mx = months[m].c * p; if (mx + ctx.measureText(months[m].t).width > G.W) continue; ctx.fillText(months[m].t, mx, Math.round(11.5 * d)); }
       var e0 = C[0], later = [], ups = [];
       ctx.beginPath(); ctx.fillStyle = css(e0);
       for (var c = 0; c < 53; c++) for (var r = 0; r < 7; r++) {
@@ -439,15 +468,21 @@
       ups.sort(function (a, b) { return a[2] - b[2]; });
       for (var u = 0; u < ups.length; u++) {
         var ui = ups[u][0], uc = Math.floor(ui / 7), ur = ui % 7, ux = cells[ui], ul = eOut(ups[u][2]);
-        var base = ux.l > 0 ? mixc(e0, C[ux.l], eOut(ups[u][1])) : mixc([35, 40, 62, 1], [92, 99, 126, 1], ul);
+        var base = ux.l > 0 ? mixc(e0, C[ux.l], eOut(ups[u][1])) : mixc(K.up0, K.up1, ul);
         var big = s * (1 + 0.62 * ul), oo = (s - big) / 2, bx = uc * p + oo, by = top + ur * p + oo - 1.2 * d * ul;
         ctx.save();
-        ctx.shadowColor = "rgba(4,6,18," + (0.75 * ul).toFixed(3) + ")"; ctx.shadowBlur = 5 * d * ul; ctx.shadowOffsetY = 1.5 * d * ul;
+        ctx.shadowColor = css([K.shade[0], K.shade[1], K.shade[2], K.shade[3] * ul]); ctx.shadowBlur = 5 * d * ul; ctx.shadowOffsetY = 1.5 * d * ul;
         ctx.beginPath(); ctx.fillStyle = css([base[0], base[1], base[2], 1]); rrect(ctx, bx, by, big, big, rad * (1 + 0.5 * ul)); ctx.fill();
         ctx.restore();
         var lw = Math.max(1, Math.round(d));
-        ctx.beginPath(); ctx.lineWidth = lw; ctx.strokeStyle = "rgba(255,255,255," + (0.85 * ul).toFixed(3) + ")";
+        ctx.beginPath(); ctx.lineWidth = lw; ctx.strokeStyle = css([K.ring[0], K.ring[1], K.ring[2], K.ring[3] * ul]);
         rrect(ctx, bx + lw / 2, by + lw / 2, big - lw, big - lw, rad * (1 + 0.5 * ul)); ctx.stroke();
+      }
+      /* oggi: un anello sottile dentro il suo quadrato (l'ultimo giorno dei dati), finché non ci passa sopra il dito */
+      if (ok && last >= 0 && !(lifts[last] > 0.001)) {
+        var tc = Math.floor(last / 7), tr = last % 7, tw = Math.max(1, Math.round(d));
+        ctx.beginPath(); ctx.lineWidth = tw; ctx.strokeStyle = css(K.today);
+        rrect(ctx, tc * p + tw / 2, top + tr * p + tw / 2, s - tw, s - tw, Math.max(1, rad - tw / 2)); ctx.stroke();
       }
     }
     /* un giro di fotogrammi solo finché qualcosa si muove (l'onda, un quadrato che si alza o si posa) */
@@ -478,9 +513,9 @@
     }
     function onda() {
       if (played || wave || !ok || !G.W) return;
-      if (I.still()) { played = true; draw(performance.now()); return; }    /* fermo: lo stato finale subito, dovunque sia */
+      if (I.still()) { played = true; sale(); draw(performance.now()); return; }    /* fermo: lo stato finale subito, dovunque sia */
       if (!half) return;
-      wave = { t0: performance.now() }; kick();
+      wave = { t0: performance.now() }; kick(); sale();
     }
 
     /* la riga sopra: il totale dell'anno, oppure il giorno sotto il dito */
@@ -496,7 +531,18 @@
       if (typeof x.n === "number") s += "<span class=\"hm__s\" aria-hidden=\"true\">·</span><span class=\"sr\">, </span>" + (x.n === 0 ? "nessun contributo" : x.n === 1 ? "1 contributo" : fmt(x.n) + " contributi");
       return s;
     }
-    var span = $(".hm__a", riga), fadeT = 0;
+    var span = $(".hm__a", riga), fadeT = 0, attesa = false;
+    /* il totale dell'anno aspetta l'onda: arrivati i dati resta nascosto (.is-via) finché i quadrati non si accendono, poi sale con
+       loro; le sue cifre passano per IMAD.moto.cifre quando c'è (moto.js) */
+    function sale() {
+      if (!attesa) return;
+      attesa = false; clearTimeout(fadeT);
+      if (mode !== "totale") return;
+      span.innerHTML = testoTotale(); span.classList.remove("is-giorno");
+      void span.offsetWidth; span.classList.remove("is-via");
+      var b = span.querySelector("b"), M = I.moto || window.IMAD && window.IMAD.moto;
+      if (b && M && M.cifre && !I.still()) { try { M.cifre(b); } catch (e) { } }
+    }
     function scrivi(html, morbido) {
       clearTimeout(fadeT);
       var g = mode === "giorno", put = function () { span.innerHTML = html; span.classList.toggle("is-giorno", g); };
@@ -591,7 +637,12 @@
       ok = true;
       costruisci(list);
       box.classList.remove("is-vuoto");
-      mode = "giorno"; totale();
+      clearTimeout(holdT); clearTimeout(fadeT); mode = "totale"; alza(-1);
+      if (played || I.still()) { span.classList.remove("is-via"); span.innerHTML = testoTotale(); span.classList.remove("is-giorno"); }
+      else {
+        attesa = true; span.classList.add("is-via");                         /* «Si aggiorna tra poco» se ne va; il totale arriva con l'onda */
+        fadeT = setTimeout(function () { if (attesa) { span.innerHTML = testoTotale(); span.classList.remove("is-giorno"); } }, 200);
+      }
       draw(performance.now());
       onda();
     }
@@ -601,7 +652,7 @@
     span.innerHTML = testoTotale();
     if (fit()) draw(0);
     onResize(wrap, function () { if (fit()) draw(performance.now()); });
-    if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); var re = function () { colori(); draw(performance.now()); }; if (mq.addEventListener) mq.addEventListener("change", re); else if (mq.addListener) mq.addListener(re); }
+    onTema(function () { colori(); draw(performance.now()); });
     /* l'onda parte quando i quadrati si vedono quasi tutti, sopra il dock (che copre il fondo dello schermo): non mentre
        scorrono ancora dietro di lui. offsetTop di un elemento fisso non conta la sua traslazione d'ingresso durante l'intro. */
     function sottoDock() {
@@ -614,7 +665,7 @@
     } else half = true;
     I.whenFree(function () {
       colori(); if (fit()) draw(performance.now());
-      if (doc.fonts && doc.fonts.load) { try { doc.fonts.load("600 10px Manrope").then(function () { draw(performance.now()); }, function () { }); } catch (e) { } }
+      if (doc.fonts && doc.fonts.load) { try { doc.fonts.load("500 10px 'Geist Mono'").then(function () { draw(performance.now()); }, function () { }); } catch (e) { } }
       I.api("contributi").then(dati, function () { });
       onda();
     });
@@ -624,7 +675,12 @@
   function Impara(tile) {
     var cv = $("#imparaCv", tile), log = $("#imparaLog", tile), hit = $(".tile__hit", tile), head = $(".tile__head", tile), titolo = $(".ip__t", tile);
     if (!cv || !cv.getContext || !log) return;
-    var ctx = cv.getContext("2d"), G = null, dueRighe = false;
+    var ctx = cv.getContext("2d"), G = null;
+    /* il risveglio dopo l'intro (moto.js, CASA.md 2d E). zz: 0 vivo da subito (senza prime), 1 spento (prime(): la tela vuota),
+       2 si sveglia (wake(d), dopo d ms: gli spigoli crescono dall'alto in 1 s, ease-out cubico, mentre il solido gira di 0,9 rad meno;
+       i vertici per ultimi), 3 sveglio. Il tempo è il suo orologio (clock), che avanza solo mentre si disegna */
+    var zz = 0, zt0 = 0, zDorme = 0, zPend = false, Z_DUR = 1000, Z_TURN = 0.9;
+    function sveglia() { zPend = false; if (zz !== 1) return; zz = 2; zt0 = clock; }
 
     /* un icosaedro diviso una volta (42 vertici, 120 spigoli), come IcosahedronGeometry(1, 1) di three.js */
     var V = [], E = [];
@@ -643,20 +699,31 @@
       });
     })();
     var P = V.map(function () { return [0, 0, 0]; }), order = E.map(function (x, i) { return i; }), Z = new Float32Array(E.length);
+    /* i colori dai token del riquadro (vivi.css: --ip-line, --ip-dot, terne «r g b»): la stessa tela sull'inchiostro e sul vetro chiaro */
+    var LN = "227,231,244", DT = "240,242,252";
+    function terna(v, d) { var m = /^\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)\s*$/.exec(v || ""); return m ? m[1] + "," + m[2] + "," + m[3] : d; }
+    function colori() { var cs = getComputedStyle(tile); LN = terna(cs.getPropertyValue("--ip-line"), LN); DT = terna(cs.getPropertyValue("--ip-dot"), DT); }
+    colori();
+    onTema(function () { colori(); still(); });
 
     function fit() {
+      colori();
       var f = I.fit(cv, 3); if (!f) { G = null; return; }
       var tr = tile.getBoundingClientRect(), hr = head.getBoundingClientRect(), xr = titolo.getBoundingClientRect();
-      var topY = hr.bottom - tr.top, botY = xr.top - tr.top;
-      /* il solido sta tutto tra l'etichetta e il titolo (la proiezione non lo fa mai più largo di R): nessuna linea tocca
-         una lettera; in basso sfuma appena, prima del titolo */
-      var Rr = Math.max(16, Math.min(f.W * 0.2, (botY - topY) * 0.5 - 3));
-      G = { W: f.W, H: f.H, dpr: f.dpr, cx: f.W * 0.5, cy: topY + (botY - topY) * 0.5, R: Rr, fade0: botY - 14, fade1: botY - 3 };
-      dueRighe = tile.clientHeight >= 230;
+      var topY = hr.bottom - tr.top, botY = xr.top - tr.top, band = botY - topY;
+      /* il solido sta tutto tra l'etichetta e il titolo: nessuna linea tocca una lettera. Con la prospettiva (cam 3,6) quello che si
+         vede è largo 0,752 R al più: rv, il raggio che si vede, lascia 4 px sopra e sotto, fino a 30 px (nei riquadri alti dei computer
+         fino a un quinto della larghezza, come prima). Le due righe del commit hanno il loro posto dal primo disegno (vivi.css), quindi
+         la fascia non cambia quando arrivano i dati: a 390 px rv è 26, a 360 px 20,5. Sotto 24 px di fascia (i telefoni sotto 340 px,
+         dove il titolo va a capo) il solido non si disegna. Un filo di sfumatura resta sul bordo del titolo */
+      var rv = Math.min(Math.max(30, f.W * 0.2), (band - 8) * 0.5, f.W * 0.4);
+      G = { W: f.W, H: f.H, dpr: f.dpr, cx: f.W * 0.5, cy: topY + band * 0.5, R: rv / 0.752, rv: rv, fade0: botY - 2, fade1: botY + 3, no: band < 24 || rv < 8 };
     }
     function draw(t) {
       if (!G) return;
-      var d = G.dpr, a = t * (Math.PI * 2 / 34000) + 0.6, tilt = 0.42 + 0.1 * Math.sin(t / 9000);
+      if (zz === 1 || G.no) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); return; }   /* spento (aspetta il risveglio), o non c'è posto */
+      var wu = zz === 2 ? clamp((t - zt0) / Z_DUR, 0, 1) : 1, we = eOut(wu);
+      var d = G.dpr, a = t * (Math.PI * 2 / 34000) + 0.6 - Z_TURN * (1 - we), tilt = 0.42 + 0.1 * Math.sin(t / 9000);
       var ca = Math.cos(a), sa = Math.sin(a), ct = Math.cos(tilt), st = Math.sin(tilt), cam = 3.6;
       for (var i = 0; i < V.length; i++) {
         var v = V[i], x = v[0] * ca + v[2] * sa, z = -v[0] * sa + v[2] * ca, y = v[1];
@@ -668,17 +735,26 @@
       ctx.setTransform(d, 0, 0, d, 0, 0);
       ctx.clearRect(0, 0, G.W, G.H);
       ctx.lineCap = "round";
+      /* durante il risveglio una linea scende dall'alto del solido: ogni spigolo cresce dal suo capo più alto fin dove è arrivata */
+      var yS = zz === 2 ? G.cy - G.rv * 1.06 + we * G.rv * 2.12 : Infinity;
       for (var o = 0; o < order.length; o++) {
-        var ei = order[o], e = E[ei], zz = (Z[ei] + 1) / 2, al = 0.07 + 0.6 * Math.pow(zz, 1.6);
-        ctx.beginPath(); ctx.strokeStyle = "rgba(227,231,244," + al.toFixed(3) + ")"; ctx.lineWidth = 0.7 + 0.55 * zz;
-        ctx.moveTo(P[e[0]][0], P[e[0]][1]); ctx.lineTo(P[e[1]][0], P[e[1]][1]); ctx.stroke();
+        var ei = order[o], e = E[ei], zd = (Z[ei] + 1) / 2, al = 0.07 + 0.6 * Math.pow(zd, 1.6), p0 = P[e[0]], p1 = P[e[1]];
+        if (yS < Infinity) {
+          if (p1[1] < p0[1]) { var sw = p0; p0 = p1; p1 = sw; }
+          if (yS <= p0[1]) continue;
+          var fr = p1[1] - p0[1] > 0.01 ? Math.min(1, (yS - p0[1]) / (p1[1] - p0[1])) : 1;
+          p1 = [p0[0] + (p1[0] - p0[0]) * fr, p0[1] + (p1[1] - p0[1]) * fr];
+        }
+        ctx.beginPath(); ctx.strokeStyle = "rgba(" + LN + "," + al.toFixed(3) + ")"; ctx.lineWidth = 0.7 + 0.55 * zd;
+        ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
       }
-      /* i vertici davanti: punti piccoli, la luce del lato vicino */
-      ctx.fillStyle = "rgba(240,242,252,.9)";
-      for (var q = 0; q < P.length; q++) {
+      /* i vertici davanti: punti piccoli, la luce del lato vicino (al risveglio, per ultimi) */
+      var va = zz === 2 ? clamp((wu - 0.65) / 0.35, 0, 1) : 1;
+      ctx.fillStyle = "rgba(" + DT + ",.9)";
+      for (var q = 0; va > 0 && q < P.length; q++) {
         if (P[q][2] < 0.35) continue;
         var zr = (P[q][2] - 0.35) / 0.65;
-        ctx.globalAlpha = 0.25 + 0.6 * zr; ctx.beginPath(); ctx.arc(P[q][0], P[q][1], 0.8 + 0.5 * zr, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = (0.25 + 0.6 * zr) * va; ctx.beginPath(); ctx.arc(P[q][0], P[q][1], 0.8 + 0.5 * zr, 0, Math.PI * 2); ctx.fill();
       }
       ctx.globalAlpha = 1;
       /* sotto il titolo il disegno si spegne: il testo resta pulito */
@@ -689,11 +765,15 @@
       ctx.globalCompositeOperation = "source-over";
     }
 
+    /* quante lettere (latine, greche, cirilliche, ebraiche, arabe, giapponesi, cinesi, coreane: niente cifre, segni o emoji) */
+    function lettere(m) { var x = m.match(/[A-Za-z\u00c0-\u024f\u0370-\u03ff\u0400-\u04ff\u0590-\u05ff\u0600-\u06ff\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]/g); return x ? x.length : 0; }
     function riga(msg, quando, vuoto) {
       var li = doc.createElement("li"), a = doc.createElement("span"), b = doc.createElement("span");
       a.className = "ip__msg" + (vuoto ? " ip__msg--vuoto" : ""); a.textContent = msg;
       b.className = "ip__ago"; b.textContent = quando || " ";
-      li.appendChild(a); li.appendChild(b); return li;
+      /* come una riga di git log: prima quando (tenue), poi il titolo; tutte e due nelle stesse due righe al più */
+      /* tra il tempo e il titolo uno spazio vero: senza, «FA» e «Remove» erano una parola sola e a 320 px si spezzava a metà («Remo|ve») */
+      li.appendChild(b); li.appendChild(doc.createTextNode(" ")); li.appendChild(a); return li;
     }
     function dati(j) {
       var L = j && j.ok ? j.learning : null;
@@ -701,13 +781,19 @@
       if (hit) hit.href = ghUrl(L.url, hit.href);
       var cs = (L.commits && L.commits.length ? L.commits : []).filter(function (c) { return c && typeof c.message === "string" && c.message.replace(/\s/g, ""); });
       var righe = [];
-      cs.slice(0, dueRighe ? 2 : 1).forEach(function (c) { righe.push(riga(c.message.split(/\r?\n/)[0].replace(/^\s+|\s+$/g, "").slice(0, 140), fa(c.date))); });
+      /* un commit solo: il titolo com'è (la prima riga), su due righe al più. Uno che non dice niente (meno di tre lettere, come «.»
+         o «v2», o un hash da solo) lascia il posto a «Ultimo aggiornamento», con la sua data: l'unica frase nostra del riquadro */
+      cs.slice(0, 1).forEach(function (c) {
+        var m = c.message.split(/\r?\n/)[0].replace(/^\s+|\s+$/g, "").slice(0, 140);
+        if (lettere(m) < 3 || /^(?=.*\d)[0-9a-f]{7,40}$/i.test(m)) m = "Ultimo aggiornamento";     /* un hash ha almeno una cifra («defaced» no) */
+        righe.push(riga(m, fa(c.date)));
+      });
       if (!righe.length && L.pushedAt && fa(L.pushedAt)) righe.push(riga("Ultimo aggiornamento", fa(L.pushedAt)));
       if (!righe.length) return;
       log.innerHTML = ""; righe.forEach(function (li) { log.appendChild(li); });
       if (!I.still()) { log.classList.remove("is-nuovo"); void log.offsetWidth; log.classList.add("is-nuovo"); }
-      fit(); still();                                    /* le righe nuove alzano il titolo: il solido si rimette nello spazio che resta */
-      var aria = "Sto imparando: Three.js Journey. Ultimo: " + righe[0].firstChild.textContent + ", " + righe[0].lastChild.textContent + ". Apri il repository su GitHub, in una nuova scheda";
+      fit(); still();                                    /* per sicurezza: il posto delle due righe c'era già, il solido resta com'era */
+      var aria = "Sto imparando: Three.js Journey. Ultimo: " + righe[0].lastChild.textContent + ", " + righe[0].firstChild.textContent + ". Apri il repository su GitHub, in una nuova scheda";
       if (hit) hit.setAttribute("aria-label", aria);
     }
 
@@ -718,18 +804,39 @@
     function still() { draw(clock); }
     onResize(tile, function () { fit(); still(); });
     still();
-    /* gira piano: trenta disegni al secondo bastano (un quarto di grado ciascuno) e costano la metà */
-    var giro = I.loop(cv, function (t) {
-      if (ultimo >= 0 && t - ultimo < 30 && t >= ultimo) return;
-      clock += ultimo < 0 ? 0 : clamp(t - ultimo, 0, 50); ultimo = t; draw(clock);
+    /* gira piano: trenta disegni al secondo bastano (un quarto di grado ciascuno) e costano la metà; mentre si sveglia, tutti.
+       Spento e in vista (a pagina libera, almeno il 35% sopra il dock: non sotto il dock, dove nessuno lo vedrebbe) per 6 s senza che
+       nessuno lo svegli: si sveglia da sé */
+    var vista = null;
+    I.loop(cv, function (t) {
+      if (zz === 1) {
+        zDorme += ultimo < 0 || !vista || !vista.ok ? 0 : clamp(t - ultimo, 0, 50); ultimo = t;
+        if (zDorme > 6000 && !zPend) sveglia();
+        if (zz === 1) return;
+      }
+      if (zz !== 2 && ultimo >= 0 && t - ultimo < 30 && t >= ultimo) return;
+      clock += ultimo < 0 ? 0 : clamp(t - ultimo, 0, 50); ultimo = t;
+      if (zz === 2 && clock - zt0 >= Z_DUR) zz = 3;
+      draw(clock);
     });
     I.whenFree(function () { fit(); still(); I.api("progetti").then(dati, function () { }); });
-    return giro;
+    return {
+      prime: function () { if (I.still() || zz) return; zz = 1; zDorme = 0; if (!vista) vista = inVista(tile); draw(clock); },
+      wake: function (dl) {
+        if (zz !== 1 || zPend) return 0;
+        dl = Math.max(0, +dl || 0); zPend = true; setTimeout(sveglia, dl);
+        return dl + Z_DUR;
+      }
+    };
   }
 
   var q = $("#qrMini"), h = $("#heat"), ip = $('[data-tile="imparando"]');
   try { if (q) MiniQR(q); } catch (e) { if (window.console) console.error(e); }
   try { if (h) Heat(h); } catch (e) { if (window.console) console.error(e); }
-  try { if (ip) Impara(ip); } catch (e) { if (window.console) console.error(e); }
+  var imp = null;
+  try { if (ip) imp = Impara(ip); } catch (e) { if (window.console) console.error(e); }
+  /* il risveglio del fil di ferro dopo l'intro (moto.js): IMAD.vivo.impara = { prime(), wake(ritardoMs) → ms in tutto } */
+  I.vivo = I.vivo || {};
+  I.vivo.impara = imp || { prime: function () { }, wake: function () { return 0; } };
   I.whenFree(function () { setTimeout(snapAll, 120); });
 })();

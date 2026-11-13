@@ -8,6 +8,8 @@
      <footer class="pg-piede"> il fondo: torna alla casa, il cielo di Torino
      <script src="../../shared/astro-lite.js"></script> (facoltativo: senza, lo sfondo resta nei colori di base) e <script src="../comune/pagina.js"></script>
    Gli stessi token della casa (colori, raggi, caratteri, movimento), chiaro e scuro seguono il telefono (?theme=light|dark per le foto).
+   Dal giro «casa bella» (CASA.md 2d D): la pagina è il cielo di Torino adesso, fermo (pagina.js calcola --cielo-*), le schede sono vetro
+   con la stessa luce della casa, un solo accento (l'oro), le intestazioni di sezione nella voce della macchina (Geist Mono maiuscolo).
    Regole: italiano, niente corsivo, niente emoji come icone, input a 16 px, bersagli da 44 px, «meno movimento» rispettato.
    Safari non recente: niente :has() in una lista, top/right/bottom/left al posto di inset, -webkit-backdrop-filter. */
 
@@ -34,7 +36,7 @@ b { font-weight: inherit; }
   --ease-out: cubic-bezier(.22, 1, .36, 1); --ease-in-out: cubic-bezier(.65, 0, .35, 1); --d-press: 140ms;
   --bg: #f5f4f9; --page: #f7f6fb;
   --wall-1: var(--wl-1, #dfe3fb); --wall-2: var(--wl-2, #eadff6); --wall-3: var(--wl-3, #f7dfe6); --wall-4: var(--wl-4, #fbe4d3); --wall-o: 1;
-  --ink: #16171d; --ink-2: rgba(22, 23, 29, .66); --ink-3: rgba(22, 23, 29, .46);
+  --ink: #16171d; --ink-2: rgba(22, 23, 29, .66); --ink-3: rgba(22, 23, 29, .64);
   --hair: rgba(30, 28, 70, .09); --fill: rgba(30, 28, 70, .055); --fill-2: rgba(30, 28, 70, .1);
   --glass-mat: linear-gradient(180deg, rgba(255, 255, 255, .88) 0%, rgba(255, 255, 255, .62) 100%);
   --e1: rgba(255, 255, 255, 1); --e2: rgba(255, 255, 255, .75); --e3: rgba(255, 255, 255, .45);
@@ -44,13 +46,30 @@ b { font-weight: inherit; }
   --ink-mat: radial-gradient(120% 80% at 50% -20%, rgba(150, 170, 255, .16) 0%, rgba(150, 170, 255, 0) 60%), linear-gradient(180deg, #181e3c 0%, #0c1022 100%);
   --clay: #a4543b; --clay-a: #c9775a; --clay-b: #a4543b; --gold: #f3dfa8; --gold-ink: #b98a2e;
   --btn-glass: rgba(255, 255, 255, .7); --bar-glass: rgba(245, 244, 249, .72); --focus: #16171d;
+  /* casa bella: gli stessi token della casa (style.css), scritti qui perché le pagine non caricano i file della casa */
+  --p: 18px;
+  --cielo-alto: #eef0f8; --cielo-mezzo: #e8e9f5; --cielo-basso: #ece6f0;   /* calcolati da pagina.js */
+  --vetro-base: rgba(255, 255, 255, .62);                                   /* calcolata da pagina.js */
+  --vetro: linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgba(255, 255, 255, 0) 100%), linear-gradient(var(--vetro-base), var(--vetro-base));
+  --filo-1: rgba(255, 255, 255, 1); --filo-2: rgba(255, 255, 255, .72); --filo-3: rgba(255, 255, 255, .42);
+  --ombra: 46 40 100; --o1: .14; --o2: .17; --o3: .12;
+  --accent: #f3dfa8; --accent-glow: 243 223 168; --accent-ink: #b98a2e; --accent-text: #7f5810; --warn: var(--clay);
+  --f-h1: 800 clamp(36px, 10.3vw, 60px)/1 var(--font-sans);   --ls-h1: -.052em;
+  --f-big: 800 30px/30px var(--font-sans);     --ls-big: -.05em;
+  --f-title: 700 17px/21px var(--font-sans);   --ls-title: -.024em;
+  --f-body: 500 15px/21px var(--font-sans);    --ls-body: -.012em;
+  --f-small: 500 13px/18px var(--font-sans);   --ls-small: -.004em;
+  --f-meta: 500 10.5px/16px var(--font-mono);  --ls-meta: .06em;
+  --f-mono: 500 12px/16px var(--font-mono);    --ls-mono: -.01em;
+  --molla: cubic-bezier(.34, 1.36, .64, 1); --molla-piana: cubic-bezier(.2, .9, .25, 1); --premi: cubic-bezier(.3, .7, .4, 1); --d-giu: 110ms; --d-su: 460ms;
 }
+@media (max-width: 374px) { :root { --p: 16px; } }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --bg: #070810; --page: #0c0d16;
     --wall-1: var(--wd-1, #1b2670); --wall-2: var(--wd-2, #35266d); --wall-3: var(--wd-3, #5b2a4c); --wall-4: var(--wd-4, #6b3a2a); --wall-o: .9;
-    --ink: #f4f5fa; --ink-2: rgba(240, 242, 252, .66); --ink-3: rgba(240, 242, 252, .44);
+    --ink: #f4f5fa; --ink-2: rgba(240, 242, 252, .66); --ink-3: rgba(240, 242, 252, .54);
     --hair: rgba(255, 255, 255, .1); --fill: rgba(255, 255, 255, .08); --fill-2: rgba(255, 255, 255, .14);
     --glass-mat: radial-gradient(120% 70% at 50% -16%, rgba(255, 255, 255, .075) 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, rgba(255, 255, 255, .09) 0%, rgba(255, 255, 255, .05) 100%);
     --e1: rgba(255, 255, 255, .2); --e2: rgba(255, 255, 255, .07); --e3: rgba(255, 255, 255, .035);
@@ -58,13 +77,18 @@ b { font-weight: inherit; }
     --paper-mat: radial-gradient(120% 74% at 50% -14%, rgba(255, 224, 168, .1) 0%, rgba(255, 224, 168, 0) 64%), linear-gradient(180deg, #2a241c 0%, #1b1712 100%);
     --paper: #1d1914; --paper-ink: #f2ead8; --paper-ink-2: rgba(242, 234, 216, .62);
     --clay: #e3a48c; --gold-ink: #f3dfa8; --btn-glass: rgba(255, 255, 255, .1); --bar-glass: rgba(16, 17, 28, .62); --focus: #ffffff;
+    --vetro-base: rgba(39, 41, 50, .9);
+    --vetro: radial-gradient(130% 58% at 50% -8%, rgba(255, 255, 255, .055) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, rgba(255, 255, 255, .05) 0%, rgba(255, 255, 255, .012) 100%), linear-gradient(var(--vetro-base), var(--vetro-base));
+    --filo-1: rgba(255, 255, 255, .3); --filo-2: rgba(255, 255, 255, .1); --filo-3: rgba(255, 255, 255, .06);
+    --ombra: 0 1 8; --o1: .55; --o2: .5; --o3: .6;
+    --accent-ink: #f3dfa8; --accent-text: #f3dfa8;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #070810; --page: #0c0d16;
   --wall-1: var(--wd-1, #1b2670); --wall-2: var(--wd-2, #35266d); --wall-3: var(--wd-3, #5b2a4c); --wall-4: var(--wd-4, #6b3a2a); --wall-o: .9;
-  --ink: #f4f5fa; --ink-2: rgba(240, 242, 252, .66); --ink-3: rgba(240, 242, 252, .44);
+  --ink: #f4f5fa; --ink-2: rgba(240, 242, 252, .66); --ink-3: rgba(240, 242, 252, .54);
   --hair: rgba(255, 255, 255, .1); --fill: rgba(255, 255, 255, .08); --fill-2: rgba(255, 255, 255, .14);
   --glass-mat: radial-gradient(120% 70% at 50% -16%, rgba(255, 255, 255, .075) 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, rgba(255, 255, 255, .09) 0%, rgba(255, 255, 255, .05) 100%);
   --e1: rgba(255, 255, 255, .2); --e2: rgba(255, 255, 255, .07); --e3: rgba(255, 255, 255, .035);
@@ -72,13 +96,18 @@ b { font-weight: inherit; }
   --paper-mat: radial-gradient(120% 74% at 50% -14%, rgba(255, 224, 168, .1) 0%, rgba(255, 224, 168, 0) 64%), linear-gradient(180deg, #2a241c 0%, #1b1712 100%);
   --paper: #1d1914; --paper-ink: #f2ead8; --paper-ink-2: rgba(242, 234, 216, .62);
   --clay: #e3a48c; --gold-ink: #f3dfa8; --btn-glass: rgba(255, 255, 255, .1); --bar-glass: rgba(16, 17, 28, .62); --focus: #ffffff;
+  --vetro-base: rgba(39, 41, 50, .9);
+  --vetro: radial-gradient(130% 58% at 50% -8%, rgba(255, 255, 255, .055) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, rgba(255, 255, 255, .05) 0%, rgba(255, 255, 255, .012) 100%), linear-gradient(var(--vetro-base), var(--vetro-base));
+  --filo-1: rgba(255, 255, 255, .3); --filo-2: rgba(255, 255, 255, .1); --filo-3: rgba(255, 255, 255, .06);
+  --ombra: 0 1 8; --o1: .55; --o2: .5; --o3: .6;
+  --accent-ink: #f3dfa8; --accent-text: #f3dfa8;
 }
 
 /* ------------------------------------------------------------------ base */
-html { background: var(--bg); }
+html { background: var(--cielo-alto); }
 .pg-corpo {
   position: relative; min-height: 100vh; min-height: 100dvh; overflow-x: hidden;
-  background: var(--bg); color: var(--ink);
+  background: transparent; color: var(--ink);
   font: 500 16px/1.5 var(--font-sans); letter-spacing: -.008em;
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; font-synthesis: none;
 }
@@ -87,15 +116,15 @@ html { background: var(--bg); }
 .sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 [lang="ar"] { letter-spacing: normal; word-spacing: normal; text-shadow: none; }
 
-/* lo sfondo vivo, come nella casa (pagina.js gli dà i colori del cielo di Torino adesso) */
-.wall { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; overflow: hidden; pointer-events: none; background: var(--bg); }
+/* il cielo della pagina, come nella casa: Torino adesso, dall'alto in basso (pagina.js), più la grana. Fermo: niente deriva, niente
+   stelle. .wall__a e .wall__b restano nelle pagine ma non si disegnano più (una pagina che non ha .wall mostra il colore di html) */
+.wall { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  background: linear-gradient(180deg, var(--cielo-alto) 0%, var(--cielo-mezzo) 56%, var(--cielo-basso) 100%); }
 .wall i { position: absolute; display: block; }
-.wall__a, .wall__b { top: -16%; right: -16%; bottom: -16%; left: -16%; opacity: var(--wall-o); will-change: transform; }
-.wall__a { background: radial-gradient(58% 40% at 14% 10%, var(--wall-1) 0%, transparent 72%), radial-gradient(52% 38% at 96% 34%, var(--wall-2) 0%, transparent 72%), radial-gradient(64% 36% at 26% 98%, var(--wall-3) 0%, transparent 74%); animation: pg-drift-a 46s ease-in-out infinite alternate; }
-.wall__b { background: radial-gradient(40% 26% at 82% 84%, var(--wall-4) 0%, transparent 72%), radial-gradient(42% 30% at 2% 54%, var(--wall-2) 0%, transparent 72%), radial-gradient(36% 22% at 60% 2%, var(--wall-3) 0%, transparent 74%); animation: pg-drift-b 58s ease-in-out infinite alternate; }
+.wall__a, .wall__b { display: none; }
 .wall__g { top: 0; right: 0; bottom: 0; left: 0; background: var(--grain, none) 0 0 / var(--gs) var(--gs); }
-@keyframes pg-drift-a { from { transform: translate3d(-2%, -1.5%, 0) scale(1); } to { transform: translate3d(3%, 2.5%, 0) scale(1.08); } }
-@keyframes pg-drift-b { from { transform: translate3d(3.5%, 3%, 0) scale(1.07); } to { transform: translate3d(-3.5%, -3.5%, 0) scale(1); } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wall__g { opacity: .72; } }
+:root[data-theme="dark"] .wall__g { opacity: .72; }
 .is-shot .wall { position: absolute; }
 
 /* ------------------------------------------------------------------ la testa: il logo che torna alla casa e il titolo piccolo */
@@ -111,24 +140,26 @@ html { background: var(--bg); }
 .pg-testa .l9 { display: grid; grid-template-columns: repeat(3, 8px); grid-auto-rows: 8px; gap: 3px; }
 .pg-testa .l9 i { display: block; border-radius: 2.4px; background: currentColor; opacity: .88; }
 .pg-testa .l9 i:nth-child(2n) { opacity: .6; }
-.pg-testa .l9 .s { border-radius: 50%; background: var(--gold-ink); opacity: 1; transform: scale(.8); box-shadow: 0 0 7px 1.5px rgba(232, 180, 88, .7); }
+.pg-testa .l9 .s { border-radius: 50%; background: var(--accent-ink); opacity: 1; transform: scale(.8); box-shadow: 0 0 7px 1.5px rgb(var(--accent-glow) / .7); }
 .pg-titolo { font: 700 17px/1.2 var(--font-sans); letter-spacing: -.025em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ------------------------------------------------------------------ il contenuto */
 .pg { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 18px var(--gutter) calc(env(safe-area-inset-bottom) + 40px); }
-.pg-h1 { font: 800 clamp(34px, 10vw, 56px)/1.02 var(--font-sans); letter-spacing: -.05em; margin-left: -.03em; text-wrap: balance; }
-.pg-lead { margin-top: 12px; max-width: 32em; font: 500 18px/1.45 var(--font-sans); letter-spacing: -.014em; color: var(--ink-2); text-wrap: pretty; }
-.pg-h2 { margin-top: 40px; font: 700 24px/1.15 var(--font-sans); letter-spacing: -.035em; }
+.pg-h1 { font: var(--f-h1); letter-spacing: var(--ls-h1); margin-left: -.035em; text-wrap: balance; }
+.pg-lead { margin-top: 12px; max-width: 32em; font: 500 17px/24px var(--font-sans); letter-spacing: -.014em; color: var(--ink-2); text-wrap: pretty; }
+/* le intestazioni di sezione: la voce della macchina (SU GITHUB, FORK), come il tipo in alto a destra nei riquadri della casa */
+.pg-h2 { margin-top: 40px; font: var(--f-meta); letter-spacing: var(--ls-meta); text-transform: uppercase; color: var(--ink-2); }
 .pg-p { margin-top: 12px; max-width: 36em; font: 500 17px/1.6 var(--font-sans); letter-spacing: -.01em; text-wrap: pretty; }
 .pg-p a:not(.pg-pill), .pg-lead a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: var(--ink-3); }
 .pg-nota { margin-top: 10px; font: 500 13px/19px var(--font-sans); letter-spacing: -.004em; color: var(--ink-3); text-wrap: pretty; }
 .pg-griglia { margin-top: 20px; display: grid; grid-template-columns: 1fr; gap: 12px; }
+/* la scheda: il vetro della casa con la sua luce (le pagine non hanno il sole vero: la luce viene dall'alto, l'ombra cade in giù) */
 .pg-card {
-  position: relative; overflow: hidden; border-radius: var(--r); padding: 20px 20px 18px;
-  background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--glass-mat);
-  box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgb(var(--sh) / calc(var(--s1) * .35)), 0 12px 28px -12px rgb(var(--sh) / var(--s1)), 0 36px 64px -36px rgb(var(--sh) / var(--s2));
+  position: relative; overflow: hidden; border-radius: var(--r); padding: calc(var(--p) - 2px) var(--p) var(--p);
+  background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--vetro);
+  box-shadow: 0 0 0 .5px rgb(var(--ombra) / calc(var(--o1) * .45)), 0 1px 2px rgb(var(--ombra) / var(--o1)), 0 12px 26px -12px rgb(var(--ombra) / var(--o2)), 0 34px 72px -30px rgb(var(--ombra) / var(--o3));
 }
-.pg-card::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 1px 0 var(--e2); }
+.pg-card::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 1px 0 var(--filo-2); }
 .pg-card--carta { background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--paper-mat); color: var(--paper-ink); }
 .pg-card--inchiostro { background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--ink-mat); color: #e3e7f4; }
 .pg-card h3 { font: 700 18px/1.25 var(--font-sans); letter-spacing: -.025em; }
@@ -137,23 +168,31 @@ html { background: var(--bg); }
 .pg-card--inchiostro p { color: rgba(227, 231, 244, .64); }
 a.pg-card { display: block; transition: transform 240ms var(--ease-out); }
 a.pg-card:active { transform: scale(.98); }
+/* il pulsante: una capsula tinta di 40 px (44 da toccare), senza sfocatura */
 .pg-pill {
-  position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 17px 0 16px; border-radius: 22px;
-  font: 600 15px/1 var(--font-sans); letter-spacing: -.012em; color: var(--ink); white-space: nowrap;
-  background: var(--btn-glass); box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--ring), 0 8px 18px -12px rgb(var(--sh) / .5);
-  -webkit-backdrop-filter: saturate(1.6) blur(16px); backdrop-filter: saturate(1.6) blur(16px);
+  position: relative; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 16px 0 15px; border-radius: 20px;
+  font: 700 15px/1 var(--font-sans); letter-spacing: -.016em; color: var(--ink); white-space: nowrap;
+  background: var(--fill-2); box-shadow: inset 0 0 0 .5px var(--hair);
   transition: transform var(--d-press) var(--ease-out);
 }
+.pg-pill::before { content: ""; position: absolute; top: -2px; right: 0; bottom: -2px; left: 0; }
+.pg-pill svg { width: 14px; height: 14px; opacity: .6; }
 .pg-pill:active { transform: scale(.96); }
-.pg-pill--argilla { color: #fff; background: linear-gradient(180deg, var(--clay-a) 0%, var(--clay-b) 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .34), 0 10px 18px -10px rgba(150, 70, 44, .8); -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* la capsula d'oro, come «Lascia un saluto» nella casa (la classe ha il nome di prima: l'argilla ora è solo per gli avvisi) */
+.pg-pill--argilla { color: #2b2210; background: linear-gradient(180deg, #f8e7b9 0%, #ebd08a 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 0 0 .5px rgba(120, 86, 20, .18), 0 1px 2px rgba(120, 86, 20, .18), 0 8px 18px -10px rgba(150, 110, 30, .5); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pg-pill--argilla { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 0 0 .5px rgba(120, 86, 20, .2), 0 1px 2px rgba(0, 0, 0, .3), 0 8px 18px -10px rgba(0, 0, 0, .6); }
+}
+:root[data-theme="dark"] .pg-pill--argilla { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 0 0 .5px rgba(120, 86, 20, .2), 0 1px 2px rgba(0, 0, 0, .3), 0 8px 18px -10px rgba(0, 0, 0, .6); }
 
 /* ------------------------------------------------------------------ il fondo */
-.pg-piede { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 8px var(--gutter) calc(env(safe-area-inset-bottom) + 40px); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font: 500 13px/19px var(--font-sans); color: var(--ink-3); }
-.pg-piede a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-2); font-weight: 600; }
+.pg-piede { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 8px var(--gutter) calc(env(safe-area-inset-bottom) + 40px); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font: 500 12.5px/18px var(--font-sans); letter-spacing: -.002em; color: var(--ink-3); }
+.pg-piede a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-2); font-weight: 700; }
 
 /* ------------------------------------------------------------------ schermi più larghi */
 @media (min-width: 700px) {
-  :root { --gutter: 32px; --r: 34px; }
+  :root { --gutter: 32px; --r: 34px; --p: 20px; }
   .pg { padding-top: 34px; }
   .pg-griglia { grid-template-columns: repeat(2, 1fr); gap: 14px; }
 }
@@ -167,8 +206,7 @@ a.pg-card:active { transform: scale(.98); }
   .pg-casa:hover { opacity: .72; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .wall__a, .wall__b { animation: none; }
   .pg-testa::before, a.pg-card, .pg-pill, .pg-casa { transition: none; }
   a.pg-card:hover { transform: none; }
 }
-.is-shot .wall__a, .is-shot .wall__b { animation: none; }
+

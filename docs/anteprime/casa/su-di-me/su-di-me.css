@@ -4,7 +4,8 @@
 .sm-foto {
   position: relative; overflow: hidden; isolation: isolate; margin-top: 6px;
   aspect-ratio: 4 / 5; border-radius: var(--r); background: #1a2040;
-  box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgb(var(--sh) / calc(var(--s1) * .35)), 0 12px 28px -12px rgb(var(--sh) / var(--s1)), 0 36px 64px -36px rgb(var(--sh) / var(--s2));
+  /* la stessa luce delle schede (pagina.css): un orlo, il contatto, l'ombra vicina e quella lontana */
+  box-shadow: 0 0 0 .5px rgb(var(--ombra) / calc(var(--o1) * .45)), 0 1px 2px rgb(var(--ombra) / var(--o1)), 0 12px 26px -12px rgb(var(--ombra) / var(--o2)), 0 34px 72px -30px rgb(var(--ombra) / var(--o3));
 }
 @supports not (aspect-ratio: 1) { .sm-foto { height: 0; padding-bottom: 125%; } }
 .sm-foto__img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; display: block; transition: opacity 700ms var(--ease-out), transform 1200ms var(--ease-out); }
@@ -14,7 +15,7 @@
 
 .sm-testo { padding: 0 2px; }
 .sm-nome { font-size: clamp(44px, 14vw, 72px); }
-.sm-attesa { margin-top: 12px; font: 500 18px/1.45 var(--font-sans); letter-spacing: -.014em; color: var(--ink-3); }
+.sm-attesa { margin-top: 12px; font: 500 17px/24px var(--font-sans); letter-spacing: -.014em; color: var(--ink-3); }
 .sm-link { margin-top: 22px; }
 .sm-link svg { flex: none; opacity: .62; }
 .sm-cred { margin-top: 26px; }

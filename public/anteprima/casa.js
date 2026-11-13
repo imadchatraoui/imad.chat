@@ -25,9 +25,13 @@
     var b = $('.dock__b[data-filtro="' + cur + '"]', dock);
     $$(".dock__b", dock).forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
     if (!b || !pill) return;
-    if (still) dock.classList.add("is-still");
-    pill.style.width = b.offsetWidth + "px"; pill.style.transform = "translateX(" + b.offsetLeft + "px)";
-    if (still) { void pill.offsetWidth; dock.classList.remove("is-still"); }
+    /* la pillola a molle di moto.js (CASA.md 2d E); senza, la transizione CSS di prima */
+    if (I.moto && I.moto.pill) I.moto.pill(b, !!still);
+    else {
+      if (still) dock.classList.add("is-still");
+      pill.style.width = b.offsetWidth + "px"; pill.style.transform = "translateX(" + b.offsetLeft + "px)";
+      if (still) { void pill.offsetWidth; dock.classList.remove("is-still"); }
+    }
   }
   function marks() { tiles.forEach(function (t) { var id = idOf(t); t.classList.toggle("is-dim", id !== "corano" && !inGroup(cur, id)); }); }
   function stopAnims() { anims.forEach(function (a) { try { a.cancel(); } catch (e) { } }); anims = []; tiles.forEach(function (t) { t.style.zIndex = ""; }); grid.classList.remove("is-moving"); }
@@ -97,7 +101,9 @@
       if (!still) {
         /* il viaggio, come le mosse di un cubo: prima lungo la riga, poi lungo la colonna; si parte riga per riga, dall'alto */
         var rows = last.map(function (r) { return Math.round(r.top); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).sort(function (a, b) { return a - b; });
-        tiles.forEach(function (t, i) {
+        /* i viaggi a strati di moto.js (CASA.md 2d E); senza, quelli di prima */
+        if (I.moto && I.moto.viaggio) longest = I.moto.viaggio({ tiles: tiles, first: first, last: last, front: function (t) { return inGroup(f, idOf(t)) || idOf(t) === "corano"; }, anims: anims });
+        else tiles.forEach(function (t, i) {
           var dx = first[i].left - last[i].left, dy = first[i].top - last[i].top;
           if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
           var dist = Math.abs(dx) + Math.abs(dy), dur = Math.round(I.clamp(440 + dist * 0.16, 500, 780)), delay = rows.indexOf(Math.round(last[i].top)) * 26;
@@ -117,6 +123,7 @@
       }
       I.relayout(longest ? longest / 1000 + 0.15 : 0);     /* Dot resta sul suo riquadro mentre viaggia; se finisce sotto il Corano se ne va */
     }
+    if (!still && I.moto && I.moto.scorri) { I.moto.scorri(y, viaggio); return; }   /* moto.js: uno scorrimento breve, il viaggio parte al 60% */
     if (y === null) { viaggio(); return; }
     if (still) { window.scrollTo(0, y); viaggio(); return; }
     window.scrollTo({ top: y, behavior: "smooth" });
@@ -168,13 +175,17 @@
     ".foot__sky", ".foot__cred", ".foot .l9--big i"
   ].join(", ");
   window.__dotKeep = KEEP;                                             /* per gli strumenti di prova */
+  /* la riga della città del globo cambia da sola ogni pochi secondi (Casablanca, Gaza...): per Dot conta tutta la riga, non solo il nome di adesso */
+  $$(".citta__now").forEach(function (e) { e.setAttribute("data-dot-keep", "box"); });
   /* la prima volta in questa sessione del browser? (deciso al caricamento: l'intro deve saperlo prima di finire) */
   var first = true; try { first = sessionStorage.getItem("imad.dot.aperto") !== "1"; } catch (e) { }
   if (I.shot || Q.get("primo") === "0") first = false;
   if (Q.get("primo") === "1") first = true;
   /* dove sta la scatola sull'hero: la regola di DOT (homePoint in dot-brain.js), con questo numero passato come homeX */
   var HOME_X = 0.58, started = false;
-  function dotOk() { var D = window.DOT; return !!(D && D.start && D.looks && clip && Q.get("dot") !== "no"); }
+  /* tutti gli script di Dot ci sono? Senza dot-fx.js (o dot-rig.js, o un aspetto) DOT.start non partirebbe: allora niente promesse, né la
+     scenetta dell'intro né il passaggio (DOT.ready, se dot-brain.js lo dice, vale più di tutto) */
+  function dotOk() { var D = window.DOT; return !!(D && D.ready !== false && D.start && D.makeRig && D.fx && D.fx.css && D.looks && (D.looks.manifesto || D.looks.base) && clip && Q.get("dot") !== "no"); }
   function startDot(keysFormed) {
     var DOT = window.DOT;
     if (started || !dotOk()) return; started = true;
@@ -182,11 +193,13 @@
     var look = Q.get("look"); if (!look || !DOT.looks[look]) look = DOT.looks.manifesto ? "manifesto" : Object.keys(DOT.looks)[0];
     if (first) { try { sessionStorage.setItem("imad.dot.aperto", "1"); } catch (e) { } }
     if (Q.get("seme") && DOT.debug && DOT.debug.seed) DOT.debug.seed(+Q.get("seme"));
+    if (Q.get("suggerimento") === "prova") { try { ["dot-dito", "dot-tocco", "dot-bussa"].forEach(function (k) { sessionStorage.removeItem(k); }); ["dot-preso", "dot-dito-n"].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) { } }   /* ?suggerimento=prova: dimentica che Dot è già stato toccato o trascinato, così il dito fantasma torna (per provarlo su un telefono) */
     try {
       /* i posatoi sempre buoni: la mensola (il bordo alto dell'hero, con la scatola), il dock (fisso sullo schermo: ci va in groppa) e il
          logo 3x3 del fondo (data-dot="perch": solo la sua fila di tasti in alto) */
       DOT.start({ tiles: ".testa > .tile, .grid > .tile, .foot [data-dot=\"perch\"]", home: $("#hero"), homeX: HOME_X, parent: clip, look: look, firstVisit: first, keysFormed: !!(first && keysFormed), dark: I.isDark(), bottomInset: bottomInset,
-        keep: KEEP, strict: true, dock: dock, fixedParent: fisso });
+        keep: KEEP, strict: true, dock: dock, fixedParent: fisso,
+        hint: Q.get("suggerimento") !== "no" });   /* il suggerimento che Dot si può toccare (CASA.md 2c C): il dito fantasma, bussa, si accorge del dito */
     } catch (e) { if (window.console) console.error(e); return; }
     seguiPagina();
     if (root.classList.contains("is-sheet") && DOT.pause) DOT.pause();   /* un foglio aperto mentre i tasti volavano: Dot aspetta sotto */
@@ -210,7 +223,8 @@
      sullo stesso fotogramma. L'intro legge passage e anchor(); se fa il passaggio mette wait = true e alla fine chiama handover(formed):
      formed = i tasti sono già fermi ai loro posti (l'apertura parte da lì); false = un giro rotto (rotazione): l'apertura intera */
   window.__niDot = {
-    passage: first && dotOk() && !!(window.DOT && window.DOT.stage && window.DOT.stage.paint),
+    dot: dotOk(),                                                       /* Dot partirà davvero: l'intro fa la scenetta solo allora */
+    passage: first && dotOk() && !!(window.DOT && window.DOT.stage && window.DOT.stage.paint && window.DOT.looks.manifesto),
     wait: false,
     layerTop: function () { return clip ? clip.getBoundingClientRect().top + (window.pageYOffset || 0) : 0; },   /* dove comincia lo strato di Dot (la sua tela dei tasti si allinea a quello) */
     anchor: function () { var h = $("#hero"); if (!h) return null; var r = h.getBoundingClientRect(); return { x: r.left + (window.pageXOffset || 0) + (r.width > 220 ? r.width * HOME_X : r.width / 2), y: r.top + (window.pageYOffset || 0) }; },

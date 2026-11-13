@@ -17,12 +17,15 @@
       ".dot-layer canvas{position:absolute;left:0;top:0;pointer-events:none;will-change:transform}",
       ".dot-grab{position:absolute;left:0;top:0;z-index:5;width:76px;height:76px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;pointer-events:auto;touch-action:none;cursor:grab;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}",
       ".dot-grab:active{cursor:grabbing}.dot-grab:focus{outline:none}.dot-grab:focus-visible{outline:2px solid rgba(255,255,255,.7);outline-offset:-8px}",
+      "html.dot-tiene,html.dot-tiene *{cursor:grabbing!important}",   /* col mouse, mentre Dot è tenuto: la mano chiusa anche se il puntatore scappa dalla maniglia per un fotogramma */
       ".dot-fum{position:absolute;left:0;top:0;z-index:6;pointer-events:none;will-change:transform}",
       ".dot-fum__in{position:relative;padding:8px 13px 9px;border-radius:17px;background:rgba(250,249,246,.97);color:#16171d;font:700 14px/1.3 Manrope,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;letter-spacing:-.01em;white-space:nowrap;box-shadow:0 12px 30px -14px rgba(0,0,0,.6),0 0 0 .5px rgba(0,0,0,.07);opacity:0}",
       ".dot-fum--long .dot-fum__in{white-space:normal;width:204px;font-weight:650;font-size:13.5px}",
       ".dot-fum--mini .dot-fum__in{padding:4px 9px 5px;border-radius:12px;font-size:12px}",
       ".dot-fum__in:after{content:\"\";position:absolute;left:var(--tx,50%);bottom:-5px;width:11px;height:11px;margin-left:-5.5px;border-radius:2px;background:inherit;-webkit-transform:rotate(45deg);transform:rotate(45deg)}",
-      ".dot-fum.is-below .dot-fum__in:after{bottom:auto;top:-5px}"
+      ".dot-fum.is-below .dot-fum__in:after{bottom:auto;top:-5px}",
+      ".dot-fum.is-right .dot-fum__in:after,.dot-fum.is-left .dot-fum__in:after{left:-5px;bottom:auto;top:var(--tx,50%);margin:-5.5px 0 0}",   /* di lato al gatto: la coda sul fianco della nuvoletta, verso di lui */
+      ".dot-fum.is-left .dot-fum__in:after{left:auto;right:-5px}"
     ].join("\n");
     doc.head.appendChild(s);
   };
@@ -43,13 +46,13 @@
 
   /* ------------------------------------------------------------------ la nuvoletta: una molla vera (va col tempo del cervello, non con il CSS) */
   fx.Bubble = function (layer) {
-    var el = doc.createElement("div"), inn = doc.createElement("div"), b = { on: false, sc: 0, v: 0, a: 0, left: 0, top: 0, w: 0, h: 0, until: 0, text: "" };
+    var el = doc.createElement("div"), inn = doc.createElement("div"), b = { on: false, sc: 0, v: 0, a: 0, left: 0, top: 0, w: 0, h: 0, until: 0, text: "", k: -1 };
     el.className = "dot-fum"; inn.className = "dot-fum__in"; el.appendChild(inn); el.setAttribute("role", "status"); el.setAttribute("aria-live", "polite"); layer.appendChild(el);
     b.el = el;
     b.say = function (text, sec, kind) {
       b.text = text; inn.textContent = text; el.className = "dot-fum" + (kind ? " dot-fum--" + kind : ""); el.style.display = "block";   /* visibile per misurarla (l'interno è ancora trasparente) */
       inn.style.transform = "none"; b.w = inn.offsetWidth || 120; b.h = inn.offsetHeight || 34; inn.style.transform = "scale(" + Math.max(0.001, b.sc).toFixed(3) + ")";
-      b.on = true; b.until = sec; b.sc = Math.min(b.sc, 0.35); b.v = 0;
+      b.on = true; b.until = sec; b.sc = Math.min(b.sc, 0.35); b.v = 0; b.k = -1;   /* una nuvoletta nuova sceglie da capo il suo posto */
     };
     b.hide = function (at) { b.on = false; if (at) { b.sc = 0; b.v = 0; b.a = 0; } };   /* at: sparisce subito, senza la molla */
     b.vis = true;
@@ -60,17 +63,35 @@
       b.v += (-(b.sc - want) * k - b.v * d) * dt; b.sc += b.v * dt; if (!want && b.sc < 0.02) { b.sc = 0; b.v = 0; }
       b.a += ((want ? 1 : 0) - b.a) * (1 - Math.exp(-dt * (want ? 14 : 18)));
     };
-    /* dove sta: ax, ay = punta della coda (sopra la testa); fy = sotto i piedi (se sopra non c'è posto); vx0, vy0, vw: la finestra */
-    b.place = function (ax, ay, fy, vx0, vy0, vw, vis) {
+    /* dove sta: ax, ay = punta della coda (sopra la testa); fy = sotto i piedi (se sopra non c'è posto); vx0, vy0, vw: la finestra.
+       o (se il cervello lo passa): la nuvoletta è parte di Dot, non copre parole né comandi. o.ok(l, t, r, b, m, lax) dice se quel
+       rettangolo, con m px attorno, è libero (lax: la scatola di Dot non conta); o.hy, o.hr: l'altezza a cui sta di lato alla testa
+       e la mezza larghezza della testa. Il posto di sempre (sopra la testa, o sotto i piedi se sopra non c'è posto), se è libero,
+       resta quello di sempre, disegnato come sempre; se no il primo libero fra: sopra la testa, di lato dalla parte con più posto,
+       dall'altro lato (prima senza coprire la scatola, poi anche su quella); se non ce n'è nessuno, il posto di sempre.
+       Il posto scelto (b.k: 0 quello di sempre, 1 sopra, 2 a destra del gatto, 3 a sinistra; -1 non ancora) si sceglie con 4 px di
+       margine e resta finché è libero senza margine: la nuvoletta non salta avanti e indietro. La coda punta sempre al gatto. */
+    b.place = function (ax, ay, fy, vx0, vy0, vw, vis, o) {
       b.vis = vis;
       if (b.sc <= 0.001 && b.a < 0.01) { if (el.style.display !== "none") el.style.display = "none"; return; }
       if (el.style.display === "none") el.style.display = "block";
       var below = ay - b.h - 12 < vy0 + 8, left = clamp(ax - b.w / 2, vx0 + 12, vx0 + vw - 12 - b.w), top = below ? fy + 12 : ay - b.h - 7;
-      var tx = clamp(ax - left, 16, b.w - 16);
-      el.className = el.className.replace(/ is-below/, "") + (below ? " is-below" : "");
+      var tx = clamp(ax - left, 16, b.w - 16), side = 0;
+      if (o && o.ok) {
+        var w = b.w, h = b.h, up = ay - h - 7, sy = o.hy - h / 2, xr = ax + o.hr + 8, xl = ax - o.hr - 8 - w, s = ax - vx0 < vw / 2 ? 2 : 3, c = [below ? 1 : 0, s, 5 - s], i, lax;
+        var ok = function (k, m, x) {                                  /* il rettangolo del posto k: la nuvoletta più i 7 px della sua coda, dalla parte del gatto */
+          return k === 2 ? o.ok(xr - 7, sy, xr + w, sy + h, m, x) : k === 3 ? o.ok(xl, sy, xl + w + 7, sy + h, m, x) : k === 1 || !below ? o.ok(left, up, left + w, up + h + 7, m, x) : o.ok(left, top - 7, left + w, top + h, m, x);
+        };
+        if (b.k < 0 || !ok(b.k, 0, 1)) {                               /* non ancora scelto, o il posto scelto non è più libero: si sceglie da capo */
+          b.k = ok(0, 4, 1) ? 0 : -1;
+          for (lax = 0; lax < 2 && b.k < 0; lax++) for (i = 0; i < 3 && b.k < 0; i++) if (c[i] && ok(c[i], 4, lax)) b.k = c[i];
+        }
+        if (b.k === 1) { below = false; top = up; } else if (b.k > 1) { side = b.k === 2 ? 1 : -1; left = side > 0 ? xr : xl; top = sy; tx = h / 2; }
+      }
+      el.className = el.className.replace(/ is-\w+/, "") + (side ? (side > 0 ? " is-right" : " is-left") : below ? " is-below" : "");
       el.style.transform = "translate3d(" + left.toFixed(1) + "px," + top.toFixed(1) + "px,0)";
       inn.style.setProperty("--tx", tx.toFixed(1) + "px");
-      inn.style.transformOrigin = tx.toFixed(1) + "px " + (below ? "0%" : "100%");
+      inn.style.transformOrigin = side ? (side > 0 ? "0% " : "100% ") + tx.toFixed(1) + "px" : tx.toFixed(1) + "px " + (below ? "0%" : "100%");
       inn.style.transform = "scale(" + Math.max(0.001, b.sc).toFixed(3) + ")"; inn.style.opacity = clamp(b.a * 1.4, 0, 1).toFixed(3);
     };
     b.remove = function () { if (el.parentNode) el.parentNode.removeChild(el); };
@@ -129,6 +150,51 @@
     };
     return b;
   };
+  /* ------------------------------------------------------------------ il polpastrello fantasma (il suggerimento: Dot si può toccare)
+     Un cerchio chiaro e traslucido di circa 24 px, come il punto di un tocco in una registrazione dello schermo. Non si muove da solo:
+     draw(x, y, a, sc, press, dark) lo mette in (x, y) del suo strato; a = quanto si vede, sc = grandezza (più grande = più lontano
+     dal vetro), press 0..1 = premuto (un filo più piccolo, l'ombra più corta sul tema chiaro). */
+  fx.Dito = function (layer) {
+    var S = 64, sp = fx.Sprite(layer, S, S, S / 2, S / 2, 9), c = sp.ctx, o = { sp: sp };
+    o.draw = function (x, y, a, sc, press, dark) {
+      var on = a > 0.004; sp.show(on); if (!on) return;
+      sp.place(x, y); sp.clear(); c.setTransform(sp.dpr, 0, 0, sp.dpr, sp.dpr * S / 2, sp.dpr * S / 2);
+      var r = 12 * sc, g, qx = 1 + 0.08 * press, qy = 1 - 0.12 * press;   /* premendo il polpastrello si schiaccia: più largo, più basso (1.08 x 0.88) */
+      c.save(); c.globalAlpha = clamp(a, 0, 1);
+      if (press > 0.02) {                                             /* l'ombra di contatto, due pixel sotto, morbida: tocca davvero */
+        var cg = c.createRadialGradient(0, r * qy * 0.72 + 2, 0, 0, r * qy * 0.72 + 2, r * 0.95);
+        cg.addColorStop(0, "rgba(0,0,8," + (0.3 * press).toFixed(3) + ")"); cg.addColorStop(1, "rgba(0,0,8,0)");
+        c.fillStyle = cg; c.beginPath(); c.ellipse(0, r * qy * 0.72 + 2, r * 0.95, r * 0.42, 0, 0, PI * 2); c.fill();
+      }
+      c.scale(qx, qy);
+      if (!dark) { c.shadowColor = "rgba(8,10,24," + (0.26 * (1 - 0.5 * press)).toFixed(3) + ")"; c.shadowBlur = (9 - 4.5 * press) * sp.dpr; c.shadowOffsetY = (2.8 - 1.8 * press) * sp.dpr; }   /* sul chiaro un'ombra morbida: il dito sta sopra il vetro */
+      g = c.createRadialGradient(-r * 0.22, -r * 0.3, 0, 0, 0, r);
+      g.addColorStop(0, dark ? "rgba(255,255,255,.64)" : "rgba(255,255,255,.9)"); g.addColorStop(1, dark ? "rgba(255,255,255," + (0.34 + 0.08 * press).toFixed(3) + ")" : "rgba(244,245,249," + (0.62 + 0.1 * press).toFixed(3) + ")");
+      c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, PI * 2); c.fill();
+      c.shadowColor = "rgba(0,0,0,0)"; c.shadowBlur = 0; c.shadowOffsetY = 0;
+      c.lineWidth = 1; c.strokeStyle = dark ? "rgba(255,255,255,.72)" : "rgba(18,20,32,.36)"; c.beginPath(); c.arc(0, 0, r - 0.5, 0, PI * 2); c.stroke();
+      c.restore();
+    };
+    o.move = function (parent) { if (parent && sp.cv.parentNode !== parent) parent.appendChild(sp.cv); };   /* nello strato fisso o nella pagina, come il gatto */
+    o.remove = function () { sp.remove(); };
+    return o;
+  };
+  /* un anello che si allarga e svanisce: dove il dito preme, dove la zampa batte sul vetro. Va col tempo di chi lo chiama:
+     draw(u), u da 0 a 1 (a 1 se ne va). o: r0, r1 (raggi, px), a (alfa all'inizio), w (spessore), dark */
+  fx.Anello = function (layer, x, y, o) {
+    var r0 = o.r0 || 4, r1 = o.r1 || 16, S = Math.ceil(r1 * 2 + 10), sp = fx.Sprite(layer, S, S, S / 2, S / 2, 8), c = sp.ctx, an = { sp: sp, x: x, y: y, dead: false };
+    sp.place(x, y);
+    an.draw = function (u) {
+      if (an.dead) return; if (u >= 1) { an.dead = true; sp.remove(); return; } if (u < 0) u = 0;
+      var e = 1 - Math.pow(1 - u, 3), r = r0 + (r1 - r0) * e, al = (o.a || 0.5) * Math.pow(1 - u, 1.5), w = (o.w || 1.4) * (1 - 0.45 * u);
+      sp.clear(); c.setTransform(sp.dpr, 0, 0, sp.dpr, sp.dpr * S / 2, sp.dpr * S / 2);
+      if (!o.dark) { c.strokeStyle = "rgba(16,18,30," + (al * 0.5).toFixed(3) + ")"; c.lineWidth = w + 1.2; c.beginPath(); c.arc(0, 0, r, 0, PI * 2); c.stroke(); }   /* sul chiaro un bordo scuro sotto: si legge sul cielo chiaro e sul pelo nero */
+      c.strokeStyle = "rgba(255,255,255," + al.toFixed(3) + ")"; c.lineWidth = w; c.beginPath(); c.arc(0, 0, r, 0, PI * 2); c.stroke();
+    };
+    an.remove = function () { an.dead = true; sp.remove(); };
+    return an;
+  };
+
   function wrapA(a) { while (a > PI) a -= 2 * PI; while (a < -PI) a += 2 * PI; return a; }
   fx.wrapA = wrapA;
 })();

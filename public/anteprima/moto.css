@@ -1,0 +1,177 @@
+/* imad.chat — la casa nuova (anteprima): come risponde la casa (CASA.md 2d E). Va con moto.js; viene dopo vivi.css.
+   Lo caricano anche le pagine interne (Progetti, Su di me, Nel mondo: le transizioni d'arrivo e di ritorno), che hanno i loro token:
+   per questo ogni token qui ha il suo valore di riserva. I token del movimento stanno in style.css (--molla, --molla-piana: moto.js li
+   riscrive come molle vere con linear(); --premi, --d-giu, --d-su, --velo).
+   Si muovono solo transform e opacity (anche le proprietà singole translate e scale). Due eccezioni dette: l'ombra del riquadro premuto,
+   mentre lo si preme e lo si lascia; la larghezza della pillola del dock (moto.js). Niente :has(), posizioni scritte per esteso.
+   Con «meno movimento» e ?shot=1 niente di questo si muove (in fondo). */
+
+/* ------------------------------------------------------------------ 1. la pressione */
+/* le pressioni immediate di prima scattavano anche sotto un dito che scorre la pagina (:active, e .is-pressed di app.js al pointerdown):
+   le spegniamo qui; la pressione la fa moto.js (.is-premuto), solo a dito fermo */
+.tile.is-pressed { transform: none; }
+.pill:active, .gchip:active, .let__src:active, .qr__salva:active { transform: none; }
+.iconbtn:active::before { transform: none; }
+.qr__x:active svg { transform: none; }
+
+/* il riquadro: scende a .97 sotto il dito e l'ombra si accorcia (si avvicina al fondo), in --d-giu con --premi; lasciato, torna con la
+   molla, un filo oltre, e l'ombra si riallunga con la molla piana. L'ombra si muove solo sul riquadro premuto (.is-premuto, .is-lascia):
+   non a ogni passo del sole su tutti i riquadri. Il Corano non scende mai (:not(.corano)): risponde solo il suo velo, più sotto */
+.tile { transition: transform var(--d-su, 460ms) var(--molla, cubic-bezier(.34, 1.36, .64, 1)), opacity 340ms ease; }
+.tile.is-premuto {
+  transition: transform var(--d-giu, 110ms) var(--premi, cubic-bezier(.3, .7, .4, 1)), box-shadow var(--d-giu, 110ms) var(--premi, cubic-bezier(.3, .7, .4, 1)), opacity 340ms ease;
+}
+.tile.is-premuto:not(.corano) {
+  transform: scale(.97);
+  /* gli stessi quattro strati dell'ombra di casa.css («la luce»), con i due lontani accorciati: si interpolano uno per uno */
+  box-shadow: 0 0 0 .5px rgb(var(--ombra, 46 40 100) / calc(var(--o1, .14) * .45)), 0 1px 2px rgb(var(--ombra, 46 40 100) / var(--o1, .14)),
+    calc(var(--shx, 0px) * .4) calc(var(--shy, 12px) * .4) 14px -10px rgb(var(--ombra, 46 40 100) / var(--o2, .17)),
+    var(--shx, 0px) var(--shy, 12px) 30px -22px rgb(var(--ombra, 46 40 100) / var(--o3, .12));
+}
+.tile.is-lascia {
+  transition: transform var(--d-su, 460ms) var(--molla, cubic-bezier(.34, 1.36, .64, 1)), box-shadow var(--d-su, 460ms) var(--molla-piana, cubic-bezier(.2, .9, .25, 1)), opacity 340ms ease;
+}
+/* lo scorrimento ha preso il dito: torna su senza molla, piano (200 ms) */
+.tile.is-sfugge { transition: transform 200ms var(--ease-out, cubic-bezier(.22, 1, .36, 1)), box-shadow 200ms var(--ease-out, cubic-bezier(.22, 1, .36, 1)), opacity 340ms ease; }
+
+/* i pulsanti: scendono di più (sono piccoli) e tornano con la stessa molla. Ognuno tiene le transizioni che aveva (colore, fondo...) */
+.pill, .let__src, .logo { transition: transform var(--d-su, 460ms) var(--molla, cubic-bezier(.34, 1.36, .64, 1)); }
+.gchip { transition: transform var(--d-su, 460ms) var(--molla, cubic-bezier(.34, 1.36, .64, 1)), background-color 220ms ease, color 220ms ease; }
+.qr__salva { transition: transform var(--d-su, 460ms) var(--molla, cubic-bezier(.34, 1.36, .64, 1)), opacity 260ms ease, background-color 260ms ease, color 260ms ease; }
+.hm__gh { transition: transform var(--d-su, 460ms) var(--molla, cubic-bezier(.34, 1.36, .64, 1)), color 200ms ease; }
+.dock__b { transition: transform var(--d-su, 460ms) var(--molla, cubic-bezier(.34, 1.36, .64, 1)), color 240ms ease; }
+.iconbtn::before, .iconbtn svg, .qr__x svg { transition: transform var(--d-su, 460ms) var(--molla, cubic-bezier(.34, 1.36, .64, 1)); }
+.pill.is-premuto, .qr__salva.is-premuto, .gchip.is-premuto, .let__src.is-premuto { transform: scale(.95); }
+.logo.is-premuto, .hm__gh.is-premuto { transform: scale(.9); }
+.dock__b.is-premuto { transform: scale(.94); }
+.iconbtn.is-premuto::before { transform: scale(.86); }
+.iconbtn.is-premuto svg { transform: scale(.92); }
+.qr__x.is-premuto svg { transform: scale(.86); }
+/* sotto il dito: la discesa svelta, senza scatto (la durata e la curva valgono per ogni proprietà della lista: colore compreso) */
+.pill.is-premuto, .qr__salva.is-premuto, .gchip.is-premuto, .let__src.is-premuto, .logo.is-premuto, .hm__gh.is-premuto, .dock__b.is-premuto,
+.iconbtn.is-premuto::before, .iconbtn.is-premuto svg, .qr__x.is-premuto svg {
+  transition-duration: var(--d-giu, 110ms); transition-timing-function: var(--premi, cubic-bezier(.3, .7, .4, 1));
+}
+.pill.is-sfugge, .qr__salva.is-sfugge, .gchip.is-sfugge, .let__src.is-sfugge, .logo.is-sfugge, .hm__gh.is-sfugge, .dock__b.is-sfugge,
+.iconbtn.is-sfugge::before, .iconbtn.is-sfugge svg, .qr__x.is-sfugge svg {
+  transition-duration: 200ms; transition-timing-function: var(--ease-out, cubic-bezier(.22, 1, .36, 1));
+}
+
+/* ------------------------------------------------------------------ 3. il velo: dentro ogni riquadro, sotto il filo di luce (z 5) */
+/* un filtro abbassa con il velo, non con la trasparenza: un riquadro abbassato che viaggia non lascia vedere quelli dietro (moto.js
+   mette #grid.has-velo; senza, l'opacità .38 di casa.css) */
+.velo { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 4; border-radius: inherit; pointer-events: none;
+  background: var(--velo, rgba(245, 244, 249, .64)); opacity: 0; transition: opacity 360ms var(--ease-out, cubic-bezier(.22, 1, .36, 1)); }
+#grid.has-velo > .tile.is-dim { opacity: 1; }
+#grid.has-velo > .tile.is-dim > .velo { opacity: 1; }
+/* mentre viaggiano, tutti i riquadri di vetro hanno un fondo pieno, anche quelli abbassati (che ora non sono trasparenti) */
+#grid.has-velo.is-moving > .tile[data-mat="glass"] { background-color: var(--tile-solid, #f6f6fb); }
+/* sul Corano il velo è la carta premuta: sotto le parole (.tile__in sta a 2), appena più scura; dentro in 90 ms, fuori in 160 */
+.tile.corano > .velo { z-index: 1; background: rgb(104 78 36 / .07); transition: opacity 160ms var(--ease-out, cubic-bezier(.22, 1, .36, 1)); }
+.tile.corano.is-premuto > .velo { opacity: 1; transition-duration: 90ms; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tile.corano > .velo { background: rgb(0 0 0 / .16); } }
+:root[data-theme="dark"] .tile.corano > .velo { background: rgb(0 0 0 / .16); }
+
+/* ------------------------------------------------------------------ 4. la pillola del dock: la muovono le molle di moto.js */
+#dock.has-molla .dock__pill { transition: none; will-change: transform; }
+
+/* ------------------------------------------------------------------ 5. il risveglio dopo l'intro (moto.js mette e toglie .is-dorme) */
+/* Su di me: la foto dorme un poco più vicina, poi si posa (la scala si somma al lento Ken Burns, che è un transform). Non si scurisce
+   mai: l'intro arriva qui con la stessa foto, chiara, e un buio in mezzo si vedrebbe come un battito */
+.me .win__img { transition: scale 1200ms var(--molla-piana, cubic-bezier(.2, .9, .25, 1)); }
+.me.is-dorme .win__img { scale: 1.06; }
+/* Saluti: le due file entrano dai lati opposti, ognuna nel verso in cui scorre, come due strati del cubo che girano */
+.saluti .marq__row { transition: translate 900ms var(--molla-piana, cubic-bezier(.2, .9, .25, 1)), opacity 520ms var(--ease-out, cubic-bezier(.22, 1, .36, 1)); }
+.saluti .marq__row--2 { transition-delay: 70ms; }
+.saluti.is-dorme .marq__row { translate: 64px 0; opacity: 0; }
+.saluti.is-dorme .marq__row--2 { translate: -64px 0; }
+
+/* ------------------------------------------------------------------ 6. le cifre che salgono (IMAD.moto.cifre) */
+/* una alla volta dal basso, e si posano: sono già quelle giuste, mai un numero sbagliato a metà. Come un contachilometri: ogni cifra
+   sale dentro la sua finestra (.cifra, ritagliata al fondo della riga; sopra e ai lati resta aria per le lettere), senza dissolvenza;
+   i due punti non si muovono. La finestra è un clip-path, non overflow: così la linea di base della riga non cambia */
+.cifra { display: inline-block; -webkit-clip-path: inset(-.4em -.25em 0 -.25em); clip-path: inset(-.4em -.25em 0 -.25em); }
+.cifra > span { display: inline-block; animation: cifra-su 560ms var(--molla-piana, cubic-bezier(.2, .9, .25, 1)) backwards; }
+@keyframes cifra-su { from { transform: translateY(100%); } }
+
+/* ------------------------------------------------------------------ 8. il computer: si alza sotto il mouse, il bordo si accende vicino */
+@media (hover: hover) and (pointer: fine) {
+  .tile { transition: transform var(--d-su, 460ms) var(--molla, cubic-bezier(.34, 1.36, .64, 1)), opacity 340ms ease; }
+  .tile:not(.corano):not(.hero):hover { transform: translateY(-3px); }
+  /* premuto sotto il mouse: resta un filo alzato e scende (scritto con la stessa forza della regola qui sopra, e dopo, perché vinca) */
+  .tile:not(.corano):not(.hero).is-premuto { transform: translateY(-1px) scale(.975); }
+  .tile.is-pressed { transform: none; }
+  #grid.has-velo > .tile.is-dim:hover { opacity: 1; }
+  #grid.has-velo > .tile.is-dim:hover > .velo { opacity: .55; }
+  .pill.is-premuto:hover { transform: scale(.95); }
+  /* il filo di luce del bordo (::after, largo un pixel) si accende vicino al puntatore, sopra il gradiente del sole; mai sul Corano */
+  @supports ((-webkit-mask-composite: xor) or (mask-composite: exclude)) {
+    .tile:not(.corano):not(.hero):hover::after {
+      background: radial-gradient(180px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 255, 255, .7), rgba(255, 255, 255, 0) 72%),
+        linear-gradient(var(--sun-ang, 180deg), var(--filo-1, rgba(255, 255, 255, .6)) 0%, var(--filo-2, rgba(255, 255, 255, .2)) 38%, var(--filo-3, rgba(255, 255, 255, .08)) 100%);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ 7. aprire una pagina e tornare: le transizioni tra documenti */
+/* Dove il browser le sa fare (Chrome 126+, Safari 18.2+). Le due pagine devono volerle tutte e due: questo file lo caricano la casa e le
+   pagine interne. Con «meno movimento» nessuna delle due le chiede. Il gesto indietro di Safari ha la sua animazione: il browser salta
+   queste da solo. Le regole valgono nel documento che arriva: html.is-pagina = una pagina interna (lo scrive il suo script nella testa),
+   altrimenti è la casa. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+}
+/* dalla casa a una pagina: la casa si allontana (.955) e svanisce, la pagina sale di 36 px con la molla piana */
+html.is-pagina::view-transition-old(root) { animation: vt-via 360ms var(--ease-out, cubic-bezier(.22, 1, .36, 1)) both; }
+html.is-pagina::view-transition-new(root) { animation: vt-sale 480ms var(--molla-piana, cubic-bezier(.2, .9, .25, 1)) 40ms both; }
+/* il riquadro toccato diventa la parte uguale della pagina (Su di me: la foto; Progetti: il cubo): il gruppo viaggia con la molla, il
+   riquadro se ne va presto (le sue parole non si vedono due volte), la parte nuova arriva subito dopo */
+html.is-pagina::view-transition-group(riquadro) { animation-duration: 520ms; animation-timing-function: var(--molla-piana, cubic-bezier(.2, .9, .25, 1)); }
+html.is-pagina::view-transition-old(riquadro), html.is-pagina::view-transition-new(riquadro) { height: 100%; object-fit: cover; }
+html.is-pagina::view-transition-old(riquadro) { animation: vt-fuori 140ms var(--ease-out, cubic-bezier(.22, 1, .36, 1)) both; }
+html.is-pagina::view-transition-new(riquadro) { animation: vt-dentro 260ms var(--ease-out, cubic-bezier(.22, 1, .36, 1)) 40ms both; }
+/* senza una parte uguale (Nel mondo): il riquadro cresce un poco e svanisce mentre la pagina gli sale sotto */
+html.is-pagina::view-transition-old(riquadro):only-child { animation: vt-cresce 380ms var(--ease-out, cubic-bezier(.22, 1, .36, 1)) both; }
+/* le parti uguali, solo se si arriva da quel riquadro (html.vt-<riquadro>, dallo script nella testa della pagina) */
+html.vt-sudime .sm-foto, html.vt-progetti .pj-cubo { view-transition-name: riquadro; }
+/* tornando alla casa: la pagina scende di 28 px e svanisce, la casa torna dalla sua distanza (.965); lo stesso riquadro si posa al suo
+   posto da 1,06 (se si vede: moto.js gli rimette il nome), senza volare dalla pagina */
+html:not(.is-pagina)::view-transition-old(root) { animation: vt-giu 260ms var(--ease-out, cubic-bezier(.22, 1, .36, 1)) both; }
+html:not(.is-pagina)::view-transition-new(root) { animation: vt-casa 420ms var(--molla-piana, cubic-bezier(.2, .9, .25, 1)) both; }
+html:not(.is-pagina)::view-transition-group(riquadro) { animation-duration: 0s; }
+html:not(.is-pagina)::view-transition-old(riquadro) { display: none; }
+html:not(.is-pagina)::view-transition-new(riquadro) { animation: vt-posa 440ms var(--molla-piana, cubic-bezier(.2, .9, .25, 1)) both; }
+@keyframes vt-via { to { opacity: 0; transform: scale(.955); } }
+@keyframes vt-sale { from { opacity: 0; transform: translateY(36px); } }
+@keyframes vt-fuori { to { opacity: 0; } }
+@keyframes vt-dentro { from { opacity: 0; } }
+@keyframes vt-cresce { to { opacity: 0; transform: scale(1.14); } }
+@keyframes vt-giu { to { opacity: 0; transform: translateY(28px); } }
+@keyframes vt-casa { from { opacity: 0; transform: scale(.965); } }
+@keyframes vt-posa { from { opacity: 0; transform: scale(1.06); } }
+
+/* dove il browser non sa fare le transizioni tra documenti (Safari fino a 18.1: l'iPhone di Imad oggi): la pagina sale da sola, una volta,
+   al primo disegno (html.pg-entra, dallo script nella testa, solo andando avanti: mai tornando indietro, mai con «meno movimento») */
+html.pg-entra .pg { animation: pg-entra 520ms var(--molla-piana, cubic-bezier(.2, .9, .25, 1)) backwards; }
+html.pg-entra .pg-testa { animation: pg-entra-t 360ms var(--ease-out, cubic-bezier(.22, 1, .36, 1)) backwards; }
+@keyframes pg-entra { from { opacity: 0; transform: translateY(22px); } }
+@keyframes pg-entra-t { from { opacity: 0; } }
+
+/* ------------------------------------------------------------------ 9. meno movimento, fotografie: gli stati finali, subito */
+@media (prefers-reduced-motion: reduce) {
+  .tile, .tile.is-premuto, .tile.is-lascia, .tile.is-sfugge, .pill, .qr__salva, .hm__gh, .logo, .gchip, .let__src, .dock__b,
+  .iconbtn::before, .iconbtn svg, .qr__x svg, .velo, .me .win__img, .saluti .marq__row { transition: none; }
+  .tile.is-premuto:not(.corano), .tile:not(.corano):not(.hero).is-premuto, .pill.is-premuto, .pill.is-premuto:hover, .qr__salva.is-premuto,
+  .gchip.is-premuto, .let__src.is-premuto, .logo.is-premuto, .hm__gh.is-premuto, .dock__b.is-premuto,
+  .iconbtn.is-premuto::before, .iconbtn.is-premuto svg, .qr__x.is-premuto svg { transform: none; }
+  /* premuto, l'ombra resta com'è (casa.css, «la luce»): niente profondità che cambia */
+  .tile.is-premuto:not(.corano) { box-shadow: 0 0 0 .5px rgb(var(--ombra, 46 40 100) / calc(var(--o1, .14) * .45)), 0 1px 2px rgb(var(--ombra, 46 40 100) / var(--o1, .14)),
+    var(--shx, 0px) var(--shy, 12px) 26px -12px rgb(var(--ombra, 46 40 100) / var(--o2, .17)), calc(var(--shx, 0px) * 2.4) calc(var(--shy, 12px) * 2.8) 72px -30px rgb(var(--ombra, 46 40 100) / var(--o3, .12)); }
+  .me.is-dorme .win__img { scale: none; }
+  .saluti.is-dorme .marq__row { translate: none; opacity: 1; }
+  .cifra > span { animation: none; }
+  html.pg-entra .pg, html.pg-entra .pg-testa { animation: none; }
+}
+.is-shot .me.is-dorme .win__img { scale: none; }
+.is-shot .saluti.is-dorme .marq__row { translate: none; opacity: 1; }
+.is-shot .cifra > span { animation: none; }
