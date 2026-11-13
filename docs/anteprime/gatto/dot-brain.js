@@ -845,11 +845,15 @@
       if (!drag && fake && fake.ghost) {                               /* il dito fantasma: lungo e molle, per niente impressionato, guarda dritto chi guarda */
         rig.pose = "scruff"; rig.rate = cat.st < 0.45 ? 8 : 12; rig.longT = clamp(1 + cat.st * 4, 0, 4) + sp / 300; rig.over.tc = 0.6;   /* la posa cambia piano mentre sale: le zampe lasciano il bordo poco a poco */
         if (SG.g && SG.g.ph === "down") { var dw = eIO(seg(now - SG.g.t0, GT.hold, GT.down)); rig.over.te = lerp(-1.3, 0.25, dw); rig.over.tc = lerp(0.6, 0.85, dw); }   /* rimesso giù: la coda sale prima che le zampe tocchino (non buca il bordo) */
+        if (SG.g && SG.g.plat && lastF) {                              /* la coda pende quanto c'è posto sopra il bordo, mai oltre: alzandosi si srotola piano */
+          var hq = drawnPt(lastF.body.hips.x, lastF.body.hips.y), av = SG.g.plat.y - hq.y - 6, tmin = -Math.asin(clamp(av / (rig.P.tail.len * px()), 0, 1));
+          rig.over.te = Math.max(SG.g.ph === "down" ? rig.over.te : rig.poses.scruff.te, tmin);
+        }
         rig.over.lid = 0.5; rig.over.eye = 0.92; rig.over.brow = 0.14; rig.over.ear = 0.3 + 0.12 * sat(sp / 500); rig.tailSwish = 0.16; rig.tailRate = 1.5;
         cat.att = null; cat.gz = false; rig.look.ty = clamp(wrap(-PI / 2 - rig.yaw), -0.9, 0.9) * 0.85; rig.look.tp = -0.06; rig.gazeT[0].x = rig.gazeT[1].x = 0; rig.gazeT[0].y = rig.gazeT[1].y = 0.02;
         return;
       }
-      if (rig.pose === "scruff") { rig.pose = "held"; delete rig.over.brow; cat.gz = true; }   /* il dito vero l'ha preso al posto del fantasma */
+      if (rig.pose === "scruff") { rig.pose = "held"; delete rig.over.brow; delete rig.over.te; delete rig.over.tc; cat.gz = true; }   /* il dito vero l'ha preso al posto del fantasma */
       rig.longT = clamp(3 + cat.st * 4 + sp / 140, 0, 11);
       rig.over.lid = 0.42; rig.over.eye = 0.9; rig.over.ear = 0.18 + 0.25 * sat(sp / 900); rig.tailSwish = 0.25; rig.tailRate = 2;
       cat.att = null; cat.gz = true;
@@ -1514,7 +1518,7 @@
     SG.touched = sgStore(0, SGK.tocco) === "1"; SG.dragged = sgStore(1, SGK.preso) === "1"; SG.seen = +sgStore(1, SGK.visti) || 0;
     SG.ghostOk = SG.on && !SG.touched && !SG.dragged && sgStore(0, SGK.sess) !== "1" && SG.seen < 2;
     SG.ghostAt = first ? -1 : now + 8; SG.salamAt = -1; SG.ghostEnd = -1; SG.knocks = +sgStore(0, SGK.bussa) || 0; SG.knockAt = -99;
-    SG.keyAt = -99; SG.resAt = -99; SG.near = 0; SG.nkeys = null; SG.batAt = -99; SG.batG = -1; SG.first = !SG.touched; SG.firstNow = false; SG.t0 = now; SG.chk = 0;
+    SG.keyAt = -99; SG.resAt = -99; SG.near = 0; SG.nkeys = null; SG.batAt = -99; SG.batG = -1; SG.first = !SG.touched; SG.firstNow = false; SG.t0 = now; SG.chk = 0; SG.att = null;
   }
   /* via il dito e gli anelli; se il dito fantasma teneva il gatto, lo rimette seduto dov'era (DOT.stop, una pausa, «Rivedi») */
   function sgClear() {
@@ -1536,7 +1540,24 @@
   function drawnPt(mx, my) { var k = px(), Oy = cat.y - cat.lift - cat.voff * k, cr = Math.cos(cat.rot), sr = Math.sin(cat.rot), yy = my - cat.piv; return { x: cat.x + (mx * cr - yy * sr) * k, y: Oy - (mx * sr + yy * cr + cat.piv) * k }; }
   /* la collottola: dietro la testa, dal lato della schiena (di tre quarti la testa copre il collo: il dito sta sul bordo di dietro della
      testa, mai sugli occhi) */
-  function scruffPt(f) { var c = f.body.chest, h = f.head, bx = Math.abs(c.x - h.x) > 0.4 ? (c.x > h.x ? 1 : -1) : -cat.dir; return drawnPt(h.x + bx * h.rx * 0.9, h.y - h.ry * 0.1); }
+  var FR = 12;                                                         /* il raggio del polpastrello, px (dot-fx.js, Dito) */
+  function scruffPt(f) {   /* in alto, sul bordo di dietro della testa: il punto più vicino al contorno da cui il polpastrello non copre un occhio (continuo: niente scatti) */
+    var c = f.body.chest, h = f.head, bx = Math.abs(c.x - h.x) > 0.4 ? (c.x > h.x ? 1 : -1) : -cat.dir, R = FR / px(), th = 0.66, cx = bx * h.rx * Math.cos(th), cy = h.ry * Math.sin(th), m, i, E, ok, x = 0, y = 0;
+    for (m = 0.94; m < 1.9; m += 0.02) { x = h.x + cx * m; y = h.y + cy * m; ok = true;
+      for (i = 0; i < f.eyes.length; i++) { E = f.eyes[i]; if (E.vis > 0.12 && hyp(x - E.x, y - E.y) < R + E.r * 1.12 + 0.6) { ok = false; break; } }
+      if (ok) break; }
+    return drawnPt(x, y);
+  }
+  /* la zampa più bassa e il punto più basso della coda, in pagina (px, y in basso) */
+  function lowPts(f) { var i, l, q, lo = -1e9, tl = -1e9, P = f.tail.pts;
+    for (i = 0; i < 4; i++) { l = f.legs[i]; q = drawnPt(l.fx, l.fy - l.paw * 0.85); if (q.y > lo) lo = q.y; }
+    for (i = 0; i < P.length; i++) { q = drawnPt(P[i].x, P[i].y - P[i].r); if (q.y > tl) tl = q.y; }
+    return { paw: lo, tail: tl }; }
+  function sgGeo() {
+    var f = lastF, k = px(), i, q, e = [], g = SG.g, P = g ? g.plat : cat.plat; if (!f) return null; var lp = lowPts(f);
+    for (i = 0; i < f.eyes.length; i++) if (f.eyes[i].vis > 0.12) { q = drawnPt(f.eyes[i].x, f.eyes[i].y); e.push({ x: q.x, y: q.y, r: f.eyes[i].r * k }); }
+    return { eyes: e, paw: lp.paw, tail: lp.tail, ground: P ? P.y : null, fing: SG.fp ? { x: SG.fp.x, y: SG.fp.y, r: FR * SG.fp.sc * (1 - 0.1 * SG.fp.press), a: SG.fp.a } : null, ph: g ? g.ph : null, s: cat.state, k: k };
+  }
   function sgRing(x, y, o) {   /* un anello sul vetro (x, y in pagina adesso); nello strato fisso, se c'è: resta sul vetro anche se la pagina si muove */
     var par = flayer || layer; if (!par) return; o = o || {}; o.dark = dark;
     var r = fx().Anello(par, x - (flayer ? view.sx : 0), y - (flayer ? view.sy : 0), o); r.t0 = now; r.dur = o.dur || 0.42; SG.rings.push(r);
@@ -1558,9 +1579,9 @@
     if (drag || fake || !cat.vis || !cat.plat || !onEdge() || !GHOSTOK[cat.state] || cat.st < 0.35 || (bubble && bubble.on)) return false;
     if (now - (B.scrollAt || -9) < 1.2 || typing() || now - SG.resAt < 1.5 || now - (ptr.downAt || -9) < 1) return false;
     if (cat.plat.quiet || cat.plat.low || onQuiet() || !gameRoom() || underNo(cat.x, cat.y)) return false;
-    var b = catBox(); if (!b || !lastF) return false; var up = 34 * K / 1.5 + 8, rd = riding();   /* alzato di 34 (il dito sta accanto alla testa, non sopra il fez) */
+    var b = catBox(); if (!b || !lastF) return false; var up = 26 * K / 1.5 + 12, rd = riding();   /* alzato almeno di 26 (fino a 34 se c'è posto: ghostStart), più quel poco perché le zampe non entrino nel bordo */
     if (b.y0 - up < view.sy + view.ti + 4 || b.y1 > view.sy + view.vh - (rd ? 0 : view.bi) + (rd ? 6 : -4) || b.x0 < view.sx + 8 || b.x1 > view.sx + view.vw - 8) return false;   /* tutto in vista, anche alzato col dito sopra */
-    return sgClearArea(b.x0 - 14, b.y0 - up, b.x1 + 14, b.y1 - 4);   /* alzato non copre il Corano né una parola, anche sul dock */
+    return sgClearArea(b.x0 - 14, b.y0 - up, b.x1 + 14, b.y1 - 4, rd);   /* alzato non copre il Corano né una parola; sul dock (dove la pagina gli passa dietro) né un comando */
   }
   function ghostSide() {                                              /* da che parte va l'arco: verso il centro dello schermo, via dalla scatola, dove il bordo ha posto */
     var s = cat.x < view.sx + view.vw / 2 ? 1 : -1, p = cat.plat;
@@ -1575,7 +1596,8 @@
     var side = -cat.dir, s0 = scruffPt(f), as = ghostSide() === side ? side : 0;   /* il dito arriva da dietro (dal lato della schiena); l'arco va da quella parte se c'è posto, se no dritto su */
     SG.ghostOk = false; sgStore(0, SGK.sess, "1"); sgStore(1, SGK.visti, SG.seen + 1);
     sitFor(60, { ghost: true });                                      /* seduto, fermo: guarda il dito che arriva */
-    SG.g = { t0: now, ph: "in", plat: p, side: side, as: as, H: 34 * K / 1.5, x: s0.x + side * 30, y: s0.y - 38, sx: 0, sy: 0 };
+    var b = catBox(), room = b ? b.y0 - (view.sy + view.ti + 6) - 8 : 1e9;   /* sotto il bordo di sopra dello schermo: alzato un po' meno se non c'è posto */
+    SG.g = { t0: now, ph: "in", plat: p, side: side, as: as, H: clamp(room, 26 * K / 1.5, 34 * K / 1.5), x: s0.x + side * 30, y: s0.y - 38, sx: 0, sy: 0 };
     SG.fp = { x: SG.g.x, y: SG.g.y, a: 0, sc: 1.18, press: 0 };
     if (!SG.fing) SG.fing = fx().Dito(flayer || layer);
     return true;
@@ -1619,8 +1641,12 @@
     if (g.ph === "lift" || g.ph === "hold" || g.ph === "down") {
       if (cat.state !== "held" || !fake || !fake.ghost) return ghostCancel("state");
       F.press = 1; F.a = 1; F.sc = 1;
-      if (t < GT.up) { e = eIO(seg(t, GT.lift, GT.up)); fake.x = g.sx + g.as * 9 * Math.pow(e, 1.6); fake.y = g.sy - g.H * e; }   /* su lungo un arco: prima in alto, poi un poco di lato */
-      else if (t < GT.hold) { g.ph = "hold"; u = t - GT.up; fake.x = g.sx + g.as * 9 + 0.5 * Math.sin(u * 6.1); fake.y = g.sy - g.H + 0.45 * Math.sin(u * 4.3 + 1); g.tx = fake.x; g.ty = fake.y; }   /* tenuto: un dito non è mai fermo del tutto */
+      if (f && t < GT.hold) {                                           /* le zampe lasciano il bordo, non ci entrano: mentre il corpo si allunga il dito sale quanto basta */
+        var lp = lowPts(f), ov = lp.paw - (g.plat.y + g.pw0); if (g.pw0 == null) { g.pw0 = Math.min(lp.paw - g.plat.y, 5); g.ey2 = 0; ov = 0; }
+        if (ov > 0.05) { g.ey2 += ov; cat.y -= ov; }
+      }
+      if (t < GT.up) { e = eIO(seg(t, GT.lift, GT.up)); fake.x = g.sx + g.as * 9 * Math.pow(e, 1.6); fake.y = g.sy - g.H * e - (g.ey2 || 0); }   /* su lungo un arco: prima in alto, poi un poco di lato */
+      else if (t < GT.hold) { g.ph = "hold"; u = t - GT.up; fake.x = g.sx + g.as * 9 + 0.5 * Math.sin(u * 6.1); fake.y = g.sy - g.H - (g.ey2 || 0) + 0.45 * Math.sin(u * 4.3 + 1); g.tx = fake.x; g.ty = fake.y; }   /* tenuto: un dito non è mai fermo del tutto */
       else {
         g.ph = "down"; var p = fresh(g.plat, cat.x); if (!p) return ghostCancel("lost"); g.plat = p;
         var lo = -1e9, i, l, q; if (f) for (i = 0; i < 4; i++) { l = f.legs[i]; q = drawnPt(l.fx, l.fy - l.paw * 0.85); if (q.y > lo) lo = q.y; }
@@ -1654,7 +1680,7 @@
   var KNOCKOK = { sit: 1, look: 1, pause: 1, loaf: 1 };
   function knockCan() {
     if (SG.touched || SG.knocks >= 2 || SG.g || drag || fake || !cat.vis || !cat.plat || !onEdge() || !KNOCKOK[cat.state] || cat.st < 1.2 || (bubble && bubble.on)) return false;
-    var gate = SG.ghostOk ? (SG.ghostAt >= 0 && now > SG.ghostAt + 120 ? 0 : 1e9) : Math.max(SG.ghostEnd + 18, SG.t0 + 24);   /* prima il dito fantasma, se c'è ancora da fare */
+    var gate = SG.ghostOk ? (SG.ghostAt >= 0 && now > SG.ghostAt + 40 ? 0 : 1e9) : Math.max(SG.ghostEnd + 18, SG.t0 + 24);   /* prima il dito fantasma, se c'è ancora da fare; se da 40 s non trova un posto (sui grandi schermi la mensola di casa ha poco cielo sopra), bussa intanto */
     if (SG.knocks > 0) gate = Math.max(gate, SG.knockAt + 45);
     if (now < gate || now - lastIn < 7 || now - (B.scrollAt || -9) < 7 || typing() || now - SG.resAt < 3) return false;
     if (cat.plat.quiet || cat.plat.low || onQuiet() || !gameRoom() || underNo(cat.x, cat.y)) return false;
@@ -1692,8 +1718,9 @@
     if (cat.vis && f && !drag && !fake && NEAROK[s] && ptrLive()) {
       var pp = ptrPage(), h = drawnPt(f.head.x, f.head.y), d = hyp(pp.x - h.x, pp.y - h.y), R = 150 * K / 1.5;
       if (d < R) on = (1 - smooth(R * 0.5, R, d)) * (ptr.kind === "mouse" ? 1 - smooth(2, 3, now - ptr.t) : 1);
-      if (on > 0.5 && cat.state !== "walk") cat.att = pp;                /* la testa e le pupille vanno al dito */
+      if (on > 0.5 && cat.state !== "walk") { cat.att = pp; SG.att = pp; }   /* la testa e le pupille vanno al dito */
     }
+    if (on <= 0.5 && SG.att) { if (cat.att === SG.att) cat.att = null; SG.att = null; }   /* il dito se n'è andato: non resta a guardare il punto dov'era */
     SG.near += (on - SG.near) * (1 - Math.exp(-dt * (on > SG.near ? 7 : 2.4)));
     if (NEAROK[s]) rig.pupilT = 0.8 + 0.2 * SG.near;                   /* le pupille si allargano */
     if (SG.near > 0.01 && NEAROK[s]) {
@@ -2178,6 +2205,7 @@
        hintReset() dimentica tutto quello che ricordano sessione e telefono; hintAt(s) il dito fantasma fra s secondi */
     hint: function () { var g = SG.g; return { on: SG.on, ok: SG.ghostOk, at: SG.ghostAt, salam: SG.salamAt, end: SG.ghostEnd, touched: SG.touched, dragged: SG.dragged, seen: SG.seen, knocks: SG.knocks, knockAt: SG.knockAt, near: SG.near, gest: SG.gest, batAt: SG.batAt,
       ph: g ? g.ph : null, t: g ? now - g.t0 : null, cancel: g ? g.cancel || null : null, fing: SG.fp && (SG.fing || g) ? { x: SG.fp.x, y: SG.fp.y, a: SG.fp.a, sc: SG.fp.sc, press: SG.fp.press } : null, rings: SG.rings.length, fake: fake ? { x: fake.x, y: fake.y, ghost: !!fake.ghost } : null, now: now }; },
+    hintGeo: function () { return sgGeo(); },                          /* dove sono adesso gli occhi, la zampa più bassa, la coda, il bordo, il dito (px, in pagina) */
     hintGo: function () { if (SG.g || !SG.on) return false; return ghostStart(); }, hintCan: function () { return ghostCan(); },
     hintKnock: function () { if (!SG.on || SG.g) return false; SG.knocks++; SG.knockAt = now; SG.ks = true; set("knock", { face: "front", pose: narrow() ? "ride" : "sit" }); return true; },
     hintReset: function () { [SGK.sess, SGK.tocco, SGK.bussa].forEach(function (k) { try { sessionStorage.removeItem(k); } catch (e) {} }); [SGK.preso, SGK.visti].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} }); },
