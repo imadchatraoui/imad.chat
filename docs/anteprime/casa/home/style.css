@@ -1,6 +1,10 @@
-/* imad.chat — la casa nuova (anteprima). Il sistema del disegno, dalla bento del primo giro (docs/anteprime/bento):
-   token, materiali, riquadro, hero, Corano, pagine aperte. La disposizione della casa e le sue parti nuove stanno in casa.css.
-   Una sola luce, dall'alto. Materiali: cielo (calcolato), carta, vetro smerigliato, inchiostro, notte. Accento: argilla.
+/* imad.chat — la casa nuova (anteprima). Il sistema del disegno, dalla bento del primo giro (docs/anteprime/bento), rifatto nel giro
+   «casa bella» (CASA.md 2d): token, materiali, riquadro, hero, Corano, pagine aperte. La disposizione della casa, la luce e le parti
+   nuove stanno in casa.css. L'idea: la pagina è il cielo vero di Torino adesso; scure solo le finestre su quel cielo (l'hero, Le città),
+   vetro tutto ciò che informa, carta il Corano; una sola luce (il sole vero, da vivo.js), un solo accento (l'oro del punto);
+   Manrope per le persone, Geist Mono maiuscolo per ciò che la macchina sa. L'argilla resta solo per gli avvisi.
+   I TOKEN sono l'unica fonte dell'aspetto: anche le parti sotto i riquadri e le pagine interne li usano (elenco in CASA.md 2d B).
+   Si aggiungono, non si rinominano: i vecchi (--e1..3, --sh, --s1/2, --ring, --glass-mat, --night-mat, --wall-*) restano per le pagine aperte.
    Scritto anche per Safari non recente: niente :has(), posizioni scritte per esteso (top/right/bottom/left, niente inset). */
 
 /* ------------------------------------------------------------------ reset */
@@ -31,15 +35,35 @@ b { font-weight: inherit; }
   --cell: calc((min(100vw, 460px) - 2 * var(--gutter) - 3 * var(--gap)) / 4);
   --r: 32px;                              /* raggio dei riquadri */
   --r-in: calc(var(--r) - 10px);          /* raggio delle righe interne: concentrico */
-  --p: 20px;                              /* margine interno dei riquadri larghi */
-  --ps: 18px;                             /* margine interno dei riquadri a due colonne */
+  /* un margine interno solo per tutti i riquadri (16 sotto i 375 px, 20 dai 700): il bordo del testo di ogni riquadro è a --p
+     dal suo bordo, e il bordo del testo della pagina (il marchio, la riga di data, «Ciao», le etichette) è l'asse, a 34 px su un 390 */
+  --p: 18px;
+  --ps: 18px;                             /* era il margine dei riquadri a due colonne: ora uguale a --p, resta per chi lo legge */
+  --axis: calc(var(--gutter) + var(--p));
+  --r-c: calc(var(--r) - var(--p));       /* raggio di ciò che sta dentro un riquadro a --p dal bordo: concentrico (14 px) */
   --word: calc(var(--cell) * .79);        /* corpo del marchio nell'hero */
   --gs: 96px;                             /* lato della tessera di grana */
 
-  /* movimento */
+  /* i corpi: «font» completi più la spaziatura (--ls-*). Manrope per i nomi, le frasi e i numeri grandi (le persone);
+     Geist Mono, piccolo e maiuscolo, per ciò che la macchina sa (la riga di data, il tipo di un riquadro, la fonte, quando, i mesi) */
+  --f-h1: 800 clamp(34px, calc(var(--cell) * .5), 56px)/1 var(--font-sans);   --ls-h1: -.052em;   /* «Ciao, sono Imad.», i titoli delle pagine */
+  --f-big: 800 30px/30px var(--font-sans);     --ls-big: -.05em;     /* l'ora della città, il totale della heatmap, «Imad» */
+  --f-title: 700 17px/21px var(--font-sans);   --ls-title: -.024em;  /* Progetti, Lascia un saluto, Three.js Journey, Esempio */
+  --f-body: 500 15px/21px var(--font-sans);    --ls-body: -.012em;
+  --f-small: 500 13px/18px var(--font-sans);   --ls-small: -.004em;  /* le righe sotto i titoli, il fondo pagina */
+  --f-name: 650 13px/18px var(--font-sans);    --ls-name: -.006em;   /* il nome del riquadro */
+  --f-meta: 500 10.5px/16px var(--font-mono);  --ls-meta: .06em;     /* la voce della macchina: sempre maiuscola */
+  --f-mono: 500 12px/16px var(--font-mono);    --ls-mono: -.01em;    /* righe della macchina in minuscolo */
+
+  /* movimento. Le due molle sono curve di ripiego: moto.js le riscrive come linear() dove il browser lo sa fare */
   --ease-out: cubic-bezier(.22, 1, .36, 1);
   --ease-in-out: cubic-bezier(.65, 0, .35, 1);
   --d-press: 140ms;
+  --molla: cubic-bezier(.34, 1.36, .64, 1);         /* il rilascio, il passaggio del mouse: una molla viva (smorzamento .58) */
+  --molla-piana: cubic-bezier(.2, .9, .25, 1);      /* gli arrivi, i viaggi, i risvegli: una molla quieta (.84) */
+  --premi: cubic-bezier(.3, .7, .4, 1);             /* la pressione sotto il dito */
+  --d-giu: 110ms;
+  --d-su: 460ms;
 
   /* cielo di Torino adesso (scritto da app.js ogni minuto) */
   --sky-zen: #1f4290;
@@ -59,12 +83,12 @@ b { font-weight: inherit; }
   --wall-o: 1;
   --ink: #16171d;
   --ink-2: rgba(22, 23, 29, .66);
-  --ink-3: rgba(22, 23, 29, .46);
+  --ink-3: rgba(22, 23, 29, .64);         /* era .46 (2,9 : 1): ora passa AA. Nel chiaro è vicino al secondo: la gerarchia la fanno corpo e posto */
   --hair: rgba(30, 28, 70, .09);
   --fill: rgba(30, 28, 70, .055);
   --fill-2: rgba(30, 28, 70, .1);
   --glass-mat: linear-gradient(180deg, rgba(255, 255, 255, .88) 0%, rgba(255, 255, 255, .62) 100%);
-  --tile-solid: #f2f1f8;                  /* il fondo pieno di un riquadro di vetro mentre viaggia sopra gli altri */
+  --tile-solid: #f6f6fb;                  /* il fondo pieno di un riquadro di vetro mentre viaggia sopra gli altri */
   --e1: rgba(255, 255, 255, 1);
   --e2: rgba(255, 255, 255, .75);
   --e3: rgba(255, 255, 255, .45);
@@ -88,7 +112,52 @@ b { font-weight: inherit; }
   --scrim: rgba(24, 22, 54, .32);
   --grab: rgba(30, 28, 70, .2);
   --focus: #16171d;
+
+  /* il cielo della pagina: Torino adesso, dall'alto in basso (app.js li riscrive ogni minuto e quando cambia il tema;
+     questi sono i valori di partenza, un giorno chiaro). Le stelle (--stelle) sono 1 solo a notte piena nel tema scuro */
+  --cielo-alto: #eef0f8;
+  --cielo-mezzo: #e8e9f5;
+  --cielo-basso: #ece6f0;
+  --cielo-bagliore: rgba(255, 190, 150, 0);
+  --cielo-gx: 80%;
+  --stelle: 0;
+  --hero-spill: rgba(60, 70, 160, .25);   /* la luce che la finestra dell'hero getta sotto di sé (calcolata) */
+  --hero-alone: rgba(120, 136, 230, 0);   /* e sopra di sé, sulla mensola dove sta la scatola di Dot (solo tema scuro, calcolata) */
+
+  /* i materiali: il vetro (bianco velato qui, grafite nel tema scuro; niente sfocatura viva sui riquadri), la notte delle finestre */
+  --vetro-base: rgba(255, 255, 255, .62); /* calcolata: tinta dall'ora */
+  --vetro: linear-gradient(180deg, rgba(255, 255, 255, .3) 0%, rgba(255, 255, 255, 0) 100%), linear-gradient(var(--vetro-base), var(--vetro-base));
+  --notte: radial-gradient(120% 78% at 50% -4%, #27336f 0%, #151d47 50%, #0b1031 100%);
+
+  /* una luce sola, per materiale: il filo sul bordo (verso il sole, a metà, dalla parte opposta) e la tinta dell'ombra con i suoi tre
+     strati (contatto, vicina, lontana). Questi sono del vetro; la notte, la carta e l'hero hanno i loro */
+  --filo-1: rgba(255, 255, 255, 1);
+  --filo-2: rgba(255, 255, 255, .72);
+  --filo-3: rgba(255, 255, 255, .42);
+  --ombra: 46 40 100;
+  --o1: .14;
+  --o2: .17;
+  --o3: .12;
+
+  /* un accento solo: l'oro del punto di imad.chat, della stella, del saluto */
+  --accent: #f3dfa8;                      /* la luce: le stelle, il punto, i giorni pieni */
+  --accent-glow: 243 223 168;             /* gli aloni: rgb(var(--accent-glow) / a) */
+  --accent-ink: #b98a2e;                  /* un segno d'oro che non è testo */
+  --accent-text: #7f5810;                 /* l'oro quando è testo */
+  --warn: var(--clay);                    /* l'argilla: solo gli avvisi */
+
+  /* il dock: l'oggetto più alto della pagina, vetro spesso; la pillola scelta è un tasto alzato */
+  --dock-vetro: rgba(248, 248, 253, .66);
+  --dock-filo: rgba(255, 255, 255, .95);  /* il bordo alto: è anche la mensola di Dot */
+  --dock-fondo: rgba(30, 28, 70, .07);
+  --dock-ombra: 46 40 100;
+  --dock-o: .34;
+  --dock-tasto: linear-gradient(180deg, #ffffff 0%, #f6f6fb 100%);
+  --dock-tasto-ombra: 0 0 0 .5px rgba(30, 28, 70, .1), 0 1px 2px rgba(30, 28, 70, .12), 0 4px 10px -4px rgba(46, 40, 100, .28);
+
+  --velo: rgba(245, 244, 249, .64);       /* il velo sui riquadri che un filtro mette indietro */
 }
+@media (max-width: 374px) { :root { --p: 16px; --ps: 16px; } }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -102,12 +171,12 @@ b { font-weight: inherit; }
     --wall-o: .9;
     --ink: #f4f5fa;
     --ink-2: rgba(240, 242, 252, .66);
-    --ink-3: rgba(240, 242, 252, .44);
+    --ink-3: rgba(240, 242, 252, .54);
     --hair: rgba(255, 255, 255, .1);
     --fill: rgba(255, 255, 255, .08);
     --fill-2: rgba(255, 255, 255, .14);
     --glass-mat: radial-gradient(120% 70% at 50% -16%, rgba(255, 255, 255, .075) 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, rgba(255, 255, 255, .09) 0%, rgba(255, 255, 255, .05) 100%);
-    --tile-solid: #14172c;
+    --tile-solid: #26282f;
     --e1: rgba(255, 255, 255, .2);
     --e2: rgba(255, 255, 255, .07);
     --e3: rgba(255, 255, 255, .035);
@@ -115,10 +184,10 @@ b { font-weight: inherit; }
     --ring: rgba(255, 255, 255, .02);
     --s1: 0;
     --s2: .5;
-    --paper-mat: radial-gradient(120% 74% at 50% -14%, rgba(255, 224, 168, .1) 0%, rgba(255, 224, 168, 0) 64%), linear-gradient(180deg, #2a241c 0%, #1b1712 100%);
-    --paper: #1d1914;
+    --paper-mat: radial-gradient(120% 70% at 50% -12%, rgba(255, 228, 180, .12) 0%, rgba(255, 228, 180, 0) 62%), linear-gradient(180deg, #332e26 0%, #27231d 100%);   /* carta all'ombra, non più marrone */
+    --paper: #2b2620;
     --paper-ink: #f2ead8;
-    --paper-ink-2: rgba(242, 234, 216, .62);
+    --paper-ink-2: rgba(242, 234, 216, .68);
     --clay: #e3a48c;
     --gold-ink: #f3dfa8;
     --btn-glass: rgba(255, 255, 255, .1);
@@ -126,6 +195,26 @@ b { font-weight: inherit; }
     --scrim: rgba(0, 0, 0, .58);
     --grab: rgba(255, 255, 255, .26);
     --focus: #ffffff;
+    /* casa bella (CASA.md 2d B): il vetro grafite, la sua luce, l'oro, il dock */
+    --vetro-base: rgba(39, 41, 50, .9);
+    --vetro: radial-gradient(130% 58% at 50% -8%, rgba(255, 255, 255, .055) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, rgba(255, 255, 255, .05) 0%, rgba(255, 255, 255, .012) 100%), linear-gradient(var(--vetro-base), var(--vetro-base));
+    --filo-1: rgba(255, 255, 255, .3);
+    --filo-2: rgba(255, 255, 255, .1);
+    --filo-3: rgba(255, 255, 255, .06);
+    --ombra: 0 1 8;
+    --o1: .55;
+    --o2: .5;
+    --o3: .6;
+    --accent-ink: #f3dfa8;
+    --accent-text: #f3dfa8;
+    --dock-vetro: rgba(52, 55, 70, .56);
+    --dock-filo: rgba(255, 255, 255, .2);
+    --dock-fondo: rgba(255, 255, 255, .05);
+    --dock-ombra: 0 1 8;
+    --dock-o: .62;
+    --dock-tasto: linear-gradient(180deg, rgba(255, 255, 255, .2) 0%, rgba(255, 255, 255, .13) 100%);
+    --dock-tasto-ombra: inset 0 1px 0 rgba(255, 255, 255, .2), 0 0 0 .5px rgba(0, 0, 0, .3), 0 2px 6px -1px rgba(0, 0, 0, .4);
+    --velo: rgba(7, 8, 16, .6);
   }
 }
 
@@ -140,12 +229,12 @@ b { font-weight: inherit; }
   --wall-o: .9;
   --ink: #f4f5fa;
   --ink-2: rgba(240, 242, 252, .66);
-  --ink-3: rgba(240, 242, 252, .44);
+  --ink-3: rgba(240, 242, 252, .54);
   --hair: rgba(255, 255, 255, .1);
   --fill: rgba(255, 255, 255, .08);
   --fill-2: rgba(255, 255, 255, .14);
   --glass-mat: radial-gradient(120% 70% at 50% -16%, rgba(255, 255, 255, .075) 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, rgba(255, 255, 255, .09) 0%, rgba(255, 255, 255, .05) 100%);
-  --tile-solid: #14172c;
+  --tile-solid: #26282f;
   --e1: rgba(255, 255, 255, .2);
   --e2: rgba(255, 255, 255, .07);
   --e3: rgba(255, 255, 255, .035);
@@ -153,10 +242,10 @@ b { font-weight: inherit; }
   --ring: rgba(255, 255, 255, .02);
   --s1: 0;
   --s2: .5;
-  --paper-mat: radial-gradient(120% 74% at 50% -14%, rgba(255, 224, 168, .1) 0%, rgba(255, 224, 168, 0) 64%), linear-gradient(180deg, #2a241c 0%, #1b1712 100%);
-  --paper: #1d1914;
+  --paper-mat: radial-gradient(120% 70% at 50% -12%, rgba(255, 228, 180, .12) 0%, rgba(255, 228, 180, 0) 62%), linear-gradient(180deg, #332e26 0%, #27231d 100%);   /* carta all'ombra, non più marrone */
+  --paper: #2b2620;
   --paper-ink: #f2ead8;
-  --paper-ink-2: rgba(242, 234, 216, .62);
+  --paper-ink-2: rgba(242, 234, 216, .68);
   --clay: #e3a48c;
   --gold-ink: #f3dfa8;
   --btn-glass: rgba(255, 255, 255, .1);
@@ -164,6 +253,26 @@ b { font-weight: inherit; }
   --scrim: rgba(0, 0, 0, .58);
   --grab: rgba(255, 255, 255, .26);
   --focus: #ffffff;
+  /* casa bella (CASA.md 2d B): il vetro grafite, la sua luce, l'oro, il dock */
+  --vetro-base: rgba(39, 41, 50, .9);
+  --vetro: radial-gradient(130% 58% at 50% -8%, rgba(255, 255, 255, .055) 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, rgba(255, 255, 255, .05) 0%, rgba(255, 255, 255, .012) 100%), linear-gradient(var(--vetro-base), var(--vetro-base));
+  --filo-1: rgba(255, 255, 255, .3);
+  --filo-2: rgba(255, 255, 255, .1);
+  --filo-3: rgba(255, 255, 255, .06);
+  --ombra: 0 1 8;
+  --o1: .55;
+  --o2: .5;
+  --o3: .6;
+  --accent-ink: #f3dfa8;
+  --accent-text: #f3dfa8;
+  --dock-vetro: rgba(52, 55, 70, .56);
+  --dock-filo: rgba(255, 255, 255, .2);
+  --dock-fondo: rgba(255, 255, 255, .05);
+  --dock-ombra: 0 1 8;
+  --dock-o: .62;
+  --dock-tasto: linear-gradient(180deg, rgba(255, 255, 255, .2) 0%, rgba(255, 255, 255, .13) 100%);
+  --dock-tasto-ombra: inset 0 1px 0 rgba(255, 255, 255, .2), 0 0 0 .5px rgba(0, 0, 0, .3), 0 2px 6px -1px rgba(0, 0, 0, .4);
+  --velo: rgba(7, 8, 16, .6);
 }
 
 /* superfici sempre scure (cielo, inchiostro, notte): i neutri si ribaltano dentro di loro */
@@ -186,9 +295,10 @@ b { font-weight: inherit; }
 }
 
 /* ------------------------------------------------------------------ base */
-html { background: var(--bg); }
+/* la pagina è il cielo: il suo colore più alto sta sotto tutto (quello che si vede tirando oltre il bordo), il resto lo dipinge .wall */
+html { background: var(--cielo-alto); }
 body {
-  background: var(--bg);
+  background: transparent;
   color: var(--ink);
   font: 500 15px/1.42 var(--font-sans);
   letter-spacing: -.005em;
@@ -227,34 +337,26 @@ html.is-locked, html.is-locked body { overflow: hidden; }
   @media (min-resolution: 2dppx) { .tile::after, .cc::after, .lit::after { padding: .5px; } }
 }
 
-/* ------------------------------------------------------------------ sfondo vivo: il cielo di Torino, sfocato, che deriva piano */
-.wall { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; overflow: hidden; pointer-events: none; background: var(--bg); }
+/* ------------------------------------------------------------------ il cielo della pagina: Torino adesso, fermo
+   Tre toni dall'alto in basso (app.js li calcola dal cielo dell'hero), il bagliore basso dal lato del sole, la grana. Niente deriva:
+   di notte, nel tema scuro, si muovono solo le stelle dell'intro, deboli, dietro i riquadri (le tele .wall__s le mette app.js, il loro
+   stile sta in vivi.css). .wall__b resta nella pagina ma non si disegna più. */
+.wall { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  background: linear-gradient(180deg, var(--cielo-alto) 0%, var(--cielo-mezzo) 56%, var(--cielo-basso) 100%); }
 .wall i { position: absolute; display: block; }
-.wall__a, .wall__b { top: -16%; right: -16%; bottom: -16%; left: -16%; opacity: var(--wall-o); will-change: transform; }
-.wall__a {
-  background:
-    radial-gradient(58% 40% at 14% 10%, var(--wall-1) 0%, transparent 72%),
-    radial-gradient(52% 38% at 96% 34%, var(--wall-2) 0%, transparent 72%),
-    radial-gradient(64% 36% at 26% 98%, var(--wall-3) 0%, transparent 74%);
-  animation: drift-a 46s ease-in-out infinite alternate;
-}
-.wall__b {
-  background:
-    radial-gradient(40% 26% at 82% 84%, var(--wall-4) 0%, transparent 72%),
-    radial-gradient(42% 30% at 2% 54%, var(--wall-2) 0%, transparent 72%),
-    radial-gradient(36% 22% at 60% 2%, var(--wall-3) 0%, transparent 74%);
-  animation: drift-b 58s ease-in-out infinite alternate;
-}
+/* il bagliore: un campo più grande dello schermo, come i campi di prima, perché l'ellisse sotto il bordo basso resti morbida */
+.wall__a { top: -16%; right: -16%; bottom: -16%; left: -16%; background: radial-gradient(72% 44% at var(--cielo-gx) 104%, var(--cielo-bagliore) 0%, transparent 74%); }
+.wall__b { display: none; }
 /* nelle fotografie a pagina intera uno sfondo fisso coprirebbe solo il primo schermo: lì lo si stende su tutta la pagina */
 .is-shot .wall { position: absolute; }
 .wall__g { top: 0; right: 0; bottom: 0; left: 0; background: var(--grain, none) 0 0 / var(--gs) var(--gs); }
-@keyframes drift-a { from { transform: translate3d(-2%, -1.5%, 0) scale(1); } to { transform: translate3d(3%, 2.5%, 0) scale(1.08); } }
-@keyframes drift-b { from { transform: translate3d(3.5%, 3%, 0) scale(1.07); } to { transform: translate3d(-3.5%, -3.5%, 0) scale(1); } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wall__g { opacity: .72; } }
+:root[data-theme="dark"] .wall__g { opacity: .72; }
 
 /* ------------------------------------------------------------------ pulsante rotondo (suoni, chiudi, frecce del lettore) */
 .iconbtn { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; position: relative; color: var(--ink); flex: none; }
 .iconbtn::before {
-  content: ""; position: absolute; top: 3px; right: 3px; bottom: 3px; left: 3px; border-radius: 50%;
+  content: ""; position: absolute; top: 4px; right: 4px; bottom: 4px; left: 4px; border-radius: 50%;   /* 36 px da vedere, 44 da toccare */
   background: var(--btn-glass);
   box-shadow: inset 0 1px 0 var(--e2), 0 0 0 1px var(--ring), 0 6px 14px -8px rgb(var(--sh) / .4);
   -webkit-backdrop-filter: saturate(1.6) blur(16px); backdrop-filter: saturate(1.6) blur(16px);
@@ -262,6 +364,7 @@ html.is-locked, html.is-locked body { overflow: hidden; }
 }
 .iconbtn svg { position: relative; }
 .iconbtn:active::before { transform: scale(.9); }
+#sound svg { width: 20px; height: 20px; }
 #sound .snd-on { display: none; }
 #sound[aria-pressed="true"] .snd-on { display: block; }
 #sound[aria-pressed="true"] .snd-off { display: none; }
@@ -274,7 +377,7 @@ html.is-locked, html.is-locked body { overflow: hidden; }
   border-radius: var(--r);
   background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--mat);
   color: var(--t-ink);
-  box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgb(var(--sh) / calc(var(--s1) * .35)), 0 12px 28px -12px rgb(var(--sh) / var(--s1)), 0 36px 64px -36px rgb(var(--sh) / var(--s2));
+  /* l'ombra e il filo sul bordo vengono dal sole vero: casa.css, «la luce» (una formula sola per ogni riquadro, i valori per materiale qui sotto) */
   -webkit-user-select: none; user-select: none;
   transition: transform var(--d-press) var(--ease-out), opacity 340ms ease;
   -webkit-touch-callout: none;
@@ -283,20 +386,34 @@ html.is-locked, html.is-locked body { overflow: hidden; }
 .tile.is-source { visibility: hidden; }
 .tile__hit { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 1; border-radius: inherit; }
 .tile__hit:focus-visible { outline-offset: -5px; }
-.tile__in { position: relative; z-index: 2; height: 100%; padding: var(--p); display: flex; flex-direction: column; pointer-events: none; }
-.tile__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+/* un margine solo: il nome del riquadro sta a --p dal bordo sinistro e (con la sua riga di 20 px) a --p dal bordo alto */
+.tile__in { position: relative; z-index: 2; height: 100%; padding: calc(var(--p) - 2px) var(--p) var(--p); display: flex; flex-direction: column; pointer-events: none; }
+.tile__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 20px; }
 .tile__foot { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font: 500 12px/16px var(--font-sans); letter-spacing: 0; color: var(--t-ink-2); }
 
-.tile[data-mat="paper"] { --mat: var(--paper-mat); --t-ink: var(--paper-ink); --t-ink-2: var(--paper-ink-2); --sh: 104 78 36; }
-.tile[data-mat="night"] { --mat: var(--night-mat); --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .72); --sh: 22 28 84; --s1: .3; --s2: .42; }
+/* i materiali, uguali nei due temi: vetro tutto ciò che informa (Nel mondo, Progetti, Sto imparando, Tools, Heatmap, Saluti), notte le
+   finestre sul cielo (Le città; Su di me ci mette sopra la sua foto), carta il Corano. Ognuno con il suo filo e la sua ombra */
+.tile[data-mat="glass"] { --mat: var(--vetro); --t-ink: var(--ink); --t-ink-2: var(--ink-2); }
+.tile[data-mat="paper"] { --mat: var(--paper-mat); --t-ink: var(--paper-ink); --t-ink-2: var(--paper-ink-2); --sh: 104 78 36;
+  --filo-1: rgba(255, 255, 255, .95); --filo-2: rgba(255, 255, 255, .55); --filo-3: rgba(255, 255, 255, .25); --ombra: 92 66 26; --o1: .13; --o2: .16; --o3: .12; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tile[data-mat="paper"] { --filo-1: rgba(255, 234, 196, .28); --filo-2: rgba(255, 234, 196, .085); --filo-3: rgba(255, 234, 196, .045); --ombra: 0 0 0; --o1: .55; --o2: .5; --o3: .55; }
+}
+:root[data-theme="dark"] .tile[data-mat="paper"] { --filo-1: rgba(255, 234, 196, .28); --filo-2: rgba(255, 234, 196, .085); --filo-3: rgba(255, 234, 196, .045); --ombra: 0 0 0; --o1: .55; --o2: .5; --o3: .55; }
+.tile[data-mat="night"] { --mat: var(--notte); --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .72); --sh: 22 28 84; --s1: .3; --s2: .42;
+  --filo-1: rgba(255, 255, 255, .36); --filo-2: rgba(255, 255, 255, .11); --filo-3: rgba(255, 255, 255, .05); --ombra: 4 6 34; --o1: .42; --o2: .4; --o3: .5; }
+/* l'inchiostro non lo usa più nessun riquadro della casa (Heatmap e Sto imparando sono vetro): resta per chi lo chiede */
 .tile[data-mat="ink"] { --mat: var(--ink-mat); --t-ink: #e3e7f4; --t-ink-2: rgba(227, 231, 244, .64); --sh: 20 24 70; --s1: .3; --s2: .42; }
 .tile[data-mat="night"], .tile[data-mat="ink"], .hero { --e1: rgba(255, 255, 255, .3); --e2: rgba(255, 255, 255, .09); --e3: rgba(255, 255, 255, .04); --ring: rgba(255, 255, 255, 0); }
 
-.label { font: 600 13px/18px var(--font-sans); letter-spacing: -.008em; color: var(--t-ink-2); }
+/* la riga di testa, uguale in ogni riquadro: il nome in Manrope; a destra ciò che la macchina sa, in Geist Mono maiuscolo
+   (nel DOM resta scritto come si legge: «Versetto di oggi») */
+.label { font: var(--f-name); letter-spacing: var(--ls-name); color: var(--t-ink-2); }
 .label--ink { color: var(--t-ink); }
-.title { font: 700 clamp(15px, calc(var(--cell) * .208), 17.5px)/1.18 var(--font-sans); letter-spacing: -.028em; }
-.sub { display: block; font: 500 13px/1.38 var(--font-sans); letter-spacing: -.006em; color: var(--t-ink-2); }
-.stardot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 2.5px rgba(243, 223, 168, .2), 0 0 9px 1px rgba(243, 223, 168, .65); }
+.tile__head .label:not(.label--ink) { font: var(--f-meta); letter-spacing: var(--ls-meta); text-transform: uppercase; color: var(--t-ink-2); }
+.title { font: var(--f-title); letter-spacing: var(--ls-title); text-wrap: balance; }
+.sub { display: block; font: var(--f-small); letter-spacing: var(--ls-small); color: var(--t-ink-2); }
+.stardot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2.5px rgb(var(--accent-glow) / .2), 0 0 9px 1px rgb(var(--accent-glow) / .65); }
 
 /* ------------------------------------------------------------------ cielo come materiale */
 .skybox {
@@ -307,6 +424,10 @@ html.is-locked, html.is-locked body { overflow: hidden; }
     radial-gradient(74% 86% at var(--gx, 82%) 116%, var(--glow, transparent) 0%, transparent 68%),
     linear-gradient(180deg, var(--zen, #1f4290) 0%, var(--mid, #5a55a0) 50%, var(--rose, #a85f86) 78%, var(--hor, #c57454) 100%);
 }
+/* di notte, nel tema scuro, ventisei stelline ferme dentro il cielo (la tessera --stelle-tex la disegna app.js). Sta sotto la stella di
+   chi ha salutato (.gw, z 1); app.js riscrive il contenuto di .skybox ogni minuto, lo pseudo-elemento resta */
+.skybox::before { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; pointer-events: none;
+  background: var(--stelle-tex, none) 30px 12px / 220px 220px; opacity: calc(var(--stelle) * .85); }
 @keyframes halo { 0%, 100% { opacity: .7; transform: scale(.93); } 50% { opacity: 1; transform: scale(1.07); } }
 
 /* la prima stella dell'hero */
@@ -322,17 +443,27 @@ html.is-locked, html.is-locked body { overflow: hidden; }
 .gw { position: absolute; z-index: 1; width: 0; height: 0; pointer-events: none; }
 .gw--me { left: calc(50% + var(--mx, .5) * 8%); top: calc(34% + var(--my, .5) * 8%); }
 .gw--me i { position: absolute; left: -2.5px; top: -2.5px; width: 5px; height: 5px; border-radius: 50%; background: #fff6dc; box-shadow: 0 0 0 3px rgba(243, 223, 168, .22), 0 0 12px 3px rgba(243, 223, 168, .8); }
-.gw--me b { position: absolute; left: 9px; top: -9px; font: 600 12px/18px var(--font-sans); letter-spacing: 0; color: var(--gold); white-space: nowrap; text-shadow: 0 1px 8px rgba(6, 10, 44, .4); }
+.gw--me b { position: absolute; left: 9px; top: -9px; font: 600 12px/18px var(--font-sans); letter-spacing: 0; color: var(--accent); white-space: nowrap; text-shadow: 0 1px 8px rgba(6, 10, 44, .4); }
 
 /* ------------------------------------------------------------------ HERO */
-.hero { color: #fff; background: #151c44; --sh: 44 44 120; --s1: .34; --s2: .46; }
+.hero { color: #fff; background: #151c44; --sh: 44 44 120; --s1: .34; --s2: .46;
+  --filo-1: rgba(255, 255, 255, .5); --filo-2: rgba(255, 255, 255, .13); --filo-3: rgba(255, 255, 255, .06); }   /* la sua ombra: casa.css */
 .hero .star1 { right: 50px; top: 46px; }
-.hero__text { position: absolute; left: 20px; bottom: 11px; z-index: 2; }
+/* il marchio sull'asse: a --p dal bordo sinistro; la sua riga di base, con la riga dei saluti sotto, a --p dal fondo */
+.hero__text { position: absolute; left: var(--p); bottom: calc(var(--p) - 7px); z-index: 2; }
+/* la riga di data: il cielo dell'hero è quello di Torino adesso, e la macchina lo dice (TORINO · 23:30 · NOTTE; la scrive app.js).
+   Misurato: 4,67 : 1 a mezzogiorno, il cielo più chiaro */
+.hero__luogo { position: absolute; z-index: 2; left: var(--p); top: calc(var(--p) - 2px); margin: 0; display: flex; align-items: center; gap: 7px; height: 20px;
+  font: var(--f-meta); letter-spacing: var(--ls-meta); text-transform: uppercase; color: rgba(255, 255, 255, .72); white-space: nowrap; pointer-events: none; }
+.hero__luogo i { display: block; flex: none; width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: .7; }
+.hero__luogo time { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 .hero__word { font: 800 var(--word)/.94 var(--font-sans); letter-spacing: -.055em; margin: 1px 0 0 -.045em; white-space: nowrap; text-shadow: 0 1px 1px rgba(6, 10, 44, .1), 0 4px 30px rgba(6, 10, 44, .32); }
 .hero__word span { display: inline-block; }
 
 /* ------------------------------------------------------------------ CORANO */
-.corano .tile__in { padding: 18px var(--p) 16px; }
+/* il Corano: la testa più quieta (il margine in basso come quello in alto); niente altro cambia, né il versetto né intorno */
+.corano .tile__in { padding: calc(var(--p) - 2px) var(--p) calc(var(--p) - 2px); }
+.corano .tile__foot > span:first-child { color: var(--t-ink); opacity: .82; font-weight: 600; }
 .corano__verse { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding-bottom: 2px; }
 .ayah { font-family: var(--font-quran); font-weight: 400; font-size: var(--ayah, calc(var(--cell) * .43)); line-height: 2; color: var(--t-ink, var(--ink)); }
 /* tra il versetto e la traduzione solo spazio: i segni sotto la riga araba non toccano mai l'italiano */
@@ -345,11 +476,17 @@ html.is-locked, html.is-locked body { overflow: hidden; }
   box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .62), 0 2px 6px rgba(0, 0, 0, .18);
 }
 
-/* ------------------------------------------------------------------ SALUTI: i saluti che scorrono */
-.marq { margin: auto calc(var(--p) * -1); padding: 1px 0; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent); }
-.marq__row { display: flex; gap: 6px; width: max-content; padding-left: var(--p); animation: marq 48s linear infinite; }
-.marq__row span { flex: none; height: 28px; padding: 0 11px; border-radius: 14px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); font: 600 13px/28px var(--font-sans); letter-spacing: -.01em; white-space: nowrap; }
-.marq__row + .marq__row { margin-top: 8px; }
+/* ------------------------------------------------------------------ SALUTI: i saluti che scorrono
+   Le parole sono il disegno: niente gettoni, due file a corpi diversi separate da punti tondi, che si sciolgono ai bordi
+   (a sinistra in --p, a destra in 40 px). Stanno in alto nel riquadro (casa.css mette il titolo in fondo) */
+.marq { margin: 2px calc(var(--p) * -1) 0; padding: 0; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--p), #000 calc(100% - 40px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 var(--p), #000 calc(100% - 40px), transparent 100%); }
+.marq__row { display: flex; gap: 0; width: max-content; padding-left: var(--p); animation: marq 48s linear infinite; }
+.marq__row span { flex: none; display: inline-flex; align-items: center; font: 700 22px/28px var(--font-sans); letter-spacing: -.03em; color: var(--t-ink); white-space: nowrap; }
+.marq__row span::after { content: ""; display: block; flex: none; width: 4px; height: 4px; margin: 0 14px; border-radius: 50%; background: currentColor; opacity: .28; }
+.marq__row--2 span { font: 600 15px/22px var(--font-sans); letter-spacing: -.015em; color: var(--t-ink-2); }
+.marq__row--2 span::after { width: 3px; height: 3px; margin: 0 11px; }
 .marq__row--2 { animation-direction: reverse; animation-duration: 56s; }   /* la seconda fila va dall'altra parte, più piano */
 @keyframes marq { to { transform: translateX(-50%); } }
 
@@ -453,7 +590,7 @@ html.is-locked, html.is-locked body { overflow: hidden; }
 .sal__note button { color: #fff; font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: rgba(255, 255, 255, .5); padding: 12px 0; margin: -12px 0; }
 .mystar { position: absolute; z-index: 2; width: 0; height: 0; pointer-events: none; }
 .mystar i { position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: #fff3d0; box-shadow: 0 0 0 3px rgba(243, 223, 168, .22), 0 0 16px 4px rgba(243, 223, 168, .75); }
-.mystar em { position: absolute; left: 12px; top: -10px; font: 600 13px/20px var(--font-sans); letter-spacing: -.01em; color: var(--gold); white-space: nowrap; }
+.mystar em { position: absolute; left: 12px; top: -10px; font: 600 13px/20px var(--font-sans); letter-spacing: -.01em; color: var(--accent); white-space: nowrap; }
 .mystar u { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(243, 223, 168, .8); opacity: 0; text-decoration: none; }
 .fly { position: fixed; z-index: 90; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
 .fly i { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: #fff3d0; box-shadow: 0 0 0 3px rgba(243, 223, 168, .25), 0 0 18px 5px rgba(243, 223, 168, .8); }
@@ -479,15 +616,15 @@ html.is-locked, html.is-locked body { overflow: hidden; }
 .let__dots i.on { opacity: .9; transform: scale(1.25); }
 .let__nav .iconbtn[disabled] { opacity: .35; pointer-events: none; }
 
-/* ------------------------------------------------------------------ telefoni stretti */
+/* ------------------------------------------------------------------ telefoni stretti (il margine interno 16 px: in cima, con i token) */
 @media (max-width: 374px) {
-  :root { --ps: 16px; --p: 18px; }
   .pano__l b { font-size: 14px; }
 }
 
 /* ------------------------------------------------------------------ tablet: 8 colonne, stesse celle */
 @media (min-width: 700px) {
-  :root { --cols: 8; --gutter: 28px; --gap: 14px; --cell: calc((min(100vw, 890px) - 2 * var(--gutter) - 7 * var(--gap)) / 8); --r: 34px; --word: calc(var(--cell) * .74); }
+  :root { --cols: 8; --gutter: 28px; --gap: 14px; --cell: calc((min(100vw, 890px) - 2 * var(--gutter) - 7 * var(--gap)) / 8); --r: 34px; --word: calc(var(--cell) * .74);
+    --p: 20px; --ps: 20px; --f-big: 800 32px/32px var(--font-sans); }
   .sheet__card { top: 0; right: 0; bottom: 0; left: 0; margin: auto; width: min(640px, 100vw - 64px); height: min(820px, 100vh - 64px); --s-r: 40px; }
   .sheet__grab { display: none; }
   .sheet__body { padding-top: 64px; padding-left: 36px; padding-right: 36px; padding-bottom: 36px; }
@@ -499,13 +636,13 @@ html.is-locked, html.is-locked body { overflow: hidden; }
 
 /* ------------------------------------------------------------------ computer: 12 colonne */
 @media (min-width: 1100px) {
-  :root { --cols: 12; --gutter: 32px; --gap: 16px; --cell: calc((min(100vw - 20px, 1140px) - 2 * var(--gutter) - 11 * var(--gap)) / 12); --word: calc(var(--cell) * 1.02); }
-  .hero__text { left: 26px; bottom: 20px; }
+  :root { --cols: 12; --gutter: 32px; --gap: 16px; --cell: calc((min(100vw - 20px, 1140px) - 2 * var(--gutter) - 11 * var(--gap)) / 12); --word: calc(var(--cell) * 1.02);
+    --f-big: 800 34px/34px var(--font-sans); }
+  .hero__text { left: var(--p); bottom: 18px; }
   .hero .star1 { right: 96px; top: 62px; }
   .gw--me { left: 63%; top: 28%; }
   .gw--me b { left: auto; right: 10px; }
   .corano { --ayah: calc(var(--cell) * .5); }
-  .corano .tile__in { padding: 22px 24px 20px; }
   .corano__it { font-size: 17px; margin-top: 14px; }
 }
 
@@ -516,7 +653,10 @@ html.is-locked, html.is-locked body { overflow: hidden; }
     background: radial-gradient(280px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 255, 255, .16), rgba(255, 255, 255, 0) 70%); }
   .tile:hover { transform: translateY(-3px); }
   .tile:hover::before { opacity: 1; }
-  .hero:hover { transform: none; }
+  /* il Corano non si alza e non ha la luce del puntatore: è l'unico riquadro fermo (scritto così, e non con :not(), perché la
+     pressione e «meno movimento» qui sotto continuino a vincere sugli altri riquadri con la stessa forza di prima) */
+  .tile.corano:hover, .hero:hover { transform: none; }
+  .tile.corano::before { content: none; }
   .tile.is-pressed { transform: scale(.98); transition-duration: var(--d-press); }
   .iconbtn:hover::before { transform: scale(1.06); }
   .gchip:hover { background: linear-gradient(180deg, rgba(255, 255, 255, .2) 0%, rgba(255, 255, 255, .13) 100%); }
@@ -525,10 +665,13 @@ html.is-locked, html.is-locked body { overflow: hidden; }
   .sheet__scrim { cursor: pointer; }
 }
 
+/* il Corano, premuto, non si rimpicciolisce mai (in nessun puntatore): risponde solo il velo sotto le parole (moto.css) */
+.tile.corano.is-pressed { transform: none; }
+
 /* ------------------------------------------------------------------ meno movimento, fotografie */
 @media (prefers-reduced-motion: reduce) {
-  .marq__row, .star1 b, .wall__a, .wall__b { animation: none; }
+  .marq__row, .star1 b { animation: none; }
   .tile, .gchip, .iconbtn::before, .let__dots i { transition: none; }
   .tile.is-pressed, .tile:hover { transform: none; }
 }
-.is-shot .marq__row, .is-shot .star1 b, .is-shot .wall__a, .is-shot .wall__b { animation: none; }
+.is-shot .marq__row, .is-shot .star1 b { animation: none; }
