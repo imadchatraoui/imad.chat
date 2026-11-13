@@ -303,14 +303,29 @@ const LISTA = [
 
 {
   const commits = [
-    { sha: "a", commit: { message: "Lezione 12: luci\n\nDettagli lunghi", author: { date: "2026-11-10T08:00:00Z" }, committer: { date: "2026-11-10T09:00:00Z" } } },
+    { sha: "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678", html_url: "https://github.com/imadchatraoui/threejs-journey/commit/a1b2c3d4e5f60718293a4b5c6d7e8f9012345678", commit: { message: "Lezione 12: luci\n\nDettagli lunghi", author: { date: "2026-11-10T08:00:00Z" }, committer: { date: "2026-11-10T09:00:00Z" } } },
     { sha: "b", commit: { message: "Fix\r\nsecondo", author: { date: "2026-11-09T08:00:00Z" }, committer: null } },
     { sha: "c", commit: { message: "x".repeat(300), author: { date: "2026-11-08T08:00:00Z" }, committer: { date: "2026-11-08T08:00:00Z" } } },
     { sha: "d", commit: { message: "quarto", author: { date: "2026-11-07T08:00:00Z" } } },
+    { sha: "e", commit: { message: "quinto", author: { date: "2026-11-06T08:00:00Z" } } },
+    { sha: "f", commit: { message: "sesto", author: { date: "2026-11-05T08:00:00Z" } } },
+    { sha: "g", commit: { message: "settimo", author: { date: "2026-11-04T08:00:00Z" } } },
+    { sha: "ffffffffffffffffffffffffffffffffffffffff", html_url: "https://evil.example/imadchatraoui/threejs-journey/commit/ffffffffffffffffffffffffffffffffffffffff", commit: { message: "ottavo", author: { date: "2026-11-03T08:00:00Z" } } },
+    { sha: "9", commit: { message: "nono", author: { date: "2026-11-02T08:00:00Z" } } },
   ];
   const c = P.formaCommit(commits);
-  ok(c.ok && c.value.length === 3, "commits: al massimo tre");
-  eq(c.value[0], { message: "Lezione 12: luci", date: "2026-11-10T09:00:00.000Z" }, "commits: prima riga e data");
+  ok(c.ok && c.value.length === 8, "commits: al massimo otto");
+  eq(P.MAX_COMMIT, 8, "commits: la rotta ne chiede otto");
+  eq(c.value[0], { message: "Lezione 12: luci", date: "2026-11-10T09:00:00.000Z", sha7: "a1b2c3d", url: "https://github.com/imadchatraoui/threejs-journey/commit/a1b2c3d4e5f60718293a4b5c6d7e8f9012345678" }, "commits: prima riga, data, sha7 e link");
+  ok(c.value[1].sha7 === null && c.value[1].url === null, "commits: sha non esadecimale → niente sha7 né link");
+  ok(c.value[7].sha7 === "fffffff" && c.value[7].url === null, "commits: link fuori da github.com → niente link");
+  ok(c.value.every((x) => x.message !== "nono"), "commits: il nono non c'è");
+  {
+    const L2 = P.formaLearning({ name: "threejs-journey", url: "https://github.com/imadchatraoui/threejs-journey", pushedAt: null }, [
+      { message: "a", date: null, sha7: "a1b2c3d", url: "https://github.com/imadchatraoui/threejs-journey/commit/a1b2c3d4e5f60718293a4b5c6d7e8f9012345678" },
+      { message: "b", date: null, sha7: "a1b2c3d", url: "https://github.com/imadchatraoui/altro/commit/a1b2c3d4e5f60718293a4b5c6d7e8f9012345678" }]);
+    ok(L2.commits[0].url && L2.commits[1].url === null, "learning: il link di un commit solo se è di quel repository");
+  }
   eq(c.value[1].message, "Fix", "commits: \\r\\n");
   ok(c.value[2].message.length <= 120 && c.value[2].message.endsWith("…"), "commits: titolo lunghissimo accorciato");
   ok(!P.formaCommit({ message: "Not Found" }).ok, "commits: 404 JSON → fallisce");
@@ -404,7 +419,8 @@ const nessunSegreto = (x) => !JSON.stringify(x).includes(TOKEN) && !/authorizati
   ok(r.data && r.data.ok && r.data.repos.length === 7, "progetti: ok", r.why);
   eq(f.chiamate[0].url, "https://api.github.com/users/imadchatraoui/repos?per_page=100&sort=pushed&type=owner", "progetti: l'endpoint dei soli pubblici");
   ok(!f.chiamate.some((c) => /\/user\/repos|\/orgs\/|type=all|visibility=/.test(c.url)), "progetti: mai un endpoint che elenca i privati");
-  eq(r.data.learning, { repo: "threejs-journey", url: "https://github.com/imadchatraoui/threejs-journey", pushedAt: "2026-11-10T09:00:00.000Z", commits: [{ message: "Lezione 12", date: "2026-11-10T09:00:00.000Z" }] }, "progetti: learning");
+  eq(f.chiamate[1] && f.chiamate[1].url, "https://api.github.com/repos/imadchatraoui/threejs-journey/commits?per_page=8", "progetti: otto commit");
+  eq(r.data.learning, { repo: "threejs-journey", url: "https://github.com/imadchatraoui/threejs-journey", pushedAt: "2026-11-10T09:00:00.000Z", commits: [{ message: "Lezione 12", date: "2026-11-10T09:00:00.000Z", sha7: null, url: null }] }, "progetti: learning");
   eq(Object.keys(r.data), ["ok", "repos", "learning", "updated"], "progetti: chiavi del contratto");
   eq(r.why[0].rateRemaining, "57", "why: limite rimasto");
   ok(!JSON.stringify(r.data).includes("segreto"), "progetti: nessun privato nella risposta");
@@ -418,7 +434,7 @@ const nessunSegreto = (x) => !JSON.stringify(x).includes(TOKEN) && !/authorizati
   ]);
   const r = await L.caricaProgetti({ fetchImpl: f, adesso: ADESSO });
   ok(r.data && r.data.repos.length === 7 && !r.data.repos.some((x) => x.name === U), "progetti: il profilo non è tra i repos", r.why);
-  eq(r.data && r.data.learning, { repo: "threejs-journey", url: "https://github.com/imadchatraoui/threejs-journey", pushedAt: "2026-11-10T09:00:00.000Z", commits: [{ message: "Lezione 12", date: "2026-11-10T09:00:00.000Z" }] }, "progetti: learning invariato col profilo nella lista");
+  eq(r.data && r.data.learning, { repo: "threejs-journey", url: "https://github.com/imadchatraoui/threejs-journey", pushedAt: "2026-11-10T09:00:00.000Z", commits: [{ message: "Lezione 12", date: "2026-11-10T09:00:00.000Z", sha7: null, url: null }] }, "progetti: learning invariato col profilo nella lista");
 }
 {
   // il repository di studio è privato: i suoi commit non si chiedono nemmeno

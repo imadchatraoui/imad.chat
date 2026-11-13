@@ -1,0 +1,42 @@
+/* imad.chat — la scatola dei tasti (CASA.md 2f F): la pagina casa/scatola/ (mai nella casa: lo spazio sotto i riquadri è di Imad).
+   Il pozzo è un riquadro di vetro della casa (2d B: --vetro, il filo dal lato del sole, l'ombra in tre strati, nessuna sfocatura) visto
+   dall'alto: un filo d'ombra dentro il bordo alto dice che è una scatola aperta. Dentro, la tela dei tasti (scatola.js).
+   Funziona con i token della casa (style.css) e con quelli delle pagine (comune/pagina.css). Per Safari non recente: niente :has(),
+   top/right/bottom/left per esteso. */
+
+.scatola {
+  --sc-h: max(300px, calc((min(100vw, 460px) - 2 * var(--gutter, 16px) - 36px) / 4 * 2.9));   /* 2,9 righe di riquadri, almeno 300 px */
+  position: relative; margin-top: 22px; height: var(--sc-h); border-radius: var(--r, 32px); overflow: hidden; isolation: isolate;
+  background: var(--grain, none) 0 0 / var(--gs, 128px) var(--gs, 128px), var(--vetro);
+  box-shadow: 0 0 0 .5px rgb(var(--ombra) / calc(var(--o1) * .45)), 0 1px 2px rgb(var(--ombra) / var(--o1)),
+    var(--shx, 0px) var(--shy, 12px) 26px -12px rgb(var(--ombra) / var(--o2)), calc(var(--shx, 0px) * 2.4) calc(var(--shy, 12px) * 2.8) 72px -30px rgb(var(--ombra) / var(--o3));
+}
+@media (min-width: 700px) { .scatola { --sc-h: 420px; margin-top: 28px; } }
+/* dentro il bordo alto: l'ombra della parete, come in una scatola aperta guardata da sopra */
+.scatola::before { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 2; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 14px 18px -16px rgb(var(--ombra) / calc(var(--o2) * 1.6)), inset 0 -1px 0 rgb(var(--ombra) / calc(var(--o1) * .5)); }
+.scatola::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 3; border-radius: inherit; pointer-events: none; box-shadow: inset 0 1px 0 var(--filo-2); }
+@supports ((-webkit-mask-composite: xor) or (mask-composite: exclude)) {
+  .scatola::after {
+    box-shadow: none; padding: 1px;
+    background: linear-gradient(var(--sun-ang, 180deg), var(--filo-1) 0%, var(--filo-2) 38%, var(--filo-3) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
+  }
+  @media (min-resolution: 2dppx) { .scatola::after { padding: .5px; } }
+}
+/* la tela: la pagina scorre in verticale sopra di lei finché un dito non prende un tasto (scatola.js ferma lo scorrimento solo allora) */
+.scatola__cv {
+  position: absolute; top: 0; left: 0; z-index: 1; display: block; width: 100%; height: 100%; border-radius: inherit;
+  touch-action: pan-y; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+  outline: none; cursor: default;
+}
+.scatola__cv.is-sopra { cursor: grab; }
+.scatola__cv.is-preso, .scatola__cv.is-preso.is-sopra { cursor: grabbing; }
+.scatola:focus-within { box-shadow: 0 0 0 2.5px var(--focus), 0 1px 2px rgb(var(--ombra) / var(--o1)), var(--shx, 0px) var(--shy, 12px) 26px -12px rgb(var(--ombra) / var(--o2)); }
+.scatola:focus-within:not(.is-tasti) { box-shadow: 0 0 0 .5px rgb(var(--ombra) / calc(var(--o1) * .45)), 0 1px 2px rgb(var(--ombra) / var(--o1)),
+    var(--shx, 0px) var(--shy, 12px) 26px -12px rgb(var(--ombra) / var(--o2)), calc(var(--shx, 0px) * 2.4) calc(var(--shy, 12px) * 2.8) 72px -30px rgb(var(--ombra) / var(--o3)); }
+
+/* «O scrivi imad.chat.»: solo con una tastiera vera (un mouse accanto) */
+.scatola-kb { display: none; }
+@media (hover: hover) and (pointer: fine) { .scatola-kb { display: inline; } }

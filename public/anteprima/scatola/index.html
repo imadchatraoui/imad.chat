@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="/anteprima/comune/tema.js"></script>
+<script>
+/* il movimento (../home/moto.css, CASA.md 2d E), prima del primo disegno: come nelle altre pagine interne (progetti/index.html).
+   Questa pagina si apre dal menu della casa, non da un riquadro: nessun nome da dare a una sua parte; html.pg-entra fa salire la pagina
+   da sola dove il browser non sa fare le transizioni tra documenti, mai tornando indietro e mai con «meno movimento». ES2017 al massimo. */
+(function () {
+  var r = document.documentElement;
+  r.classList.add("is-pagina");
+  try {
+    var n = performance.getEntriesByType && performance.getEntriesByType("navigation")[0];
+    var back = (n || {}).type === "back_forward" || !!(performance.navigation && performance.navigation.type === 2);
+    var calm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    if (typeof CSSViewTransitionRule === "undefined" && !calm && !back) {
+      r.classList.add("pg-entra");
+      setTimeout(function () { r.classList.remove("pg-entra"); }, 900);
+    }
+  } catch (e) { }
+})();
+</script>
+<style>
+/* le transizioni tra documenti (moto.css, CASA.md 2d E): l'adesione sta qui, in linea, come nelle altre pagine */
+@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }
+</style>
+<title>La scatola dei tasti — imad.chat</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="I nove tasti di imad.chat in una scatola: si trascinano, si lanciano, si impilano.">
+<meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
+<!-- LA SCATOLA DEI TASTI (CASA.md 2f F): i nove tasti di imad.chat, quelli della scena di Dot, in una scatola con la fisica vera.
+     Si apre dal menu della casa («La scatola dei tasti»). Tutto succede sul telefono: niente richieste, niente dati. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..600&family=Manrope:wght@400..800&display=swap">
+<link rel="stylesheet" href="/anteprima/comune/pagina.css">
+<link rel="stylesheet" href="/anteprima/scatola.css">
+<link rel="stylesheet" href="/anteprima/moto.css">
+</head>
+<body class="pg-corpo">
+<div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
+
+<header class="pg-testa">
+  <a class="pg-casa" href="/anteprima" aria-label="imad.chat, torna alla home"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <p class="pg-titolo">La scatola dei tasti</p>
+</header>
+
+<main class="pg">
+  <h1 class="pg-h1">La scatola dei tasti</h1>
+  <p class="pg-lead">Trascinali, lanciali, impilali.<span class="scatola-kb"> O scrivi imad.chat.</span></p>
+
+  <!-- il pozzo: la tela dei tasti la disegna scatola.js -->
+  <section class="scatola" id="scatola" aria-label="La scatola dei tasti">
+    <canvas class="scatola__cv" tabindex="0" role="application" aria-roledescription="scatola" aria-label="Nove tasti con le lettere di imad.chat dentro una scatola. Con il dito o il mouse si trascinano e si lanciano; due tocchi li sparpagliano. Con la tastiera una lettera di imad.chat fa saltare il suo tasto, la barra spaziatrice li sparpaglia."></canvas>
+  </section>
+</main>
+
+<footer class="pg-piede"><a href="/anteprima">Torna alla home</a><span>I tasti sono quelli della scatola di Dot.</span></footer>
+
+<script src="/anteprima/dati/astro-lite.js"></script>
+<script src="/anteprima/comune/pagina.js"></script>
+<script src="/anteprima/dot/dot-stage.js"></script>
+<script src="/anteprima/scatola.js"></script>
+</body>
+</html>

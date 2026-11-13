@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="../comune/tema.js"></script>
 <title>imad.chat — anteprima</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#eef0f8" media="(prefers-color-scheme: light)">
@@ -51,8 +52,12 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="casa.css">
 <link rel="stylesheet" href="vivi.css">
+<link rel="stylesheet" href="sezioni.css">
 <link rel="stylesheet" href="moto.css">
+<link rel="stylesheet" href="filo.css">
 <link rel="stylesheet" href="../../intro/intro.css">
+<link rel="stylesheet" href="menu.css">
+<link rel="stylesheet" href="cursore.css">
 </head>
 <body>
 <!-- il cielo della pagina: Torino adesso, dall'alto in basso, più la grana (di notte, nel tema scuro, app.js ci mette le stelle) -->
@@ -62,6 +67,8 @@
   <!-- la riga in alto: il logo e i suoni. Lo spazio fino all'hero è la mensola di Dot: la sua scatola sta sul bordo dell'hero -->
   <header class="bar" id="bar">
     <a class="logo" href="#" id="logo" aria-label="imad.chat, torna in cima"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+    <!-- il tema: come il telefono, chiaro, scuro (comune/tema.js; il tasto e il suo filo: filo.js, filo.css) -->
+    <button class="iconbtn tema" id="tema" type="button" data-dot-keep aria-label="Tema: come il telefono"><span class="tema__i" aria-hidden="true"><i class="tema__f"></i></span></button>
     <button class="iconbtn" id="sound" type="button" aria-pressed="true" aria-label="Suoni accesi. Tocca per spegnerli">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4.5 9.75h2.75L11.5 6.2v11.6l-4.25-3.55H4.5z"/>
@@ -157,8 +164,8 @@
 
     <!-- STO IMPARANDO: i commit di threejs-journey e un solido a fil di ferro (li mette vivi.js) -->
     <article class="tile imparando" data-tile="imparando" data-mat="glass">
-      <a class="tile__hit" href="https://github.com/imadchatraoui/threejs-journey" target="_blank" rel="noopener" aria-label="Sto imparando: Three.js Journey. Apri il repository su GitHub, in una nuova scheda"></a>
-      <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg>
+      <a class="tile__hit" href="https://github.com/imadchatraoui/threejs-journey" aria-label="Sto imparando: Three.js Journey. Apri"></a>
+      <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg>
       <canvas class="ip__cv" id="imparaCv" aria-hidden="true"></canvas>
       <div class="tile__in">
         <header class="tile__head"><span class="label label--ink">Sto imparando</span></header>
@@ -196,10 +203,10 @@
     <!-- HEATMAP: l'anno di Imad su GitHub (lo mette vivi.js dai dati di /api/github/contributi; senza dati non si inventa niente) -->
     <article class="tile heatmap" data-tile="heatmap" data-mat="glass">
       <div class="tile__in">
-        <header class="tile__head"><span class="label label--ink">Heatmap</span><a class="hm__gh" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr"> (il profilo di Imad, si apre in una nuova scheda)</span></a></header>
+        <header class="tile__head"><span class="label label--ink">Heatmap</span><button class="hm__gh hm__apri" type="button" aria-label="Heatmap: l’anno intero. Apri"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg></button></header>
         <div class="vivo vivo--tocca hm" id="heat">
           <p class="hm__riga" id="heatRiga" aria-live="polite"><span class="hm__a">Si aggiorna tra poco</span></p>
-          <div class="hm__g"><canvas class="hm__cv" id="heatCv" tabindex="0" aria-label="Contributi su GitHub nell'ultimo anno, giorno per giorno. Con le frecce scorri i giorni." aria-describedby="heatRiga"></canvas></div>
+          <div class="hm__g"><canvas class="hm__cv" id="heatCv" tabindex="0" aria-label="Contributi su GitHub nell'ultimo anno, giorno per giorno. Con le frecce scorri i giorni. Invio apre l’anno intero." aria-describedby="heatRiga"></canvas></div>
         </div>
       </div>
     </article>
@@ -253,6 +260,9 @@
   </div>
 </div>
 
+<!-- il menu dal logo 3x3 (menu.js, menu.css): gli indirizzi delle pagine stanno qui, nel markup, perché la build li renda assoluti -->
+<template id="menuVie"><a data-va="mondo" href="../mondo/index.html"></a><a data-va="sudime" href="../su-di-me/index.html"></a><a data-va="progetti" href="../progetti/index.html"></a><a data-va="tools" href="../tools/index.html"></a><a data-va="scatola" href="../scatola/index.html"></a></template>
+
 <!-- l'intro: una tela sopra la pagina, finché non atterra sui nove riquadri -->
 <canvas class="ni" id="ni" aria-hidden="true" data-media="../../intro/media/"></canvas>
 
@@ -261,6 +271,7 @@
 <script src="app.js"></script>
 <script src="terra.js"></script>
 <script src="vivo.js"></script>
+<script src="sez-calc.js"></script><script src="sezioni.js"></script>
 <script>
 /* dove stanno i suoni di Dot, prima dei suoi script: un tocco durante l'intro sveglia già l'audio e li chiede */
 window.DOT = window.DOT || {}; window.DOT.mediaBase = document.getElementById("dotclip").getAttribute("data-media");
@@ -272,6 +283,7 @@ window.DOT = window.DOT || {}; window.DOT.mediaBase = document.getElementById("d
 <script src="../../gatto/dot-fx.js"></script>
 <script src="../../gatto/dot-brain.js"></script>
 <script src="casa.js"></script>
+<script src="filo.js"></script>
 <script>
 /* l'intro atterra su questi nove riquadri, in quest'ordine della sua griglia 3x3 (riga per riga); le foto delle lettere stanno con l'intro.
    La casa nuova usa la copia dell'intro con la versione «gatto» (i tasti volano sulla mensola di Dot); ?v=stella mostra quella di oggi */
@@ -282,6 +294,8 @@ window.__niV = "gatto";
 <script src="../../intro/intro-gatto.js"></script>
 <script src="../tools/qr/vendor/qrcode-generator.js"></script>
 <script src="../tools/qr/qr-core.js"></script>
+<script src="menu.js"></script>
+<script src="cursore.js"></script>
 <script src="vivi.js"></script>
 <script src="moto.js"></script>
 </body>

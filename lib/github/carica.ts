@@ -5,7 +5,7 @@
 // e un passo senza tempo si salta, restituendo quello che si sa già (per i progetti: i repository senza commit).
 
 import { QUERY_CALENDARIO, formaContributi, parseCalendarioHtml, parseGraphql } from "./contributi";
-import { REPO_IMPARANDO, formaCommit, formaLearning, formaRepos } from "./progetti";
+import { MAX_COMMIT, REPO_IMPARANDO, formaCommit, formaLearning, formaRepos } from "./progetti";
 import { SCADENZA_MS, censura, scarica, scaricaJson } from "./rete";
 import type { ContributiOk, FetchLike, Learning, Passo, ProgettiOk } from "./types";
 
@@ -127,7 +127,7 @@ export async function caricaProgetti(o: Opzioni = {}): Promise<Risultato<Progett
   if (!studio) {
     why.push({ source: "commits", step: "skipped", error: REPO_IMPARANDO + " non è nella lista pubblica" });
   } else {
-    const url = "https://api.github.com/repos/" + u + "/" + encodeURIComponent(studio.name) + "/commits?per_page=3";
+    const url = "https://api.github.com/repos/" + u + "/" + encodeURIComponent(studio.name) + "/commits?per_page=" + MAX_COMMIT;
     const commits = await api(fetchImpl, "commits", url, token, why, deadline);
     if (commits !== undefined) {
       const c = formaCommit(commits);

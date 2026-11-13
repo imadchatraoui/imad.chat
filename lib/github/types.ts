@@ -25,7 +25,8 @@ export type Repo = {
   fork: boolean;
 };
 
-export type Commit = { message: string; date: string | null };
+/** sha7: le prime 7 cifre dello sha (null se lo sha non è esadecimale); url: la pagina del commit su GitHub, solo se è github.com/<utente>/<repo>/commit/<sha>. */
+export type Commit = { message: string; date: string | null; sha7: string | null; url: string | null };
 
 export type Learning = {
   repo: string;

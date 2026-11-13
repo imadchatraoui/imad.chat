@@ -1,0 +1,293 @@
+/* imad.chat — le sezioni piene di dettagli (CASA.md 2f E): Corano, Le città, Heatmap, Sto imparando (sezioni.js).
+   Si carica dopo vivi.css e usa i token della casa (2d B); i materiali sono quelli dei riquadri (2d C). Classi tutte con «sz-». Scritto anche per Safari non recente:
+   niente :has(), top/right/bottom/left per esteso, -webkit-backdrop-filter accanto a backdrop-filter. */
+
+/* ------------------------------------------------------------------ il guscio */
+.sz { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 62; }
+.sz[hidden] { display: none !important; }
+.sz__scrim { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: var(--scrim); }
+.sz__panel {
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; overflow: hidden; outline: none; color: var(--ink);
+  background-color: var(--sz-solid, var(--page));
+  -webkit-clip-path: inset(0 round 0px); clip-path: inset(0 round 0px);
+}
+.sz__bg { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--sz-mat); }
+/* la pelle: il fondo del riquadro, che parte grande quanto lui e si allarga con la scheda (il primo fotogramma è il riquadro) */
+.sz__skin { position: absolute; top: 0; left: 0; transform-origin: 0 0; pointer-events: none; will-change: transform, opacity; }
+.sz__scroll { position: absolute; top: 0; right: 0; bottom: 0; left: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.sz__body { position: relative; max-width: 720px; margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 64px) calc(env(safe-area-inset-right) + 20px) calc(env(safe-area-inset-bottom) + 40px) calc(env(safe-area-inset-left) + 20px); }
+@media (min-width: 700px) { .sz__body { padding: 64px 40px 48px; } }
+.sz__bar { position: absolute; z-index: 4; top: 0; left: 0; right: 0; height: calc(env(safe-area-inset-top) + 58px); padding-top: env(safe-area-inset-top);
+  display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.sz__bar::before { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; opacity: 0; transition: opacity 220ms ease;
+  background: var(--sz-bar, rgba(12, 14, 30, .72)); -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+  box-shadow: inset 0 -1px 0 var(--hair); }
+.sz.is-scrolled .sz__bar::before { opacity: 1; }
+.sz__bart { position: relative; font: 700 16px/22px var(--font-sans); letter-spacing: -.02em; opacity: 0; transform: translateY(6px); transition: opacity 220ms ease, transform 320ms var(--ease-out); }
+.sz.is-scrolled .sz__bart { opacity: 1; transform: none; }
+.sz__x { position: absolute; top: calc(env(safe-area-inset-top) + 7px); right: calc(env(safe-area-inset-right) + 10px); pointer-events: auto; }
+/* (dopo le regole del telefono: a parità di peso vince l'ultima) */
+/* tablet e computer: la scheda resta grande quanto lo schermo e il ritaglio la fa diventare una scheda al centro (880 px al
+   massimo, 28 px dall'alto e dal basso): così il riquadro di partenza, anche se sta fuori dalla scheda, non viene mai tagliato */
+@media (min-width: 700px) {
+  .sz { --cw: min(880px, calc(100% - 56px)); --cx: calc((100% - var(--cw)) / 2); }
+  .sz__panel { -webkit-clip-path: inset(28px var(--cx) 28px var(--cx) round 36px); clip-path: inset(28px var(--cx) 28px var(--cx) round 36px); }
+  .sz__scroll { padding: 28px 0; }
+  .sz__bar { top: 28px; left: var(--cx); right: var(--cx); height: 58px; padding-top: 0; }
+  .sz__x { top: 7px; right: 10px; }
+}
+/* le cifre che rotolano (orologi delle città) */
+/* la colonna è larga quanto la sua cifra (la cifra nascosta .sz-dg__z le dà la misura); la pila che rotola le sta sopra, centrata, e il
+   ritaglio taglia solo sopra e sotto */
+.sz-dg { position: relative; display: inline-block; height: 30px; vertical-align: top; -webkit-clip-path: inset(0 -.45em); clip-path: inset(0 -.45em); }
+.sz-dg__z { display: inline-block; visibility: hidden; line-height: 30px; }
+.sz-dg__c { position: absolute; top: 0; left: 50%; display: block; text-align: center; transition: transform 560ms var(--spring, cubic-bezier(.2, .9, .25, 1)); will-change: transform; }
+.sz-dg__c span { display: block; height: 30px; line-height: 30px; }
+.sz-dg__s { display: inline-block; vertical-align: top; line-height: 30px; }
+.sz-cc__t small { display: inline-block; vertical-align: top; }
+.sz-cc__t small .sz-dg, .sz-cc__t small .sz-dg__c span, .sz-cc__t small .sz-dg__s { height: 30px; line-height: 34px; }
+.sz__grab { position: absolute; z-index: 5; top: calc(env(safe-area-inset-top) + 7px); left: 50%; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: var(--grab); pointer-events: none; }
+@media (min-width: 700px) { .sz__grab { display: none; } }
+
+/* i materiali: gli stessi dei riquadri */
+.sz__panel[data-mat="paper"] { --sz-mat: var(--paper-mat); --sz-solid: var(--paper); --ink: var(--paper-ink); --ink-2: var(--paper-ink-2); --ink-3: rgba(34, 29, 20, .44);
+  --fill: rgba(120, 96, 50, .085); --hair: rgba(120, 96, 50, .17); --sz-bar: rgba(251, 246, 234, .78); --grab: rgba(34, 29, 20, .2); --focus: var(--paper-ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sz__panel[data-mat="paper"] { --ink-3: rgba(242, 234, 216, .42); --fill: rgba(255, 224, 168, .07); --hair: rgba(255, 224, 168, .13); --sz-bar: rgba(29, 25, 20, .8); --grab: rgba(242, 234, 216, .24); } }
+:root[data-theme="dark"] .sz__panel[data-mat="paper"] { --ink-3: rgba(242, 234, 216, .42); --fill: rgba(255, 224, 168, .07); --hair: rgba(255, 224, 168, .13); --sz-bar: rgba(29, 25, 20, .8); --grab: rgba(242, 234, 216, .24); }
+.sz__panel[data-mat="night"] { --sz-mat: var(--night-mat); --sz-solid: #0e1430; --sz-bar: rgba(14, 20, 48, .74); }
+.sz__panel[data-mat="ink"] { --sz-mat: var(--ink-mat); --sz-solid: #0f1329; --sz-bar: rgba(15, 19, 41, .76); --ink: #e3e7f4; --ink-2: rgba(227, 231, 244, .66); --ink-3: rgba(227, 231, 244, .44); }
+
+/* ------------------------------------------------------------------ pezzi comuni */
+.sz-k { font: var(--f-meta); letter-spacing: var(--ls-meta); text-transform: uppercase; color: var(--ink-2); }
+.sz-t { font: 700 34px/1.04 var(--font-sans); letter-spacing: -.045em; margin: 0 0 0 -.02em; outline: none; text-wrap: balance; transform-origin: 0 0; }
+.sz-sub { margin-top: 8px; font: 500 16px/1.44 var(--font-sans); letter-spacing: -.012em; color: var(--ink-2); max-width: 32em; text-wrap: pretty; }
+.sz-h { margin-top: 36px; font: 700 21px/1.15 var(--font-sans); letter-spacing: -.035em; }
+.sz-h + .sz-cap { margin-top: 4px; }
+.sz-cap { font: 500 13px/19px var(--font-sans); letter-spacing: -.004em; color: var(--ink-2); text-wrap: pretty; }
+.sz-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.sz-pill { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 17px; border-radius: 22px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair);
+  font: 600 14px/1 var(--font-sans); letter-spacing: -.012em; color: var(--ink); transition: transform var(--d-press) var(--ease-out), background-color 200ms ease; }
+.sz-pill:active { transform: scale(.96); }
+.sz-pill svg { flex: none; }
+.sz-pill.is-ok { background: var(--fill-2, var(--fill)); }
+.sz-note { margin-top: 40px; padding-top: 16px; box-shadow: inset 0 1px 0 var(--hair); font: 500 13px/19px var(--font-sans); color: var(--ink-2); text-wrap: pretty; }
+.sz-note p + p { margin-top: 8px; }
+.sz-note a { color: var(--ink); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: var(--hair); }
+.sz-vuoto { margin-top: 18px; font: 600 15px/22px var(--font-sans); color: var(--ink-2); }
+.sz-card { position: relative; border-radius: 24px; background: var(--grain, none) 0 0 / var(--gs) var(--gs), linear-gradient(180deg, rgba(255, 255, 255, .075) 0%, rgba(255, 255, 255, .04) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07), inset 0 1px 0 rgba(255, 255, 255, .1); }
+
+/* ------------------------------------------------------------------ Corano */
+.sz-vd { margin-top: 26px; text-align: center; }
+.sz-vd__k { font: var(--f-meta); letter-spacing: var(--ls-meta); text-transform: uppercase; color: var(--ink-2); }
+.sz-vd__ar { margin: 10px auto 0; line-height: 2; color: var(--ink); }
+.sz-vd__it { margin: 12px auto 0; max-width: 24em; font: 500 18px/1.5 var(--font-sans); letter-spacing: -.014em; text-wrap: balance; }
+.sz-vd__ref { margin-top: 20px; font: 600 14.5px/20px var(--font-sans); letter-spacing: -.012em; }
+.sz-vd__tr { font: 500 13px/19px var(--font-sans); color: var(--ink-2); }
+.sz-vd .sz-pills { justify-content: center; }
+.sz-sep { height: 1px; margin: 34px 0 0; background: var(--hair); }
+.sz-vl { margin-top: 16px; display: grid; gap: 12px; }
+@media (min-width: 900px) { .sz-vl { grid-template-columns: 1fr 1fr; align-items: start; } }
+.sz-v { position: relative; padding: 18px 18px 12px; border-radius: 24px; background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); }
+.sz-v__ar { font-family: var(--font-quran); font-size: 25px; line-height: 2.05; text-align: right; color: var(--ink); }
+.sz-v__it { margin-top: 8px; font: 500 16px/1.5 var(--font-sans); letter-spacing: -.01em; text-wrap: pretty; }
+.sz-v__f { margin-top: 10px; display: flex; align-items: center; gap: 4px; }
+.sz-v__ref { flex: 1; min-width: 0; font: 600 13.5px/18px var(--font-sans); letter-spacing: -.01em; }
+.sz-v__ref .num { margin-left: 4px; }
+.sz-v__ref span:last-child { display: block; font-weight: 500; font-size: 12.5px; color: var(--ink-2); }
+.sz-ib { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: var(--ink-2); transition: transform var(--d-press) var(--ease-out), color 200ms ease; }
+.sz-ib:active { transform: scale(.9); }
+.sz-ib.is-ok { color: var(--ink); }
+.sz-ib svg { display: block; }
+
+/* ------------------------------------------------------------------ Le città */
+.sz-globo { position: relative; margin: 18px -20px 0; height: 340px; touch-action: pan-y; cursor: grab; }
+.sz-globo:active { cursor: grabbing; }
+.sz-globo canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+@media (min-width: 700px) { .sz-globo { margin: 18px 0 0; height: 400px; } }
+.sz-chips { margin: 4px -20px 0; padding: 4px 20px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.sz-chips::-webkit-scrollbar { display: none; }
+@media (min-width: 700px) { .sz-chips { margin: 4px 0 0; padding: 4px 0; justify-content: center; } }
+.sz-chip { position: relative; flex: none; height: 36px; padding: 0 14px; border-radius: 18px; font: 600 14px/36px var(--font-sans); letter-spacing: -.012em; color: rgba(255, 255, 255, .76);
+  background: rgba(255, 255, 255, .08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); transition: color 200ms ease, background-color 240ms ease, transform var(--d-press) var(--ease-out); }
+.sz-chip::before { content: ""; position: absolute; top: -4px; right: 0; bottom: -4px; left: 0; }
+.sz-chip:active { transform: scale(.95); }
+.sz-chip[aria-pressed="true"] { color: #141a3a; background: #fff6e2; box-shadow: 0 0 22px -6px rgba(255, 230, 180, .7); }
+.sz-ora { margin-top: 16px; padding: 14px 16px 12px; }
+.sz-ora__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.sz-ora__l { font: 600 14px/20px var(--font-sans); letter-spacing: -.012em; }
+.sz-ora__v { font: 500 13px/20px var(--font-sans); color: rgba(255, 255, 255, .72); }
+.sz-ora__r { position: relative; height: 44px; margin-top: 2px; touch-action: none; cursor: pointer; }
+.sz-ora__r:focus-visible { outline-offset: 2px; border-radius: 12px; }
+.sz-ora__tr { position: absolute; left: 0; right: 0; top: 20px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .16); transform-origin: 50% 50%; }
+.sz-ora__tk { position: absolute; top: 28px; width: 1px; height: 5px; background: rgba(255, 255, 255, .28); }
+.sz-ora__tk--0 { top: 12px; height: 20px; width: 2px; margin-left: -1px; background: rgba(255, 255, 255, .55); border-radius: 1px; }
+.sz-ora__fill { position: absolute; top: 20px; height: 4px; border-radius: 2px; background: #ffe7b8; }
+.sz-ora__th { position: absolute; top: 9px; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%; background: #fff; box-shadow: 0 2px 10px rgba(4, 8, 30, .45), 0 0 0 4px rgba(255, 240, 210, .14); transition: transform 200ms var(--ease-out); }
+.sz-ora__r.is-drag .sz-ora__th { transform: scale(1.18); }
+.sz-ora__b { margin-top: 2px; display: flex; justify-content: space-between; font: 500 12px/16px var(--font-sans); color: rgba(255, 255, 255, .56); }
+.sz-ora__now { height: 30px; padding: 0 12px; margin: -6px -6px 0 0; border-radius: 15px; font: 600 13px/30px var(--font-sans); color: #141a3a; background: #fff6e2; transition: opacity 200ms ease, transform 300ms var(--ease-out); }
+.sz-ora__now[hidden] { display: inline-block !important; opacity: 0; transform: scale(.8); pointer-events: none; }
+.sz-cl { margin-top: 14px; display: grid; gap: 10px; }
+@media (min-width: 700px) { .sz-cl { grid-template-columns: 1fr 1fr; } .sz-cl > :first-child { grid-column: 1 / -1; } }
+.sz-cc { position: relative; padding: 16px 16px 14px; border-radius: 26px; color: #fff; overflow: hidden; transition: box-shadow 300ms ease;
+  background: var(--grain, none) 0 0 / var(--gs) var(--gs), radial-gradient(120% 90% at var(--gx, 80%) 112%, var(--glow) 0%, transparent 62%), linear-gradient(180deg, var(--zen) 0%, var(--mid) 52%, var(--rose) 82%, var(--hor) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), inset 0 1px 0 rgba(255, 255, 255, .22), 0 14px 30px -18px rgba(0, 0, 0, .7); }
+.sz-cc.is-sel { box-shadow: inset 0 0 0 1.5px rgba(255, 246, 226, .85), inset 0 1px 0 rgba(255, 255, 255, .3), 0 14px 30px -18px rgba(0, 0, 0, .7); }
+.sz-cc::before { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: linear-gradient(180deg, rgba(4, 8, 30, .18) 0%, rgba(4, 8, 30, 0) 40%, rgba(4, 8, 30, .3) 100%); pointer-events: none; }
+.sz-cc > * { position: relative; }
+.sz-cc__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.sz-cc__n { font: 700 23px/27px var(--font-sans); letter-spacing: -.04em; }
+.sz-cc__ar { display: block; margin-top: 1px; font: 500 15px/24px var(--font-sans); color: rgba(255, 255, 255, .82); text-align: left; }
+.sz-cc__m { font: 500 13px/18px var(--font-sans); color: rgba(255, 255, 255, .86); }
+.sz-cc__t { display: block; font: 700 32px/30px var(--font-sans); letter-spacing: -.045em; white-space: nowrap; text-align: right; font-variant-numeric: proportional-nums; font-feature-settings: "pnum" 1; }
+.sz-cc__t small { font-size: 15px; letter-spacing: -.02em; color: rgba(255, 255, 255, .7); margin-left: 1px; }
+.sz-cc__p { text-align: right; }
+.sz-cc__mid { margin-top: 14px; display: grid; grid-template-columns: 116px 1fr; gap: 14px; align-items: center; }
+.sz-dome { display: block; width: 116px; height: 116px; overflow: visible; }
+.sz-f { display: grid; gap: 7px; }
+.sz-f p { font: 500 13px/17px var(--font-sans); color: rgba(255, 255, 255, .8); }
+.sz-f b { display: block; font: 700 15px/19px var(--font-sans); letter-spacing: -.018em; color: #fff; }
+.sz-cc__q { margin-top: 14px; padding-top: 11px; display: flex; align-items: center; gap: 9px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2); font: 600 14px/20px var(--font-sans); letter-spacing: -.012em; }
+.sz-cc__q span:last-child { margin-left: auto; font-weight: 500; color: rgba(255, 255, 255, .92); text-align: right; }
+.sz-cc__q svg { flex: none; }
+.sz__panel[data-mat="night"] .sz-note a, .sz__panel[data-mat="ink"] .sz-note a { text-decoration-color: rgba(255, 255, 255, .35); }
+
+/* ------------------------------------------------------------------ Heatmap */
+.sz-big { margin-top: 18px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.sz-big b { font: 800 56px/1 var(--font-sans); letter-spacing: -.055em; color: var(--ink); }
+.sz-big span { font: 600 16px/22px var(--font-sans); letter-spacing: -.014em; color: var(--ink-2); }
+.sz-strip { position: relative; margin-top: 18px; }
+.sz-strip canvas { display: block; touch-action: pan-y; -webkit-user-select: none; user-select: none; transform-origin: 0 0; }
+.sz-read { height: 24px; margin-top: 12px; font: 600 14px/24px var(--font-sans); letter-spacing: -.012em; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sz-read b { color: var(--ink); font-weight: 700; }
+.sz-stats { margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (min-width: 700px) { .sz-stats { grid-template-columns: repeat(4, 1fr); } }
+.sz-stat { padding: 14px 14px 13px; }
+.sz-stat b { display: block; font: 800 28px/32px var(--font-sans); letter-spacing: -.05em; color: var(--ink); }
+.sz-stat b small { font-size: 16px; letter-spacing: -.02em; margin-left: 3px; font-weight: 700; }
+.sz-stat span { display: block; margin-top: 4px; font: 600 13px/17px var(--font-sans); letter-spacing: -.008em; color: var(--ink); }
+.sz-stat em { display: block; margin-top: 2px; font: 500 12.5px/16px var(--font-sans); color: var(--ink-2); }
+.sz-bars { position: relative; margin-top: 14px; height: 150px; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 5px; align-items: end; padding-bottom: 22px; }
+.sz-bar { position: relative; height: 100%; display: flex; align-items: flex-end; cursor: pointer; border-radius: 8px; }
+.sz-bar i { display: block; width: 100%; height: var(--h); min-height: 3px; border-radius: 6px 6px 4px 4px; background: linear-gradient(180deg, #f7dc9a 0%, #d2a352 100%); transform-origin: 50% 100%; transition: filter 200ms ease; }
+.sz-bar.is-part i { background: repeating-linear-gradient(135deg, rgba(247, 220, 154, .55) 0 3px, rgba(247, 220, 154, .25) 3px 6px); }
+.sz-bar.is-zero i { background: rgba(227, 231, 244, .14); }
+.sz-bar u { position: absolute; left: 0; right: 0; bottom: -20px; text-align: center; text-decoration: none; font: 600 11px/14px var(--font-sans); color: var(--ink-2); }
+.sz-bar.is-on i { filter: brightness(1.18) drop-shadow(0 0 10px rgba(247, 220, 154, .55)); }
+.sz-bar.is-on u { color: var(--ink); }
+.sz-wk { margin-top: 14px; display: grid; gap: 7px; }
+.sz-wk__r { display: grid; grid-template-columns: 34px 1fr 40px; align-items: center; gap: 10px; font: 600 13px/20px var(--font-sans); }
+.sz-wk__r span { color: var(--ink-2); }
+.sz-wk__r i { display: block; height: 12px; width: var(--w); min-width: 3px; border-radius: 6px; background: rgba(247, 220, 154, .5); transform-origin: 0 50%; }
+.sz-wk__r.is-top i { background: linear-gradient(90deg, #d2a352 0%, #f7dc9a 100%); }
+.sz-wk__r.is-top span { color: var(--ink); }
+.sz-wk__r b { text-align: right; font-weight: 700; color: var(--ink); }
+.sz-cal { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 14px; }
+@media (min-width: 560px) { .sz-cal { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 820px) { .sz-cal { grid-template-columns: repeat(5, 1fr); } }
+.sz-mo__h { display: flex; justify-content: space-between; align-items: baseline; font: 700 13px/18px var(--font-sans); letter-spacing: -.01em; text-transform: capitalize; }
+.sz-mo__h span { flex: none; margin-left: 6px; font-weight: 600; font-size: 12px; color: var(--ink-2); text-transform: none; }
+/* il nome del mese può andare a capo prima dell'anno (a 360 «Dicembre 2025» e il suo totale non stanno in un terzo di riga) */
+.sz-mo__h b { min-width: 0; font-weight: 700; }
+.sz-mo__h small { display: inline-block; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.sz-mo__g { margin-top: 6px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.sz-mo__g i { display: block; aspect-ratio: 1 / 1; border-radius: 3px; background: var(--hm-0, rgba(227, 231, 244, .085)); cursor: pointer; }
+.sz-mo__g i.v { visibility: hidden; cursor: default; }
+.sz-mo__g i.l1 { background: var(--hm-1, #5a4a2c); } .sz-mo__g i.l2 { background: var(--hm-2, #94713a); } .sz-mo__g i.l3 { background: var(--hm-3, #d2a352); } .sz-mo__g i.l4 { background: var(--hm-4, #f7dc9a); }
+.sz-mo__g i.is-on { box-shadow: 0 0 0 1.5px #fff, 0 0 12px rgba(247, 220, 154, .6); }
+.sz-mo__g i.x { visibility: visible; background: transparent; box-shadow: inset 0 0 0 1px rgba(227, 231, 244, .08); cursor: default; }
+.sz__panel[data-mat="ink"] { --hm-0: rgba(227, 231, 244, .085); --hm-1: #5a4a2c; --hm-2: #94713a; --hm-3: #d2a352; --hm-4: #f7dc9a; }
+.sz-legend { margin-top: 10px; display: flex; align-items: center; gap: 4px; font: 500 12px/16px var(--font-sans); color: var(--ink-2); }
+.sz-legend i { width: 10px; height: 10px; border-radius: 3px; }
+
+/* ------------------------------------------------------------------ Sto imparando */
+.sz-desc { margin-top: 10px; font: 500 16px/1.45 var(--font-sans); letter-spacing: -.01em; color: var(--ink-2); text-wrap: pretty; }
+.sz-solid { position: relative; margin: 14px -20px 0; height: 300px; touch-action: pan-y; cursor: grab; }
+.sz-solid:active { cursor: grabbing; }
+.sz-solid canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+@media (min-width: 700px) { .sz-solid { margin: 14px 0 0; height: 340px; } }
+.sz-step { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 2px; }
+.sz-step__v { min-width: 150px; text-align: center; font: 600 13px/18px var(--font-sans); color: var(--ink-2); }
+.sz-step__v b { display: block; font: 700 15px/20px var(--font-mono); color: var(--ink); letter-spacing: 0; }
+.sz-step button { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); transition: transform var(--d-press) var(--ease-out), opacity 200ms ease; }
+.sz-step button:active { transform: scale(.9); }
+.sz-step button[disabled] { opacity: .3; cursor: default; }
+.sz-log { margin-top: 12px; position: relative; }
+.sz-log::before { content: ""; position: absolute; left: 5px; top: 10px; bottom: 10px; width: 1.5px; border-radius: 1px; background: rgba(227, 231, 244, .16); }
+.sz-log li { position: relative; padding: 8px 0 8px 26px; }
+.sz-log li::before { content: ""; position: absolute; left: 0; top: 13px; width: 12px; height: 12px; border-radius: 50%; background: #0f1329; box-shadow: inset 0 0 0 2px rgba(247, 220, 154, .8); }
+.sz-log li:first-child::before { background: #f7dc9a; box-shadow: 0 0 0 3px rgba(247, 220, 154, .2), 0 0 12px rgba(247, 220, 154, .55); }
+.sz-log b { display: block; font: 600 15px/21px var(--font-sans); letter-spacing: -.012em; color: var(--ink); overflow-wrap: anywhere; }
+.sz-log span { display: block; margin-top: 2px; font: 500 13px/18px var(--font-sans); color: var(--ink-2); }
+/* lo sha: Geist Mono in minuscolo (le righe dei commit sono in maiuscoletto), mai corsivo; il tocco ha 44 px in altezza */
+.sz-log .sz-sha { position: relative; margin-left: 6px; font-family: var(--font-mono); font-style: normal; text-transform: none; letter-spacing: 0; color: var(--ink-2); text-decoration: none; }
+.sz-log a.sz-sha { color: var(--accent-ink, var(--ink)); }
+.sz-log a.sz-sha::before { content: ""; position: absolute; top: -13px; right: -8px; bottom: -13px; left: -8px; }
+.sz-facts { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+.sz-facts span { height: 30px; padding: 0 12px; border-radius: 15px; font: 600 13px/30px var(--font-sans); color: var(--ink); background: rgba(255, 255, 255, .07); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
+
+/* ------------------------------------------------------------------ i riquadri che ora aprono una sezione */
+/* Heatmap e Sto imparando si aprono con un tocco ovunque (sezioni.js); il «›» della heatmap è il posto di «GitHub ↗», con la stessa
+   area da toccare (.hm__gh::before di vivi.css) e lo stesso segno dei riquadri che si aprono (.tile__go) */
+.grid > .tile.heatmap, .grid > .tile.imparando { cursor: pointer; }
+.hm__apri { margin-right: -4px; color: var(--t-ink-2); }
+.hm__apri svg { width: 18px; height: 18px; opacity: .7; }
+.heatmap .tile__head { padding-right: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sz__bart, .sz__bar::before, .sz-ora__th, .sz-chip, .sz-pill, .sz-ib { transition: none; }
+}
+
+/* ------------------------------------------------------------------ 2d: Heatmap e Sto imparando sono vetro, come i loro riquadri
+   (grafite nel tema scuro, bianco velato nel chiaro); l'oro scende fino a --accent-ink sul vetro chiaro, mai più scuro */
+.sz-f b em { display: block; font: 500 12.5px/16px var(--font-sans); letter-spacing: -.004em; color: rgba(255, 255, 255, .72); }
+.sz-bar u { font: var(--f-meta); font-size: 9.5px; letter-spacing: .04em; }
+.sz-log span { font: var(--f-meta); letter-spacing: var(--ls-meta); text-transform: uppercase; }
+.sz__panel[data-mat="glass"] {
+  --sz-mat: var(--vetro); --sz-solid: var(--tile-solid); --sz-bar: rgba(246, 246, 251, .82); --grab: rgba(22, 23, 29, .2);
+  --hm-0: rgba(30, 28, 70, .07); --hm-1: #e7cea4; --hm-2: #dbb573; --hm-3: #cc9e4a; --hm-4: #b98a2e; --hm-label: rgba(22, 23, 29, .62); --hm-today: #16171d;
+  --ip-line: 22 23 29; --ip-dot: 22 23 29;
+  --sz-g1: #dbb573; --sz-g2: #b98a2e; --sz-gsoft: rgba(185, 138, 46, .34); --sz-glow: rgba(185, 138, 46, .28); --sz-zero: rgba(30, 28, 70, .08);
+  --sz-cardbg: rgba(255, 255, 255, .62); --sz-cardedge: rgba(30, 28, 70, .07);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sz__panel[data-mat="glass"] {
+  --sz-bar: rgba(38, 40, 47, .82); --grab: rgba(240, 242, 252, .24);
+  --hm-0: rgba(227, 231, 244, .075); --hm-1: #5f4c25; --hm-2: #8a6f35; --hm-3: #bf9a4c; --hm-4: #f3dfa8; --hm-label: rgba(227, 231, 244, .64); --hm-today: rgba(244, 245, 250, .95);
+  --ip-line: 227 231 244; --ip-dot: 240 242 252;
+  --sz-g1: #f3dfa8; --sz-g2: #bf9a4c; --sz-gsoft: rgba(243, 223, 168, .42); --sz-glow: rgba(243, 223, 168, .5); --sz-zero: rgba(227, 231, 244, .12);
+  --sz-cardbg: rgba(255, 255, 255, .045); --sz-cardedge: rgba(255, 255, 255, .08); } }
+:root[data-theme="dark"] .sz__panel[data-mat="glass"] {
+  --sz-bar: rgba(38, 40, 47, .82); --grab: rgba(240, 242, 252, .24);
+  --hm-0: rgba(227, 231, 244, .075); --hm-1: #5f4c25; --hm-2: #8a6f35; --hm-3: #bf9a4c; --hm-4: #f3dfa8; --hm-label: rgba(227, 231, 244, .64); --hm-today: rgba(244, 245, 250, .95);
+  --ip-line: 227 231 244; --ip-dot: 240 242 252;
+  --sz-g1: #f3dfa8; --sz-g2: #bf9a4c; --sz-gsoft: rgba(243, 223, 168, .42); --sz-glow: rgba(243, 223, 168, .5); --sz-zero: rgba(227, 231, 244, .12);
+  --sz-cardbg: rgba(255, 255, 255, .045); --sz-cardedge: rgba(255, 255, 255, .08); }
+.sz__panel[data-mat="glass"] .sz-bar i { background: linear-gradient(180deg, var(--sz-g1) 0%, var(--sz-g2) 100%); }
+.sz__panel[data-mat="glass"] .sz-bar.is-part i { background: repeating-linear-gradient(135deg, var(--sz-gsoft) 0 3px, transparent 3px 6px); box-shadow: inset 0 0 0 1px var(--sz-gsoft); }
+.sz__panel[data-mat="glass"] .sz-bar.is-zero i { background: var(--sz-zero); }
+.sz__panel[data-mat="glass"] .sz-bar.is-on i { filter: none; box-shadow: 0 0 0 1.5px var(--ink), 0 6px 16px -6px var(--sz-glow); }
+.sz__panel[data-mat="glass"] .sz-wk__r i { background: var(--sz-gsoft); }
+.sz__panel[data-mat="glass"] .sz-wk__r.is-top i { background: linear-gradient(90deg, var(--sz-g2) 0%, var(--sz-g1) 100%); }
+.sz__panel[data-mat="glass"] .sz-mo__g i.is-on { box-shadow: 0 0 0 1.5px var(--ink), 0 0 10px var(--sz-glow); }
+.sz__panel[data-mat="glass"] .sz-mo__g i.x { box-shadow: inset 0 0 0 1px var(--hair); }
+.sz__panel[data-mat="glass"] .sz-card { background: var(--sz-cardbg); box-shadow: inset 0 0 0 1px var(--sz-cardedge); }
+.sz__panel[data-mat="glass"] .sz-step button { background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); color: var(--ink); }
+.sz__panel[data-mat="glass"] .sz-log::before { background: var(--hair); }
+.sz__panel[data-mat="glass"] .sz-log li::before { background: var(--sz-solid); box-shadow: inset 0 0 0 2px var(--accent-ink); }
+.sz__panel[data-mat="glass"] .sz-log li:first-child::before { background: var(--accent-ink); box-shadow: 0 0 0 3px var(--sz-glow); }
+.sz__panel[data-mat="glass"] .sz-facts span { background: var(--fill); box-shadow: inset 0 0 0 1px var(--hair); }
+.sz__panel[data-mat="glass"] .sz-note a { text-decoration-color: var(--hair); }
+
+/* il riquadro che riprende il fuoco dopo un tocco: nessun anello (il fuoco c'è, per chi legge con lo schermo) */
+.tile.sz-quiet:focus { outline: none; }
+/* il nome del solido in una riga anche a 360 (Geist Mono 13 px: «IcosahedronGeometry(1, 1)» è largo 192 px, lo spazio tra i due tasti 208) */
+.sz-step__v b { font: 500 13px/20px var(--font-mono); letter-spacing: -.01em; white-space: nowrap; }
+@media (max-width: 374px) { .sz-step { gap: 8px; } .sz-step__v b { font-size: 12.5px; } }
+
+/* ciò che sta sotto la prima schermata non si impagina né si dipinge finché non serve: gli altri versetti, le città, i mesi.
+   (L'apertura costava 20–86 ms di lavoro tutto insieme a 390 px, DPR 3, Chromium senza testa su una macchina condivisa.)
+   Dove content-visibility non c'è, tutto si impagina come prima. */
+.sz-v, .sz-cc, .sz-mo { content-visibility: auto; contain-intrinsic-size: auto 320px; }
+.sz-mo { contain-intrinsic-size: auto 120px; }

@@ -579,6 +579,8 @@
   doc.addEventListener("click", function (e) {
     var t = e.target.closest ? e.target : null; if (!t) return;
     var op = t.closest("[data-open]"); if (!op || S.open) return;
+    /* sezioni.js (CASA.md 2f E): Corano e Le città si aprono in una sezione piena; se manca o rifiuta, resta il foglio */
+    if (window.SEZIONI && window.SEZIONI.open(op.getAttribute("data-open"), { kbd: e.detail === 0 })) { e.preventDefault(); return; }
     openSheet(op.getAttribute("data-open"), op.closest(".tile[data-mat]") || op);
   });
   /* la pressione dei riquadri è di moto.js (CASA.md 2d E): qui non si mette più .is-pressed al pointerdown */
@@ -786,7 +788,8 @@
     if (isReady) return;
     refit();
     var open = Q.get("open") || (location.hash ? location.hash.slice(1) : "");
-    if (open && PAGES[open]) openSheet(open, tileFor(open), { instant: true, push: false });
+    if (open && window.SEZIONI && window.SEZIONI.open(open, { instant: true, push: false })) { /* una sezione (sezioni.js) */ }
+    else if (open && PAGES[open]) openSheet(open, tileFor(open), { instant: true, push: false });
     isReady = true; var fns = readyFns; readyFns = []; fns.forEach(function (f) { f(); });
     requestAnimationFrame(function () { requestAnimationFrame(function () { window.__ready = true; }); });
   }

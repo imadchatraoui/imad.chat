@@ -117,23 +117,33 @@ export function formaRepos(json: unknown, user: string): Esito<Repo[]> {
   return { ok: true, value: tenuti, info: { ricevuti: json.length, tenuti: tenuti.length, privati, altri, profilo, malformati } };
 }
 
-/** La lista di /repos/<utente>/<repo>/commits?per_page=3 → al massimo tre {message (solo la prima riga), date}. */
+/** Quanti commit dà la rotta (CASA.md 2f G: la sezione «Sto imparando» ne mostra otto; il riquadro i primi). */
+export const MAX_COMMIT = 8;
+const SHA = /^[0-9a-f]{40}$/;
+const COMMIT_URL = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/commit\/[0-9a-f]{40}$/;
+
+/** La lista di /repos/<utente>/<repo>/commits?per_page=8 → al massimo otto {message (solo la prima riga), date, sha7, url}. */
 export function formaCommit(json: unknown): Esito<Commit[]> {
   if (!Array.isArray(json)) return { ok: false, error: "commits: la risposta non è una lista" };
   const out: Commit[] = [];
   for (const raw of json) {
-    const c = (raw as { commit?: { message?: unknown; committer?: { date?: unknown }; author?: { date?: unknown } } } | null)
-      ?.commit;
+    const r = raw as { sha?: unknown; html_url?: unknown; commit?: { message?: unknown; committer?: { date?: unknown }; author?: { date?: unknown } } } | null;
+    const c = r?.commit;
     if (!c || typeof c.message !== "string") continue;
     const message = testo(c.message.split(/\r?\n/)[0], MAX_TITOLO);
     if (!message) continue;
-    out.push({ message, date: quando(c.committer?.date) || quando(c.author?.date) });
-    if (out.length === 3) break;
+    const sha = typeof r?.sha === "string" && SHA.test(r.sha) ? r.sha : null;
+    const url = sha && typeof r?.html_url === "string" && COMMIT_URL.test(r.html_url) && r.html_url.endsWith("/" + sha) ? r.html_url : null;
+    out.push({ message, date: quando(c.committer?.date) || quando(c.author?.date), sha7: sha ? sha.slice(0, 7) : null, url });
+    if (out.length === MAX_COMMIT) break;
   }
   return { ok: true, value: out, info: { ricevuti: json.length, tenuti: out.length } };
 }
 
 /** Il riquadro "Sto imparando": il repository (già filtrato come pubblico) e i suoi ultimi commit. */
 export function formaLearning(repo: Repo, commits: Commit[]): Learning {
-  return { repo: repo.name, url: repo.url, pushedAt: repo.pushedAt, commits };
+  // il link di un commit solo se è di questo repository
+  const base = repo.url + "/commit/";
+  const tenuti = commits.map((c) => (c.url && !c.url.startsWith(base) ? { ...c, url: null } : c));
+  return { repo: repo.name, url: repo.url, pushedAt: repo.pushedAt, commits: tenuti };
 }
