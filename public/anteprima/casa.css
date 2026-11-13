@@ -201,7 +201,7 @@ html, body { overflow-anchor: none; }
 /* l'hero è una finestra sul cielo: un'ombra più scura, e la sua luce che cade sulla pagina sotto (--hero-spill) e, di notte nel tema
    scuro, sulla mensola sopra, dove sta la scatola di Dot (--hero-alone). Scritto .tile.hero perché vinca sulla regola qui sopra */
 .tile.hero {
-  box-shadow: 0 0 0 .5px rgba(2, 4, 20, .55), 0 1px 2px rgba(2, 4, 20, .35), var(--shx) var(--shy) 30px -12px rgba(2, 4, 20, .45),
+  box-shadow: 0 0 0 .5px var(--hero-o1), 0 1px 2px var(--hero-o2), var(--shx) var(--shy) 30px -12px var(--hero-o3),
     0 36px 72px -30px var(--hero-spill), 0 -18px 44px -26px var(--hero-alone);
 }
 .luce { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 1; border-radius: inherit; pointer-events: none;
@@ -227,7 +227,7 @@ html, body { overflow-anchor: none; }
 /* una città che cambia scende appena mentre sparisce, e la nuova sale al suo posto */
 .citta__now.is-out { opacity: 0; transform: translateY(5px); }
 .citta__now b { display: block; font: 600 13px/18px var(--font-sans); letter-spacing: -.004em; color: rgba(255, 255, 255, .8); }
-.citta__now span { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
+.citta__now > span { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }   /* solo la riga dell'ora: le cifre di moto.js sono span anche loro */
 .citta__now time { font: var(--f-big); letter-spacing: -.045em; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 .citta__now i { margin-left: 0; font: 600 13px/18px var(--font-sans); letter-spacing: -.004em; color: rgba(255, 255, 255, .72); }
 
@@ -238,9 +238,9 @@ html, body { overflow-anchor: none; }
 .mondo__t { font: var(--f-big); letter-spacing: var(--ls-big); margin-left: -.02em; }
 .mondo__p { margin-top: 8px; font: var(--f-body); letter-spacing: var(--ls-body); color: var(--t-ink-2); }
 
-/* Su di me: una finestra su una foto (provvisoria). Il velo in alto è più scuro di prima: l'etichetta sul cielo chiaro della foto
-   passa da 3,6 a 4,7 : 1; un orlo bianco di mezzo pixel chiude la finestra */
-.me .win__scrim { background: linear-gradient(180deg, rgba(6, 8, 20, .6) 0%, rgba(6, 8, 20, .16) 22%, rgba(6, 8, 20, 0) 34%, rgba(6, 8, 20, .1) 46%, rgba(6, 8, 20, .82) 100%);
+/* Su di me: una finestra su una foto (provvisoria). Il velo in alto è più scuro: l'etichetta sul cielo chiaro della foto era a 4,35 : 1,
+   ora sopra 5 (con margine: la foto vera di Imad cambierà i numeri); un orlo bianco di mezzo pixel chiude la finestra */
+.me .win__scrim { background: linear-gradient(180deg, rgba(6, 8, 20, .7) 0%, rgba(6, 8, 20, .24) 22%, rgba(6, 8, 20, 0) 36%, rgba(6, 8, 20, .1) 46%, rgba(6, 8, 20, .82) 100%);
   box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .1); }
 .me .tile__in { padding: calc(var(--p) - 2px) var(--p) var(--p); }
 /* il nome del riquadro da solo, senza la riga di testa: 2 px più in basso, così sta dove stanno gli altri */
@@ -283,7 +283,7 @@ html, body { overflow-anchor: none; }
     0 2px 5px rgb(var(--dock-ombra) / calc(var(--dock-o) * .45)), 0 22px 44px -14px rgb(var(--dock-ombra) / var(--dock-o));
   transition: opacity 320ms ease, transform 560ms var(--spring, cubic-bezier(.2, .9, .25, 1));
 }
-.dock__b { position: relative; z-index: 1; height: 44px; padding: 0 14px; border-radius: 22px; font: 600 14px/44px var(--font-sans); letter-spacing: -.012em; color: var(--ink-2); white-space: nowrap; transition: color 240ms ease; }
+.dock__b { position: relative; z-index: 1; height: 44px; padding: 0 14px; border-radius: 22px; font: 600 14px/44px var(--font-sans); letter-spacing: -.012em; color: var(--dock-ink-2, var(--ink-2)); white-space: nowrap; transition: color 240ms ease; }
 .dock__b[aria-pressed="true"] { color: var(--ink); }
 .dock__b:focus-visible { outline-offset: -2px; }
 /* la pillola che scivola sotto il filtro scelto: dice dov'è, senza parole */
@@ -326,8 +326,9 @@ html, body { overflow-anchor: none; }
   box-shadow: inset 0 1px 0 var(--filo-2), inset 0 0 0 .5px var(--hair), inset 0 -2px 0 rgb(var(--ombra) / .1), 0 1px 2px rgb(var(--ombra) / .3), 0 6px 12px -8px rgb(var(--ombra) / .5); }
 .l9--big .s { position: relative; transform: none; }
 .l9--big .s::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--accent-ink); box-shadow: 0 0 8px 2px rgb(var(--accent-glow) / .62); }
-.foot__sky { display: inline-flex; align-items: flex-start; gap: 9px; text-align: left; max-width: 25em; font: var(--f-small); letter-spacing: var(--ls-small); color: var(--ink-2); text-wrap: pretty; }
-.foot__sky .skydot { margin-top: 2px; }
+/* la riga di Torino: centrata sotto il logo come il colophon, il pallino del cielo in testa alla prima riga */
+.foot__sky { display: block; max-width: 28em; text-align: center; font: var(--f-small); letter-spacing: var(--ls-small); color: var(--ink-2); text-wrap: balance; }
+.foot__sky .skydot { display: inline-block; vertical-align: -2px; margin-right: 7px; }
 .foot__sky .js-tortime { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 /* i crediti: un colophon, sotto una riga sottile */
 .foot__cred { position: relative; margin-top: 18px; padding-top: 16px; max-width: 32em; font: 500 11.5px/17px var(--font-sans); letter-spacing: .002em; color: var(--ink-3); text-wrap: balance; }

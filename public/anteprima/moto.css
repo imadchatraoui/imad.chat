@@ -87,9 +87,12 @@
 .saluti.is-dorme .marq__row--2 { translate: -64px 0; }
 
 /* ------------------------------------------------------------------ 6. le cifre che salgono (IMAD.moto.cifre) */
-/* una alla volta dal basso, e si posano: sono già quelle giuste, mai un numero sbagliato a metà */
-.cifra { display: inline-block; animation: cifra-su 560ms var(--molla-piana, cubic-bezier(.2, .9, .25, 1)) backwards; }
-@keyframes cifra-su { from { transform: translateY(.5em); opacity: 0; } 60% { opacity: 1; } }
+/* una alla volta dal basso, e si posano: sono già quelle giuste, mai un numero sbagliato a metà. Come un contachilometri: ogni cifra
+   sale dentro la sua finestra (.cifra, ritagliata al fondo della riga; sopra e ai lati resta aria per le lettere), senza dissolvenza;
+   i due punti non si muovono. La finestra è un clip-path, non overflow: così la linea di base della riga non cambia */
+.cifra { display: inline-block; -webkit-clip-path: inset(-.4em -.25em 0 -.25em); clip-path: inset(-.4em -.25em 0 -.25em); }
+.cifra > span { display: inline-block; animation: cifra-su 560ms var(--molla-piana, cubic-bezier(.2, .9, .25, 1)) backwards; }
+@keyframes cifra-su { from { transform: translateY(100%); } }
 
 /* ------------------------------------------------------------------ 8. il computer: si alza sotto il mouse, il bordo si accende vicino */
 @media (hover: hover) and (pointer: fine) {
@@ -166,9 +169,9 @@ html.pg-entra .pg-testa { animation: pg-entra-t 360ms var(--ease-out, cubic-bezi
     var(--shx, 0px) var(--shy, 12px) 26px -12px rgb(var(--ombra, 46 40 100) / var(--o2, .17)), calc(var(--shx, 0px) * 2.4) calc(var(--shy, 12px) * 2.8) 72px -30px rgb(var(--ombra, 46 40 100) / var(--o3, .12)); }
   .me.is-dorme .win__img { scale: none; }
   .saluti.is-dorme .marq__row { translate: none; opacity: 1; }
-  .cifra { animation: none; }
+  .cifra > span { animation: none; }
   html.pg-entra .pg, html.pg-entra .pg-testa { animation: none; }
 }
 .is-shot .me.is-dorme .win__img { scale: none; }
 .is-shot .saluti.is-dorme .marq__row { translate: none; opacity: 1; }
-.is-shot .cifra { animation: none; }
+.is-shot .cifra > span { animation: none; }

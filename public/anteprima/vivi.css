@@ -87,6 +87,11 @@
   .tools .vivo { margin-top: 10px; } .qr { gap: 8px; } .qr__riga { gap: 12px; }
   .qr__salva { height: 32px; line-height: 32px; padding: 0 13px 0 11px; } .qr__salva::before { top: -6px; bottom: -6px; }
 }
+@media (max-width: 339px) {
+  /* sui telefoni piccoli la riga intera ci sta togliendo la spaziatura (la monospaziata ha la sua): su due righe schiaccerebbe
+     il codice e porterebbe «Salva» sulla riga */
+  .qr__presto { letter-spacing: 0; }
+}
 
 /* mentre si scrive nel campo il dock si fa da parte: la tastiera del telefono non lo porta sopra il campo */
 .is-scrivo .dock { opacity: 0; pointer-events: none; transform: translateY(18px); }
@@ -94,24 +99,27 @@
 /* ------------------------------------------------------------------ Heatmap: l'anno su GitHub, sul vetro
    I colori della tela (vivi.js, colori()): --hm-0 il giorno vuoto, --hm-1..4 i cinque passi d'oro (l'oro del punto, luminosità a passi
    uguali), --hm-label i mesi, --hm-today l'anello di oggi, --hm-up-0/1 un giorno vuoto alzato dal dito, --hm-ring il filo di luce del
-   giorno alzato, --hm-shade la sua ombra. Sul vetro chiaro l'ambra scende verso il bruno; sul vetro scuro sale verso la luce. */
+   giorno alzato, --hm-shade la sua ombra. Sul vetro chiaro l'oro scende fino al segno d'oro del sito (--accent-ink), mai più scuro; sul vetro
+   scuro sale fino alla luce del punto (--accent), con più croma in basso: niente cachi. */
 .heatmap {
   --hm-0: rgba(30, 28, 70, .07);
-  --hm-1: #e3c48f; --hm-2: #d6a960; --hm-3: #b78029; --hm-4: #8f5d14;
+  /* passi di luminosità OKLab quasi uguali dal giorno vuoto (L .926 sul vetro) al pieno: .862 .792 .726 .663. Con #f1e2bd il primo passo
+     (L .915) si staccava dal vuoto solo per il colore, e i giorni con un commit sembravano vuoti (controllo finale, 13 novembre) */
+  --hm-1: #e7cea4; --hm-2: #dbb573; --hm-3: #cc9e4a; --hm-4: #b98a2e;              /* il più pieno = --accent-ink */
   --hm-label: rgba(22, 23, 29, .62); --hm-today: #16171d;
   --hm-up-0: #e5e4ec; --hm-up-1: #cfd0dc; --hm-ring: rgba(255, 255, 255, .95); --hm-shade: rgba(46, 40, 100, .35);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .heatmap {
     --hm-0: rgba(227, 231, 244, .075);
-    --hm-1: #6a5836; --hm-2: #8f7744; --hm-3: #b79b5a; --hm-4: #e2c88a;
+    --hm-1: #5f4c25; --hm-2: #8a6f35; --hm-3: #bf9a4c; --hm-4: #f3dfa8;
     --hm-label: rgba(227, 231, 244, .64); --hm-today: rgba(244, 245, 250, .95);
     --hm-up-0: #3a3d4c; --hm-up-1: #5c637e; --hm-ring: rgba(255, 255, 255, .85); --hm-shade: rgba(4, 6, 18, .75);
   }
 }
 :root[data-theme="dark"] .heatmap {
   --hm-0: rgba(227, 231, 244, .075);
-  --hm-1: #6a5836; --hm-2: #8f7744; --hm-3: #b79b5a; --hm-4: #e2c88a;
+  --hm-1: #5f4c25; --hm-2: #8a6f35; --hm-3: #bf9a4c; --hm-4: #f3dfa8;
   --hm-label: rgba(227, 231, 244, .64); --hm-today: rgba(244, 245, 250, .95);
   --hm-up-0: #3a3d4c; --hm-up-1: #5c637e; --hm-ring: rgba(255, 255, 255, .85); --hm-shade: rgba(4, 6, 18, .75);
 }
@@ -121,7 +129,10 @@
   position: relative; display: inline-flex; align-items: center; gap: 4px; pointer-events: auto;
   font: var(--f-meta, 500 10.5px/16px var(--font-mono)); letter-spacing: var(--ls-meta, .06em); text-transform: uppercase; color: var(--t-ink-2); transition: color 200ms ease;
 }
-.hm__gh::before { content: ""; position: absolute; top: -14px; right: -12px; bottom: -14px; left: -12px; }   /* 44 px da toccare */
+/* 44 px da toccare: più in giù e più dentro che in su e a destra (l'angolo tondo del riquadro taglierebbe), e sopra la riga del totale
+   che viene dopo (z-index) */
+.hm__gh { z-index: 1; }
+.hm__gh::before { content: ""; position: absolute; top: -10px; right: -8px; bottom: -18px; left: -12px; }
 .hm__gh svg { width: 11px; height: 11px; opacity: .8; }
 .hm__gh:focus-visible { outline-offset: 4px; border-radius: 6px; }
 .hm { display: flex; flex-direction: column; margin-top: 8px; }
@@ -139,31 +150,44 @@
 
 /* ------------------------------------------------------------------ Sto imparando: Three.js Journey, sul vetro
    Il fil di ferro (vivi.js) prende i colori da --ip-line (gli spigoli) e --ip-dot (i vertici), terne «r g b»: inchiostro sul vetro chiaro,
-   luce su quello scuro. Sotto, un commit solo, come una riga di git log: un piccolo nodo e quando (la voce della macchina), poi il titolo
-   intero su due righe al più. */
+   luce su quello scuro. Sotto, un commit solo, come una riga di git log: quando (la voce della macchina) in testa al titolo, tutto in un
+   paragrafo di due righe al più. Il solido ha la fascia tra l'etichetta e il titolo. */
 .imparando { --ip-line: 22 23 29; --ip-dot: 22 23 29; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .imparando { --ip-line: 227 231 244; --ip-dot: 240 242 252; } }
 :root[data-theme="dark"] .imparando { --ip-line: 227 231 244; --ip-dot: 240 242 252; }
 .ip__cv { position: absolute; top: 0; left: 0; z-index: 0; display: block; width: 100%; height: 100%; pointer-events: none; }
 .ip { display: flex; flex-direction: column; justify-content: flex-end; margin-top: 0; }
-.ip__t { letter-spacing: -.03em; white-space: nowrap; }
-.ip__log { margin-top: 5px; }
-.ip__log li { display: block; min-width: 0; }
+/* «Three.js Journey» su una riga (a 360 px e nei riquadri stretti dei computer ci sta di misura: −.04em); sotto 340 px va a capo */
+.ip__t { letter-spacing: -.04em; white-space: nowrap; }
+/* il commit è un paragrafo solo, due righe al più (a capo tra le parole): «IERI» in testa, nella voce della macchina, poi il titolo.
+   Il posto delle due righe c'è dal primo disegno (min-height): quando arrivano i dati il titolo e il solido non si spostano */
+.ip__log { margin-top: 5px; min-height: 34px; }
+.ip__log li {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-width: 0;
+  font: 600 13px/17px var(--font-sans); letter-spacing: -.01em; color: var(--t-ink); text-wrap: pretty; overflow-wrap: break-word;
+}
 .ip__log li + li { margin-top: 6px; }
 .ip__ago {
-  display: flex; align-items: center; gap: 6px;
+  display: inline; margin-right: 3px;                 /* più lo spazio vero che segue (vivi.js riga()): circa 6 px in tutto */
   font: var(--f-meta, 500 10.5px/16px var(--font-mono)); letter-spacing: var(--ls-meta, .06em); text-transform: uppercase; color: var(--t-ink-2); white-space: nowrap;
 }
-.ip__ago::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px currentColor; }
+/* niente nodo (l'anello di 6 px): in riga con il titolo toglieva 12 px, e a 360 px «README.md» finiva tagliato. Il tempo in maiuscolo
+   della voce della macchina basta a staccarlo */
 .ip__msg--vuoto + .ip__ago { display: none; }         /* «Si aggiorna tra poco»: niente nodo né tempo */
-.ip__msg {
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: normal; overflow-wrap: anywhere;
-  margin-top: 2px; font: 600 13px/17px var(--font-sans); letter-spacing: -.01em; color: var(--t-ink); text-wrap: pretty;
-}
-.ip__msg--vuoto { margin-top: 0; color: var(--t-ink-2); font-weight: 500; }
-.ip__log.is-nuovo li { animation: ip-in 520ms var(--ease-out) both; }
+.ip__msg { display: inline; }
+.ip__msg--vuoto { color: var(--t-ink-2); font-weight: 500; }
+/* i dati arrivati: il testo si accende soltanto, niente si sposta */
+.ip__log.is-nuovo li { animation: ip-in 220ms var(--ease-out) both; }
 .ip__log.is-nuovo li + li { animation-delay: 70ms; }
-@keyframes ip-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes ip-in { from { opacity: 0; } to { opacity: 1; } }
+/* sui computer il riquadro è alto (due colonne per tre righe): il commit può prendere tre righe, il solido ha posto lo stesso */
+@media (min-width: 1100px) {
+  .ip__log { min-height: 51px; }
+  .ip__log li { -webkit-line-clamp: 3; }
+}
+@media (max-width: 339px) {
+  .ip__t { white-space: normal; }                     /* «Three.js / Journey»: il solido allora non c'è (vivi.js: la fascia è troppo bassa) */
+}
 
 /* ------------------------------------------------------------------ puntatore fine, meno movimento, fotografie */
 @media (hover: hover) and (pointer: fine) {

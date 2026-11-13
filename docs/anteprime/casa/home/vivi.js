@@ -11,8 +11,10 @@
                            un dito o il mouse che passa sopra dice il giorno e il conto; le frecce fanno lo stesso da tastiera.
                            Senza dati: quadrati vuoti e «Si aggiorna tra poco», nessun numero. Con n: null, i livelli e niente conti.
      Sto imparando (#impara)  Three.js Journey, l'ultimo commit di learning.commits (da /api/github/progetti): quando, nella voce
-                           della macchina, poi il titolo su due righe al più; un icosaedro a fil di ferro che gira piano su una tela 2D
-                           (i bordi lontani più tenui). Il risveglio dopo l'intro: IMAD.vivo.impara.prime() / .wake(ms) (moto.js).
+                           della macchina, in testa al titolo, tutto in un paragrafo di due righe al più (tre sui computer); un
+                           icosaedro a fil di ferro che gira piano su una tela 2D (i bordi lontani più tenui), nella fascia tra
+                           l'etichetta e il titolo, che non cambia quando arrivano i dati. Il risveglio dopo l'intro:
+                           IMAD.vivo.impara.prime() / .wake(ms) (moto.js); da sé solo dopo 6 s in vista sopra il dock.
    I colori delle tele vengono dai token del riquadro in vivi.css (--hm-*, --ip-line, --ip-dot) e si rileggono quando cambia il tema.
 
    Niente gira fuori dallo schermo, a scheda nascosta, durante l'intro o sotto una pagina aperta (IMAD.loop, o un giro breve
@@ -39,6 +41,21 @@
   function onResize(el, fn) {
     var raf = 0, go = function () { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; fn(); }); };
     if ("ResizeObserver" in window) new ResizeObserver(go).observe(el); else window.addEventListener("resize", go);
+  }
+  /* si vede davvero? Almeno il 35% del riquadro sopra il dock: la stessa prova del risveglio di moto.js. s.ok si aggiorna da solo
+     (un IntersectionObserver, niente misure nel giro dei fotogrammi); senza IntersectionObserver vale sempre sì */
+  function inVista(el) {
+    var s = { ok: true };
+    if (!el || !("IntersectionObserver" in window)) return s;
+    s.ok = false;
+    var dock = doc.getElementById("dock"), dh = dock ? Math.round(dock.getBoundingClientRect().height + 12) : 0;
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        var rh = e.rootBounds ? e.rootBounds.height : window.innerHeight;
+        s.ok = e.isIntersecting && e.intersectionRect.height / Math.max(1, Math.min(e.boundingClientRect.height, rh)) >= 0.35;
+      });
+    }, { rootMargin: "0px 0px -" + dh + "px 0px", threshold: [0, 0.2, 0.35, 0.5, 0.75, 1] }).observe(el);
+    return s;
   }
   /* una tela cade su pixel interi del dispositivo, o il browser la ricampiona e si sfoca. La posizione dei riquadri può avere
      mezzi pixel (celle di 80,5 px su un telefono x3) e cambia con i filtri del dock: si riallinea all'avvio, al cambio di misura
@@ -693,16 +710,18 @@
       colori();
       var f = I.fit(cv, 3); if (!f) { G = null; return; }
       var tr = tile.getBoundingClientRect(), hr = head.getBoundingClientRect(), xr = titolo.getBoundingClientRect();
-      var topY = hr.bottom - tr.top, botY = xr.top - tr.top;
+      var topY = hr.bottom - tr.top, botY = xr.top - tr.top, band = botY - topY;
       /* il solido sta tutto tra l'etichetta e il titolo: nessuna linea tocca una lettera. Con la prospettiva (cam 3,6) quello che si
-         vede è largo 0,752 R al più: rv, il raggio che si vede, arriva a 1 px dalle scatole delle righe (che hanno aria sopra e sotto
-         le lettere); a 390 px è 19,5 px (prima circa 14), a 360 px 14. Un filo di sfumatura resta sul bordo del titolo */
-      var rv = Math.max(12, Math.min(f.W * 0.2, (botY - topY) * 0.5 - 1));
-      G = { W: f.W, H: f.H, dpr: f.dpr, cx: f.W * 0.5, cy: topY + (botY - topY) * 0.5, R: rv / 0.752, rv: rv, fade0: botY - 2, fade1: botY + 3 };
+         vede è largo 0,752 R al più: rv, il raggio che si vede, lascia 4 px sopra e sotto, fino a 30 px (nei riquadri alti dei computer
+         fino a un quinto della larghezza, come prima). Le due righe del commit hanno il loro posto dal primo disegno (vivi.css), quindi
+         la fascia non cambia quando arrivano i dati: a 390 px rv è 26, a 360 px 20,5. Sotto 24 px di fascia (i telefoni sotto 340 px,
+         dove il titolo va a capo) il solido non si disegna. Un filo di sfumatura resta sul bordo del titolo */
+      var rv = Math.min(Math.max(30, f.W * 0.2), (band - 8) * 0.5, f.W * 0.4);
+      G = { W: f.W, H: f.H, dpr: f.dpr, cx: f.W * 0.5, cy: topY + band * 0.5, R: rv / 0.752, rv: rv, fade0: botY - 2, fade1: botY + 3, no: band < 24 || rv < 8 };
     }
     function draw(t) {
       if (!G) return;
-      if (zz === 1) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); return; }   /* spento: aspetta il risveglio */
+      if (zz === 1 || G.no) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); return; }   /* spento (aspetta il risveglio), o non c'è posto */
       var wu = zz === 2 ? clamp((t - zt0) / Z_DUR, 0, 1) : 1, we = eOut(wu);
       var d = G.dpr, a = t * (Math.PI * 2 / 34000) + 0.6 - Z_TURN * (1 - we), tilt = 0.42 + 0.1 * Math.sin(t / 9000);
       var ca = Math.cos(a), sa = Math.sin(a), ct = Math.cos(tilt), st = Math.sin(tilt), cam = 3.6;
@@ -753,7 +772,8 @@
       a.className = "ip__msg" + (vuoto ? " ip__msg--vuoto" : ""); a.textContent = msg;
       b.className = "ip__ago"; b.textContent = quando || " ";
       /* come una riga di git log: prima quando (tenue), poi il titolo; tutte e due nelle stesse due righe al più */
-      li.appendChild(b); li.appendChild(a); return li;
+      /* tra il tempo e il titolo uno spazio vero: senza, «FA» e «Remove» erano una parola sola e a 320 px si spezzava a metà («Remo|ve») */
+      li.appendChild(b); li.appendChild(doc.createTextNode(" ")); li.appendChild(a); return li;
     }
     function dati(j) {
       var L = j && j.ok ? j.learning : null;
@@ -772,7 +792,7 @@
       if (!righe.length) return;
       log.innerHTML = ""; righe.forEach(function (li) { log.appendChild(li); });
       if (!I.still()) { log.classList.remove("is-nuovo"); void log.offsetWidth; log.classList.add("is-nuovo"); }
-      fit(); still();                                    /* le righe nuove alzano il titolo: il solido si rimette nello spazio che resta */
+      fit(); still();                                    /* per sicurezza: il posto delle due righe c'era già, il solido resta com'era */
       var aria = "Sto imparando: Three.js Journey. Ultimo: " + righe[0].lastChild.textContent + ", " + righe[0].firstChild.textContent + ". Apri il repository su GitHub, in una nuova scheda";
       if (hit) hit.setAttribute("aria-label", aria);
     }
@@ -785,10 +805,12 @@
     onResize(tile, function () { fit(); still(); });
     still();
     /* gira piano: trenta disegni al secondo bastano (un quarto di grado ciascuno) e costano la metà; mentre si sveglia, tutti.
-       Spento e in vista (a pagina libera) per 6 s senza che nessuno lo svegli: si sveglia da sé */
+       Spento e in vista (a pagina libera, almeno il 35% sopra il dock: non sotto il dock, dove nessuno lo vedrebbe) per 6 s senza che
+       nessuno lo svegli: si sveglia da sé */
+    var vista = null;
     I.loop(cv, function (t) {
       if (zz === 1) {
-        zDorme += ultimo < 0 ? 0 : clamp(t - ultimo, 0, 50); ultimo = t;
+        zDorme += ultimo < 0 || !vista || !vista.ok ? 0 : clamp(t - ultimo, 0, 50); ultimo = t;
         if (zDorme > 6000 && !zPend) sveglia();
         if (zz === 1) return;
       }
@@ -799,7 +821,7 @@
     });
     I.whenFree(function () { fit(); still(); I.api("progetti").then(dati, function () { }); });
     return {
-      prime: function () { if (I.still() || zz) return; zz = 1; zDorme = 0; draw(clock); },
+      prime: function () { if (I.still() || zz) return; zz = 1; zDorme = 0; if (!vista) vista = inVista(tile); draw(clock); },
       wake: function (dl) {
         if (zz !== 1 || zPend) return 0;
         dl = Math.max(0, +dl || 0); zPend = true; setTimeout(sveglia, dl);

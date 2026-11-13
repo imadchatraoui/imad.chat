@@ -44,10 +44,12 @@
 
   function scheda(r) {
     var url = soloGithub(r.url) || PROFILO + "/" + encodeURIComponent(r.name), q = quando(r.pushedAt), s = sito(r.homepage);
-    var h = '<li class="pg-card pj-r">';
+    var desc = r.description ? String(r.description).trim() : "";
+    /* senza descrizione la scheda è corta: la riga sotto il nome segue il nome, senza la fascia vuota di una riga che manca */
+    var h = '<li class="pg-card pj-r' + (desc ? "" : " pg-card--corta") + '">';
     h += '<h3 class="pj-r__n"><a class="pj-r__a" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(r.name) + '<span class="sr">, su GitHub, in una nuova scheda</span></a></h3>';
     h += '<span class="pj-r__go">' + FRECCIA + "</span>";
-    if (r.description && String(r.description).trim()) h += '<p class="pj-r__d">' + esc(String(r.description).trim()) + "</p>";
+    if (desc) h += '<p class="pj-r__d">' + esc(desc) + "</p>";
     var meta = [];
     if (r.language) meta.push('<span class="pj-r__l">' + esc(r.language) + "</span>");
     if (q) meta.push('<time datetime="' + esc(q.iso) + '">' + esc(q.testo) + "</time>");

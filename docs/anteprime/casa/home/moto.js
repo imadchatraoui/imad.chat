@@ -7,6 +7,7 @@
       preme subito. Il riquadro premuto e lasciato chiama IMAD.relayout(0.6): Dot seduto sul riquadro scende e sale con lui.
       Il Corano non si muove mai: premuto, si scurisce appena la sua carta sotto le parole (il velo, moto.css).
    2. I filtri: IMAD.moto.viaggio(o), chiamato da casa.js (viaggio). Ogni riga della mappa nuova viaggia come uno strato del cubo.
+      IMAD.moto.scorri(y, fn), chiamato da casa.js (setFiltro): lo scorrimento breve verso il gruppo, il viaggio parte al 60%.
    3. Il velo: un <i class="velo"> in ogni riquadro; un filtro abbassa i riquadri con il velo, non con la trasparenza.
    4. La pillola del dock: IMAD.moto.pill(b, still), chiamato da casa.js (paintDock). Due molle, una per bordo.
    5. Il risveglio dopo l'intro: i disegni (IMAD.vivo.{globo, cubo, impara}.prime() / .wake(ms), vivo.js e vivi.js), la foto di Su di me
@@ -136,16 +137,48 @@
     });
     return longest;
   };
+  /* Prima del viaggio, se il gruppo non si vede, la pagina scorre verso di lui: M.scorri(y, fn), chiamato da casa.js (setFiltro).
+     Uno scorrimento breve (260 ms, ease-out cubico, scritto a ogni fotogramma) e il viaggio fn() parte al 60%, non alla fine: un tocco,
+     un gesto solo (prima: lo scorrimento liscio del browser, circa 450 ms, e solo dopo il viaggio). Le misure del viaggio si prendono
+     quando parte; quello che resta dello scorrimento porta con sé pagina e riquadri insieme. Un dito o una rotella che toccano la pagina
+     fermano lo scorrimento (e il viaggio parte subito, se non era partito); un filtro nuovo lo stesso. y null: niente da scorrere */
+  var SC = { raf: 0, fn: null };
+  function scFerma() {
+    if (SC.raf) { cancelAnimationFrame(SC.raf); SC.raf = 0; }
+    window.removeEventListener("wheel", scFerma, true); window.removeEventListener("touchstart", scFerma, true);
+    var f = SC.fn; SC.fn = null; if (f) f();
+  }
+  M.scorri = function (y, fn) {
+    scFerma();
+    var y0 = window.pageYOffset || 0, dy = y === null || y === undefined ? 0 : y - y0;
+    if (I.still() || Math.abs(dy) < 2) { if (Math.abs(dy) >= 2) window.scrollTo(0, y); fn(); return; }
+    var D = 260, AT = 0.6, t0 = 0;
+    SC.fn = fn;
+    window.addEventListener("wheel", scFerma, { capture: true, passive: true });
+    window.addEventListener("touchstart", scFerma, { capture: true, passive: true });
+    function passo(now) {
+      SC.raf = 0;
+      if (!t0) t0 = now;
+      var u = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - u, 3);
+      window.scrollTo(0, Math.round(y0 + dy * e));
+      if (u >= AT && SC.fn) { var f = SC.fn; SC.fn = null; f(); }
+      if (u < 1) SC.raf = requestAnimationFrame(passo); else scFerma();
+    }
+    SC.raf = requestAnimationFrame(passo);
+  };
 
   /* ------------------------------------------------------------------ 6. le cifre che salgono */
   /* le cifre del testo di adesso, una alla volta dal basso (42 ms l'una, 560 ms ciascuna): il numero è sempre quello vero, e alla fine
-     torna testo semplice. Se nel frattempo il testo cambia (la città del globo), chi lo scrive sostituisce le cifre: va bene così.
-     display scritto sullo span: le regole dei contenitori per i loro span (.citta__now span è un flex) non devono arrivare alle cifre */
+     torna testo semplice. Ogni cifra sale dentro la sua finestra (moto.css), come un contachilometri, senza dissolvenza: i due punti
+     restano fermi e non si vedono mai da soli più di un fotogramma. Se nel frattempo il testo cambia (la città del globo), chi lo scrive
+     sostituisce le cifre: va bene così. display scritto sugli span: le regole dei contenitori per i loro span (.citta__now span è un
+     flex) non devono arrivare alle cifre */
   M.cifre = function (el, ritardo) {
     if (!el || I.still()) return;
     var txt = el.textContent, k = 0, d0 = Math.max(0, +ritardo || 0);
     if (!/\d/.test(txt)) return;
-    el.innerHTML = I.esc(txt).replace(/\d/g, function (c) { return '<span class="cifra" style="display:inline-block;animation-delay:' + (d0 + 42 * k++) + 'ms">' + c + "</span>"; });
+    /* la prima cifra parte già a 80 ms della sua corsa (un terzo fuori dalla finestra): dal primo fotogramma si vede, i due punti mai da soli */
+    el.innerHTML = I.esc(txt).replace(/\d/g, function (c) { return '<span class="cifra" style="display:inline-block"><span style="display:inline-block;animation-delay:' + (d0 + 42 * k++ - 80) + 'ms">' + c + "</span></span>"; });
     clearTimeout(el.__cifre);
     el.__cifre = setTimeout(function () { if (el.querySelector(".cifra") && el.textContent === txt) el.textContent = txt; }, d0 + 42 * (k - 1) + 600);
   };

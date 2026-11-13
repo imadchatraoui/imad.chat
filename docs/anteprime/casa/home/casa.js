@@ -123,6 +123,7 @@
       }
       I.relayout(longest ? longest / 1000 + 0.15 : 0);     /* Dot resta sul suo riquadro mentre viaggia; se finisce sotto il Corano se ne va */
     }
+    if (!still && I.moto && I.moto.scorri) { I.moto.scorri(y, viaggio); return; }   /* moto.js: uno scorrimento breve, il viaggio parte al 60% */
     if (y === null) { viaggio(); return; }
     if (still) { window.scrollTo(0, y); viaggio(); return; }
     window.scrollTo({ top: y, behavior: "smooth" });
@@ -192,6 +193,7 @@
     var look = Q.get("look"); if (!look || !DOT.looks[look]) look = DOT.looks.manifesto ? "manifesto" : Object.keys(DOT.looks)[0];
     if (first) { try { sessionStorage.setItem("imad.dot.aperto", "1"); } catch (e) { } }
     if (Q.get("seme") && DOT.debug && DOT.debug.seed) DOT.debug.seed(+Q.get("seme"));
+    if (Q.get("suggerimento") === "prova") { try { ["dot-dito", "dot-tocco", "dot-bussa"].forEach(function (k) { sessionStorage.removeItem(k); }); ["dot-preso", "dot-dito-n"].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) { } }   /* ?suggerimento=prova: dimentica che Dot è già stato toccato o trascinato, così il dito fantasma torna (per provarlo su un telefono) */
     try {
       /* i posatoi sempre buoni: la mensola (il bordo alto dell'hero, con la scatola), il dock (fisso sullo schermo: ci va in groppa) e il
          logo 3x3 del fondo (data-dot="perch": solo la sua fila di tasti in alto) */

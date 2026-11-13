@@ -123,6 +123,11 @@ b { font-weight: inherit; }
   --stelle: 0;
   --hero-spill: rgba(60, 70, 160, .25);   /* la luce che la finestra dell'hero getta sotto di sé (calcolata) */
   --hero-alone: rgba(120, 136, 230, 0);   /* e sopra di sé, sulla mensola dove sta la scatola di Dot (solo tema scuro, calcolata) */
+  /* l'ombra d'oggetto dell'hero (casa.css): l'orlo di mezzo pixel, il contatto, l'ombra gettata. Nel chiaro deboli: sulla pagina pallida
+     un orlo scuro si leggeva come un contorno disegnato; il bordo lo portano l'ombra e il filo di luce */
+  --hero-o1: rgba(2, 4, 20, .16);
+  --hero-o2: rgba(2, 4, 20, .12);
+  --hero-o3: rgba(2, 4, 20, .3);
 
   /* i materiali: il vetro (bianco velato qui, grafite nel tema scuro; niente sfocatura viva sui riquadri), la notte delle finestre */
   --vetro-base: rgba(255, 255, 255, .62); /* calcolata: tinta dall'ora */
@@ -144,10 +149,15 @@ b { font-weight: inherit; }
   --accent-glow: 243 223 168;             /* gli aloni: rgb(var(--accent-glow) / a) */
   --accent-ink: #b98a2e;                  /* un segno d'oro che non è testo */
   --accent-text: #7f5810;                 /* l'oro quando è testo */
+  /* la voce della macchina (le note a destra dei nomi, «GITHUB ↗», quando, «presto»): 10,5 px, quindi un inchiostro suo. Nel chiaro è
+     il secondo; nel tema scuro più chiaro del secondo, perché di giorno il vetro grafite si schiarisce (4,6 : 1 a mezzogiorno) */
+  --ink-meta: rgba(22, 23, 29, .66);
+  --paper-ink-meta: rgba(34, 29, 20, .64);
   --warn: var(--clay);                    /* l'argilla: solo gli avvisi */
 
   /* il dock: l'oggetto più alto della pagina, vetro spesso; la pillola scelta è un tasto alzato */
-  --dock-vetro: rgba(248, 248, 253, .66);
+  --dock-vetro: rgba(248, 248, 253, .72);  /* era .66: sopra il globo blu le parole non arrivavano a 4,5 : 1 */
+  --dock-ink-2: rgba(22, 23, 29, .74);     /* le parole dei filtri non scelti: più scure del secondo inchiostro (sotto passa di tutto) */
   --dock-filo: rgba(255, 255, 255, .95);  /* il bordo alto: è anche la mensola di Dot */
   --dock-fondo: rgba(30, 28, 70, .07);
   --dock-ombra: 46 40 100;
@@ -207,7 +217,13 @@ b { font-weight: inherit; }
     --o3: .6;
     --accent-ink: #f3dfa8;
     --accent-text: #f3dfa8;
-    --dock-vetro: rgba(52, 55, 70, .56);
+    --ink-meta: rgba(240, 242, 252, .78);
+    --paper-ink-meta: rgba(242, 234, 216, .8);
+    --hero-o1: rgba(2, 4, 20, .55);
+    --hero-o2: rgba(2, 4, 20, .35);
+    --hero-o3: rgba(2, 4, 20, .45);
+    --dock-vetro: rgba(44, 47, 60, .74);
+    --dock-ink-2: rgba(240, 242, 252, .74);
     --dock-filo: rgba(255, 255, 255, .2);
     --dock-fondo: rgba(255, 255, 255, .05);
     --dock-ombra: 0 1 8;
@@ -265,7 +281,13 @@ b { font-weight: inherit; }
   --o3: .6;
   --accent-ink: #f3dfa8;
   --accent-text: #f3dfa8;
-  --dock-vetro: rgba(52, 55, 70, .56);
+  --ink-meta: rgba(240, 242, 252, .78);
+  --paper-ink-meta: rgba(242, 234, 216, .8);
+  --hero-o1: rgba(2, 4, 20, .55);
+  --hero-o2: rgba(2, 4, 20, .35);
+  --hero-o3: rgba(2, 4, 20, .45);
+  --dock-vetro: rgba(44, 47, 60, .74);
+  --dock-ink-2: rgba(240, 242, 252, .74);
   --dock-filo: rgba(255, 255, 255, .2);
   --dock-fondo: rgba(255, 255, 255, .05);
   --dock-ombra: 0 1 8;
@@ -372,7 +394,7 @@ html.is-locked, html.is-locked body { overflow: hidden; }
 
 /* ------------------------------------------------------------------ riquadro */
 .tile {
-  --t-ink: var(--ink); --t-ink-2: var(--ink-2); --mat: var(--glass-mat);
+  --t-ink: var(--ink); --t-ink-2: var(--ink-2); --t-meta: var(--ink-meta); --mat: var(--glass-mat);
   position: relative; isolation: isolate; overflow: hidden;
   border-radius: var(--r);
   background: var(--grain, none) 0 0 / var(--gs) var(--gs), var(--mat);
@@ -393,24 +415,29 @@ html.is-locked, html.is-locked body { overflow: hidden; }
 
 /* i materiali, uguali nei due temi: vetro tutto ciò che informa (Nel mondo, Progetti, Sto imparando, Tools, Heatmap, Saluti), notte le
    finestre sul cielo (Le città; Su di me ci mette sopra la sua foto), carta il Corano. Ognuno con il suo filo e la sua ombra */
-.tile[data-mat="glass"] { --mat: var(--vetro); --t-ink: var(--ink); --t-ink-2: var(--ink-2); }
-.tile[data-mat="paper"] { --mat: var(--paper-mat); --t-ink: var(--paper-ink); --t-ink-2: var(--paper-ink-2); --sh: 104 78 36;
+.tile[data-mat="glass"] { --mat: var(--vetro); --t-ink: var(--ink); --t-ink-2: var(--ink-2); --t-meta: var(--ink-meta); }
+.tile[data-mat="paper"] { --mat: var(--paper-mat); --t-ink: var(--paper-ink); --t-ink-2: var(--paper-ink-2); --t-meta: var(--paper-ink-meta); --sh: 104 78 36;
   --filo-1: rgba(255, 255, 255, .95); --filo-2: rgba(255, 255, 255, .55); --filo-3: rgba(255, 255, 255, .25); --ombra: 92 66 26; --o1: .13; --o2: .16; --o3: .12; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .tile[data-mat="paper"] { --filo-1: rgba(255, 234, 196, .28); --filo-2: rgba(255, 234, 196, .085); --filo-3: rgba(255, 234, 196, .045); --ombra: 0 0 0; --o1: .55; --o2: .5; --o3: .55; }
 }
 :root[data-theme="dark"] .tile[data-mat="paper"] { --filo-1: rgba(255, 234, 196, .28); --filo-2: rgba(255, 234, 196, .085); --filo-3: rgba(255, 234, 196, .045); --ombra: 0 0 0; --o1: .55; --o2: .5; --o3: .55; }
-.tile[data-mat="night"] { --mat: var(--notte); --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .72); --sh: 22 28 84; --s1: .3; --s2: .42;
+.tile[data-mat="night"] { --mat: var(--notte); --t-ink: #fff; --t-ink-2: rgba(255, 255, 255, .72); --t-meta: rgba(255, 255, 255, .72); --sh: 22 28 84; --s1: .3; --s2: .42;
   --filo-1: rgba(255, 255, 255, .36); --filo-2: rgba(255, 255, 255, .11); --filo-3: rgba(255, 255, 255, .05); --ombra: 4 6 34; --o1: .42; --o2: .4; --o3: .5; }
 /* l'inchiostro non lo usa più nessun riquadro della casa (Heatmap e Sto imparando sono vetro): resta per chi lo chiede */
-.tile[data-mat="ink"] { --mat: var(--ink-mat); --t-ink: #e3e7f4; --t-ink-2: rgba(227, 231, 244, .64); --sh: 20 24 70; --s1: .3; --s2: .42; }
+.tile[data-mat="ink"] { --mat: var(--ink-mat); --t-ink: #e3e7f4; --t-ink-2: rgba(227, 231, 244, .64); --t-meta: rgba(227, 231, 244, .64); --sh: 20 24 70; --s1: .3; --s2: .42; }
 .tile[data-mat="night"], .tile[data-mat="ink"], .hero { --e1: rgba(255, 255, 255, .3); --e2: rgba(255, 255, 255, .09); --e3: rgba(255, 255, 255, .04); --ring: rgba(255, 255, 255, 0); }
 
 /* la riga di testa, uguale in ogni riquadro: il nome in Manrope; a destra ciò che la macchina sa, in Geist Mono maiuscolo
    (nel DOM resta scritto come si legge: «Versetto di oggi») */
 .label { font: var(--f-name); letter-spacing: var(--ls-name); color: var(--t-ink-2); }
 .label--ink { color: var(--t-ink); }
-.tile__head .label:not(.label--ink) { font: var(--f-meta); letter-spacing: var(--ls-meta); text-transform: uppercase; color: var(--t-ink-2); }
+.tile__head .label:not(.label--ink) { font: var(--f-meta); letter-spacing: var(--ls-meta); text-transform: uppercase; color: var(--t-meta); }
+/* sul Corano, l'unico riquadro fermo e su carta, la nota parla come le persone: «Versetto di oggi» in Manrope, non un'etichetta di codice */
+.corano .tile__head .label:not(.label--ink) { font: 500 13px/18px var(--font-sans); letter-spacing: -.004em; text-transform: none; }
+/* le altre note della macchina nei riquadri vivi (vivi.css le scrive con il secondo inchiostro): lo stesso inchiostro delle note.
+   .tile davanti perché vinca su vivi.css; il passaggio del mouse su «GitHub ↗» (vivi.css, più specifico e dopo) resta */
+.tile .hm__gh, .tile .ip__ago, .tile .qr__presto { color: var(--t-meta); }
 .title { font: var(--f-title); letter-spacing: var(--ls-title); text-wrap: balance; }
 .sub { display: block; font: var(--f-small); letter-spacing: var(--ls-small); color: var(--t-ink-2); }
 .stardot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2.5px rgb(var(--accent-glow) / .2), 0 0 9px 1px rgb(var(--accent-glow) / .65); }
@@ -464,7 +491,17 @@ html.is-locked, html.is-locked body { overflow: hidden; }
 /* il Corano: la testa più quieta (il margine in basso come quello in alto); niente altro cambia, né il versetto né intorno */
 .corano .tile__in { padding: calc(var(--p) - 2px) var(--p) calc(var(--p) - 2px); }
 .corano .tile__foot > span:first-child { color: var(--t-ink); opacity: .82; font-weight: 600; }
-.corano__verse { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding-bottom: 2px; }
+/* il versetto sta nel mezzo con i margini automatici, non con justify-content: center: se non sta, l'eccedenza va in basso, dove
+   scrollHeight la vede, e paintCorano (app.js) scende di un passo o prende il versetto più breve invece di accettarlo stretto (a 820 px il
+   16:16 andava su due righe, con 2 px fuori sopra e sotto). Sopra almeno 6 px dalla riga di testa; sotto almeno 15 px fino al riferimento,
+   come margine del piede, perché un padding in fondo a un flex Chromium non lo conta in scrollHeight */
+.corano__verse { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; padding: 6px 0 0; }
+.corano__verse > :first-child { margin-top: auto; }
+.corano__verse > :last-child { margin-bottom: auto; }
+.corano .tile__foot { margin-top: 15px; }
+/* sui telefoni più stretti di 360 px (320: iPhone SE di prima) il riquadro è troppo basso per quei 15 px: lì 6, e 2 sopra, come prima
+   (a 320 sta il 53:49 a 27 px; con 15 px non ci stava più nessun versetto e la traduzione finiva sul riferimento) */
+@media (max-width: 359px) { .corano__verse { padding-top: 2px; } .corano .tile__foot { margin-top: 6px; } }
 .ayah { font-family: var(--font-quran); font-weight: 400; font-size: var(--ayah, calc(var(--cell) * .43)); line-height: 2; color: var(--t-ink, var(--ink)); }
 /* tra il versetto e la traduzione solo spazio: i segni sotto la riga araba non toccano mai l'italiano */
 .corano__it { font: 500 15.5px/1.42 var(--font-sans); letter-spacing: -.012em; max-width: 21em; text-wrap: balance; margin-top: 13px; }
