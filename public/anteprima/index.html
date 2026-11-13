@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>imad.chat — anteprima</title>
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#eef0f8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
 <script>
 /* prima del primo disegno: il tema (?theme=light|dark, per le fotografie), le fotografie (?shot=1: niente intro, tutto fermo),
@@ -18,23 +18,44 @@
   var shot = q.get("shot") === "1", seek = q.get("seek") === "1";
   if (shot) r.classList.add("is-shot");
   var calm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  if (seek || (!shot && !calm && !q.get("open") && !location.hash)) {
+  /* tornando indietro (il tasto o il gesto indietro) la casa non rifà l'intro: torna com'era (moto.css posa il riquadro da cui si era usciti) */
+  var back = (performance.getEntriesByType && performance.getEntriesByType("navigation")[0] || {}).type === "back_forward" || !!(performance.navigation && performance.navigation.type === 2);
+  /* la transizione tra documenti che arriva qui (tornando da una pagina; moto.css, CASA.md 2d E). Sta nella testa perché pagereveal può
+     arrivare prima di moto.js: il riquadro da cui si era usciti (sessionStorage imad.vt, scritto da moto.js al tocco) si chiama
+     «riquadro» se si vede, e si posa al suo posto; finita la transizione il nome si toglie. Con l'intro, niente transizione */
+  window.addEventListener("pagereveal", function (e) {
+    var id = ""; try { id = sessionStorage.getItem("imad.vt") || ""; sessionStorage.removeItem("imad.vt"); } catch (er) { }
+    var vt = e.viewTransition; if (!vt) return;
+    if (r.classList.contains("ni-on")) { vt.skipTransition(); return; }
+    var t = /^[a-z]+$/.test(id) ? document.querySelector('.grid > [data-tile="' + id + '"]') : null, b = t ? t.getBoundingClientRect() : null;
+    if (b && b.bottom > 0 && b.top < window.innerHeight) t.style.viewTransitionName = "riquadro";
+    window.__vtCorso = true;
+    var via = function () { window.__vtCorso = false; if (t) t.style.viewTransitionName = ""; };
+    vt.finished.then(via, via);
+  });
+  if (seek || (!shot && !calm && !back && !q.get("open") && !location.hash)) {
     r.classList.add("ni-on", "is-locked");
     /* se lo script dell'intro non parte, la pagina non resta coperta */
     setTimeout(function () { if (!window.__niStarted) r.classList.remove("ni-on", "is-locked"); }, 5000);
   }
 })();
 </script>
+<style>
+/* le transizioni tra documenti (moto.css, CASA.md 2d E): l'adesione sta qui, in linea, perché in un foglio esterno Chromium a volte la
+   legge troppo tardi e salta la transizione; con «meno movimento» nessuna pagina la chiede */
+@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }
+</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Geist+Mono:wght@400..600&family=Manrope:wght@400..800&display=swap">
 <link rel="stylesheet" href="/anteprima/style.css">
 <link rel="stylesheet" href="/anteprima/casa.css">
 <link rel="stylesheet" href="/anteprima/vivi.css">
+<link rel="stylesheet" href="/anteprima/moto.css">
 <link rel="stylesheet" href="/anteprima/intro/intro.css">
 </head>
 <body>
-<!-- sfondo vivo: campi di colore presi dal cielo di Torino adesso, più la grana -->
+<!-- il cielo della pagina: Torino adesso, dall'alto in basso, più la grana (di notte, nel tema scuro, app.js ci mette le stelle) -->
 <div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
 
 <main class="home" id="home">
@@ -55,6 +76,8 @@
     <section class="tile hero" id="hero" data-tile="hero" aria-label="imad.chat">
       <div class="skybox" id="heroSky" aria-hidden="true"></div>
       <i class="star1" id="star1" aria-hidden="true"><b></b><i></i></i>
+      <!-- la riga di data: Torino, l'ora, la parte del giorno (la scrive app.js, come il fondo pagina). Dot non ci sta sopra -->
+      <p class="hero__luogo" aria-hidden="true" data-dot-keep><span>Torino</span><i></i><time class="js-tortime"></time><i></i><span class="js-torpart"></span></p>
       <div class="hero__text" id="heroText">
         <h1 class="hero__word" lang="en">imad.chat</h1>
         <p class="riga" id="riga" aria-live="polite"></p>
@@ -66,14 +89,14 @@
       <h2 class="ciao__t">Ciao, sono Imad.</h2>
       <p class="ciao__p">La frase qui la scrive Imad.</p>
       <p class="ciao__b">
-        <a class="pill" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr"> (si apre in una nuova scheda)</span></a>
         <button class="pill pill--clay" type="button" data-open="saluti"><i class="stardot" aria-hidden="true"></i>Lascia un saluto</button>
+        <a class="pill" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr"> (si apre in una nuova scheda)</span></a>
       </p>
     </div>
   </div>
 
   <!-- I NOVE RIQUADRI. L'intro vola su di loro in quest'ordine (window.__niTiles, più sotto); il dock li riordina (casa.css) -->
-  <div class="grid" id="grid" data-filtro="tutto">
+  <div class="grid" id="grid" data-filtro="tutto" data-mondo="vuoto">
 
     <!-- CORANO: carta, fermo. Dot non ci sale e non ci passa sopra -->
     <article class="tile corano" data-tile="corano" data-mat="paper" data-dot="no">
@@ -133,7 +156,7 @@
     </article>
 
     <!-- STO IMPARANDO: i commit di threejs-journey e un solido a fil di ferro (li mette vivi.js) -->
-    <article class="tile imparando" data-tile="imparando" data-mat="ink">
+    <article class="tile imparando" data-tile="imparando" data-mat="glass">
       <a class="tile__hit" href="https://github.com/imadchatraoui/threejs-journey" target="_blank" rel="noopener" aria-label="Sto imparando: Three.js Journey. Apri il repository su GitHub, in una nuova scheda"></a>
       <svg class="tile__go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg>
       <canvas class="ip__cv" id="imparaCv" aria-hidden="true"></canvas>
@@ -171,7 +194,7 @@
     </article>
 
     <!-- HEATMAP: l'anno di Imad su GitHub (lo mette vivi.js dai dati di /api/github/contributi; senza dati non si inventa niente) -->
-    <article class="tile heatmap" data-tile="heatmap" data-mat="ink">
+    <article class="tile heatmap" data-tile="heatmap" data-mat="glass">
       <div class="tile__in">
         <header class="tile__head"><span class="label label--ink">Heatmap</span><a class="hm__gh" href="https://github.com/imadchatraoui" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16l8-8"/><path d="M9.5 8H16v6.5"/></svg><span class="sr"> (il profilo di Imad, si apre in una nuova scheda)</span></a></header>
         <div class="vivo vivo--tocca hm" id="heat">
@@ -185,9 +208,9 @@
     <article class="tile saluti" data-tile="saluti" data-mat="glass">
       <button class="tile__hit" type="button" data-open="saluti" aria-label="Lascia un saluto: diventa una stella nel cielo di Imad. Apri"></button>
       <div class="tile__in">
+        <div class="marq" aria-hidden="true"><div class="marq__row" id="marq"></div><div class="marq__row marq__row--2" id="marq2"></div></div>
         <h2 class="title">Lascia un saluto</h2>
         <p class="sub">Diventa una stella nel cielo di Imad.</p>
-        <div class="marq" aria-hidden="true"><div class="marq__row" id="marq"></div><div class="marq__row marq__row--2" id="marq2"></div></div>
         <p class="saluti__mine" id="salMine" hidden><i class="stardot" aria-hidden="true"></i><span>La tua stella: <b id="salMineW"></b></span></p>
       </div>
     </article>
@@ -260,5 +283,6 @@ window.__niV = "gatto";
 <script src="/anteprima/qr/vendor/qrcode-generator.js"></script>
 <script src="/anteprima/qr/qr-core.js"></script>
 <script src="/anteprima/vivi.js"></script>
+<script src="/anteprima/moto.js"></script>
 </body>
 </html>
