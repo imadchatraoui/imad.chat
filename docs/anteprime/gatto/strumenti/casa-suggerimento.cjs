@@ -42,7 +42,9 @@ const tmp = path.join(path.dirname(path.resolve(out)), "_f-" + path.basename(out
   const crop = { x: Math.max(0, cx - 66), y: Math.max(0, cy - (scene.indexOf("bussa") === 0 ? 104 : 128)), width: 132, height: scene.indexOf("bussa") === 0 ? 122 : 146 };
   if (crop.x + crop.width > W) crop.x = W - crop.width;
   const frames = [];
-  async function snap(t) { const f = path.join(tmp, String(frames.length).padStart(3, "0") + ".png"); await p.screenshot({ path: f, clip: crop }); const s = await st(); frames.push({ f, label: t.toFixed(2) + "s " + (s.ph || "") + " " + s.s, s }); }
+  async function snap(t) { const f = path.join(tmp, String(frames.length).padStart(3, "0") + ".png");
+    if (scene === "zampata") { const s1 = await st(); crop.y = Math.max(0, Math.round(s1.y - s1.sy) - 128); }   /* la pagina scorre: il ritaglio segue il gatto */
+    await p.screenshot({ path: f, clip: crop }); const s = await st(); frames.push({ f, label: t.toFixed(2) + "s " + (s.ph || "") + " " + s.s, s }); }
   if (scene === "dito" || scene === "dito-dock") {
     const ok = await p.evaluate(() => DOT.debug.hintGo());
     if (!ok) throw new Error("hintGo: false");
@@ -52,16 +54,15 @@ const tmp = path.join(path.dirname(path.resolve(out)), "_f-" + path.basename(out
     /* il puntatore (mouse) arriva da destra e si ferma vicino alla testa */
     await p.mouse.move(Math.min(W - 4, cx + 170), cy - 120);
   } else if (scene === "zampata") {
-    /* un dito che scorre vicino: la pagina si muove sotto il puntatore fermo (rotella) */
-    await p.mouse.move(cx + 40, cy - 40);
+    /* un puntatore fermo vicino alla testa mentre la pagina scorre (la rotella): il gatto gli passa accanto */
+    await p.mouse.move(cx - 30, cy - 30);   /* davanti a Dot (seduto sulla mensola guarda a sinistra) */
   }
   const N = Math.round(PER / PASSO) + 1;
   let wy = await p.evaluate(() => scrollY);
   for (let i = 0; i < N; i++) {
     const t = i * PASSO;
     if (scene === "vicino") { const u = Math.min(1, t / 0.9), e = 1 - Math.pow(1 - u, 3); await p.mouse.move(cx + 170 - 150 * e, cy - 120 + 70 * e); }
-    if (scene === "zampata" && i === 2) await p.evaluate(() => { DOT.debug.hint(); });
-    if (scene === "zampata" && t >= 0.1 && t < 0.5) { wy += 9; await p.evaluate((y) => window.scrollTo(0, y), wy); }
+    if (scene === "zampata" && t >= 0.1 && t < 0.2) { wy += 20; await p.evaluate((y) => window.scrollTo(0, y), wy); }
     await snap(t);
     await tick(PASSO);
   }

@@ -146,7 +146,7 @@
       g.addColorStop(0, dark ? "rgba(255,255,255,.64)" : "rgba(255,255,255,.9)"); g.addColorStop(1, dark ? "rgba(255,255,255," + (0.34 + 0.08 * press).toFixed(3) + ")" : "rgba(244,245,249," + (0.62 + 0.1 * press).toFixed(3) + ")");
       c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, PI * 2); c.fill();
       c.shadowColor = "rgba(0,0,0,0)"; c.shadowBlur = 0; c.shadowOffsetY = 0;
-      c.lineWidth = 1; c.strokeStyle = dark ? "rgba(255,255,255,.72)" : "rgba(18,20,32,.28)"; c.beginPath(); c.arc(0, 0, r - 0.5, 0, PI * 2); c.stroke();
+      c.lineWidth = 1; c.strokeStyle = dark ? "rgba(255,255,255,.72)" : "rgba(18,20,32,.36)"; c.beginPath(); c.arc(0, 0, r - 0.5, 0, PI * 2); c.stroke();
       c.restore();
     };
     o.move = function (parent) { if (parent && sp.cv.parentNode !== parent) parent.appendChild(sp.cv); };   /* nello strato fisso o nella pagina, come il gatto */
