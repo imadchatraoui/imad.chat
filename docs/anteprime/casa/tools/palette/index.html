@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Palette — imad.chat</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="Cinque colori che stanno bene insieme: nuovi con un tocco, presi da una foto, con il contrasto e i nomi. Niente viene caricato.">
+<meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
+<!-- PALETTE: il secondo strumento. Tutto si calcola sul telefono di chi lo usa (anche i colori di una foto): la pagina non chiede
+     niente a nessuno; i caratteri sono le copie dichiarate in ../../comune/pagina.css.
+     Il motore dei colori è colore.js (window.PaletteCore); questa pagina è palette.js e palette.css sopra il guscio comune. -->
+<link rel="stylesheet" href="../../comune/pagina.css">
+<link rel="stylesheet" href="palette.css">
+</head>
+<body class="pg-corpo pa-corpo">
+<div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
+
+<header class="pg-testa" id="testa">
+  <a class="pg-casa" href="../../home/index.html" aria-label="imad.chat, torna alla home"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <p class="pg-titolo">Palette</p>
+</header>
+
+<main class="pg pa" id="pa">
+  <h1 class="sr">Palette: cinque colori</h1>
+
+  <!-- i cinque colori: sul telefono restano in cima e si abbassano mentre si scorre -->
+  <div class="pa-lato" id="lato">
+    <section class="pa-carta" id="carta" aria-labelledby="tColori">
+      <h2 class="sr" id="tColori">I cinque colori</h2>
+      <div class="pa-file" id="file" role="radiogroup" aria-label="Il colore da modificare"></div>
+    </section>
+  </div>
+
+  <!-- le azioni: una barra fissa in basso sul telefono, sotto i colori sul computer; qui, subito dopo i colori, perché con Tab
+       si arrivi a Nuova prima che alle sezioni -->
+  <div class="pa-azioni" id="azioni" role="group" aria-label="Palette">
+    <button type="button" class="pa-b pa-b--tondo" id="bIndietro" aria-label="Indietro" disabled><svg class="pa-ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M7.4 5.2L3.8 8.8l3.6 3.6"/><path d="M4.2 8.8h7.3a4.6 4.6 0 0 1 0 9.2H9.4"/></svg></button>
+    <button type="button" class="pa-b pa-b--primo" id="bNuova"><svg class="pa-ico pa-ico--mescola" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 6.2h2.6c3.9 0 4.4 7.6 8.4 7.6h2"/><path d="M3.5 13.8h2.6c1.5 0 2.4-1.1 3.1-2.5M11.4 8.7c.7-1.4 1.6-2.5 3.1-2.5h2"/><path d="M14.6 4.1l2.1 2.1-2.1 2.1M14.6 11.7l2.1 2.1-2.1 2.1"/></svg><span>Nuova</span><kbd class="pa-kbd" aria-hidden="true">spazio</kbd></button>
+    <button type="button" class="pa-b" id="bLink"><svg class="pa-ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M8.6 11.4a3.2 3.2 0 0 0 4.5 0l2.6-2.6a3.2 3.2 0 0 0-4.5-4.5l-.9.9"/><path d="M11.4 8.6a3.2 3.2 0 0 0-4.5 0l-2.6 2.6a3.2 3.2 0 0 0 4.5 4.5l.9-.9"/></svg><span id="bLinkT">Copia link</span></button>
+    <p class="pa-bolla" id="bolla" aria-hidden="true"></p>
+  </div>
+
+  <div class="pa-colonna pa-colonna--a">
+    <section class="pg-card pa-sez" aria-labelledby="tArm">
+      <h2 class="pa-h2" id="tArm">Armonia</h2>
+      <div class="pa-chips" id="armonie" role="radiogroup" aria-labelledby="tArm">
+        <span class="pa-chips__pill" aria-hidden="true"></span>
+        <button type="button" class="pa-chip" role="radio" aria-checked="true" data-v="libera">Libera</button>
+        <button type="button" class="pa-chip" role="radio" aria-checked="false" data-v="analoga">Analoga</button>
+        <button type="button" class="pa-chip" role="radio" aria-checked="false" data-v="complementare">Complementare</button>
+        <button type="button" class="pa-chip" role="radio" aria-checked="false" data-v="divisa">Divisa</button>
+        <button type="button" class="pa-chip" role="radio" aria-checked="false" data-v="triade">Triade</button>
+        <button type="button" class="pa-chip" role="radio" aria-checked="false" data-v="sfumature">Sfumature</button>
+        <button type="button" class="pa-chip" role="radio" aria-checked="false" data-v="neutri">Neutri</button>
+      </div>
+      <div class="pa-ruota-riga">
+        <div class="pa-ruota" id="ruota" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <p class="pa-aiuto" id="armTesto">Ogni volta una ricetta diversa, sempre dal più scuro al più chiaro.</p>
+      </div>
+      <p class="pa-nota pa-solo-fine">Spazio: una palette nuova (i colori bloccati restano). Da 1 a 5: scegli un colore; L lo blocca.</p>
+    </section>
+
+    <section class="pg-card pa-sez" id="sezMod" aria-labelledby="tMod">
+      <div class="pa-mod-testa">
+        <span class="pa-mod-cerchio" aria-hidden="true"></span>
+        <div><h2 class="pa-h2" id="tMod">Colore <span id="modN" class="num">3</span></h2><p class="pa-mod-nome" id="modNome"></p></div>
+        <button type="button" class="pa-blocca" id="modBlocca" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path class="pa-arco" d="M6.6 9V6.8a3.4 3.4 0 0 1 6.8 0V9"/><rect x="4.6" y="9" width="10.8" height="8" rx="2.4"/></svg><span>Blocca</span></button>
+      </div>
+      <div class="pa-hexriga">
+        <label class="pa-campo" for="fHex"><span class="pa-campo__t">HEX</span></label>
+        <div class="pa-campo__in">
+          <input class="pa-in pa-in--hex num" id="fHex" type="text" inputmode="text" maxlength="7" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-describedby="aHex">
+          <button type="button" class="pa-pill" id="bCopiaHex">Copia</button>
+        </div>
+      </div>
+      <p class="pa-aiuto pa-aiuto--hex" id="aHex" hidden>Scrivi sei cifre da 0 a 9 e lettere da A a F, come #3A6EA5 (o tre, come #F0A).</p>
+      <div class="pa-cursori">
+        <div class="pa-cur"><label class="pa-cur__t" for="rL">Luce</label><output class="pa-cur__v num" id="vL" for="rL"></output>
+          <input class="pa-range" id="rL" type="range" min="0" max="100" step="0.1" aria-describedby="hL"></div>
+        <div class="pa-cur"><label class="pa-cur__t" for="rC">Croma</label><output class="pa-cur__v num" id="vC" for="rC"></output>
+          <input class="pa-range" id="rC" type="range" min="0" max="0.37" step="0.001"></div>
+        <div class="pa-cur"><label class="pa-cur__t" for="rH">Tinta</label><output class="pa-cur__v num" id="vH" for="rH"></output>
+          <input class="pa-range" id="rH" type="range" min="0" max="360" step="0.5"></div>
+      </div>
+      <p class="pa-nota" id="hL">In OKLCH: passi uguali di luce, croma e tinta si vedono uguali.</p>
+      <p class="pa-fuori" id="fuori" hidden></p>
+      <p class="pa-codice num" id="modCodice" aria-label="Il colore in OKLCH"></p>
+    </section>
+
+    <section class="pg-card pa-sez pa-sez--foto" id="sezFoto" aria-labelledby="tFoto">
+      <h2 class="pa-h2" id="tFoto">Da una foto</h2>
+      <p class="pa-aiuto">Scegli una foto<span class="pa-solo-fine-in">, trascinala qui o incollala</span>: i suoi cinque colori principali si calcolano qui. La foto non lascia il telefono.</p>
+      <div class="pa-foto-riga">
+        <label class="pa-pill pa-pill--forte pa-foto__scegli" id="fotoScegli"><input class="sr" id="fFoto" type="file" accept="image/*"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4.5" width="14" height="11" rx="2.6"/><circle cx="7.6" cy="8.6" r="1.4"/><path d="M3.4 14l4.2-3.7 2.9 2.5 2.4-2 3.6 3.1"/></svg><span id="fotoScegliT">Scegli una foto</span></label>
+        <button type="button" class="pa-pill" id="bAncora" hidden>Prova ancora</button>
+      </div>
+      <figure class="pa-foto" id="foto" hidden>
+        <canvas class="pa-foto__cv" id="fotoCv" role="img" aria-label="La foto scelta, con i punti dove si trovano i cinque colori"></canvas>
+        <div class="pa-foto__punti" id="fotoPunti" aria-hidden="true"></div>
+      </figure>
+      <p class="pa-nota" id="fotoNota" hidden></p>
+    </section>
+
+    <section class="pg-card pa-sez" aria-labelledby="tUso">
+      <h2 class="pa-h2" id="tUso">In uso</h2>
+      <div class="pa-prove" id="prove">
+        <div class="pa-prova pa-prova--chiaro" aria-label="Prova nel tema chiaro" role="group">
+          <p class="pa-prova__tema">Chiaro</p>
+          <div class="pa-prova__scheda">
+            <span class="pa-prova__chip">Etichetta</span>
+            <p class="pa-prova__titolo">Il titolo di una scheda</p>
+            <p class="pa-prova__testo">Due righe di testo per vedere come si legge su questo fondo.</p>
+            <span class="pa-prova__btn">Continua</span>
+          </div>
+        </div>
+        <div class="pa-prova pa-prova--scuro" aria-label="Prova nel tema scuro" role="group">
+          <p class="pa-prova__tema">Scuro</p>
+          <div class="pa-prova__scheda">
+            <span class="pa-prova__chip">Etichetta</span>
+            <p class="pa-prova__titolo">Il titolo di una scheda</p>
+            <p class="pa-prova__testo">Due righe di testo per vedere come si legge su questo fondo.</p>
+            <span class="pa-prova__btn">Continua</span>
+          </div>
+        </div>
+      </div>
+      <p class="pa-nota" id="usoNota">Il fondo è il colore più chiaro (o il più scuro), il testo quello all'altro capo, il pulsante il più vivo che si legge sul fondo.</p>
+    </section>
+  </div>
+
+  <div class="pa-colonna pa-colonna--b">
+    <section class="pg-card pa-sez" aria-labelledby="tCon">
+      <h2 class="pa-h2" id="tCon">Contrasto</h2>
+      <p class="pa-aiuto" id="conSomma"></p>
+      <div class="pa-matrice" id="matrice" role="table" aria-labelledby="tCon" aria-describedby="conLeggenda"></div>
+      <p class="pa-nota" id="conLeggenda">Righe: il colore del testo. Colonne: il fondo. Il rapporto è quello di WCAG 2. AAA da 7:1, AA da 4,5:1 per il testo normale; da 3:1 va bene solo il testo grande (24 px, o 18,66 px in grassetto).</p>
+    </section>
+
+    <section class="pg-card pa-sez" id="sezEsp" aria-labelledby="tEsp">
+      <h2 class="pa-h2" id="tEsp">Esporta</h2>
+      <div class="pa-chips pa-chips--esp" id="formati" role="radiogroup" aria-labelledby="tEsp">
+        <span class="pa-chips__pill" aria-hidden="true"></span>
+        <button type="button" class="pa-chip" role="radio" aria-checked="true" data-v="css">CSS</button>
+        <button type="button" class="pa-chip" role="radio" aria-checked="false" data-v="tw4">Tailwind 4</button>
+        <button type="button" class="pa-chip" role="radio" aria-checked="false" data-v="tw3">Tailwind 3</button>
+        <button type="button" class="pa-chip" role="radio" aria-checked="false" data-v="link">Link</button>
+      </div>
+      <div class="pa-codiceblocco">
+        <pre class="pa-pre num" id="espCodice" tabindex="0" aria-label="Il codice da copiare"></pre>
+      </div>
+      <div class="pa-esp-riga">
+        <p class="pa-nota" id="espNota">Variabili CSS, con il colore anche in OKLCH.</p>
+        <button type="button" class="pa-pill pa-pill--forte pa-copia" id="bCopiaCod"><svg class="pa-ico" viewBox="0 0 20 20" aria-hidden="true"><rect x="6.5" y="6.5" width="9.5" height="10" rx="2.4"/><path d="M13.5 4.4c-.3-.6-.9-.9-1.6-.9H6.2c-1.4 0-2.5 1.1-2.5 2.5v6.2c0 .7.4 1.3.9 1.6"/></svg><span>Copia</span></button>
+      </div>
+      <div class="pa-immagine">
+        <canvas class="pa-immagine__cv" id="espCv" aria-hidden="true"></canvas>
+        <div class="pa-immagine__t">
+          <p class="pa-riga__t">Immagine</p>
+          <p class="pa-nota">PNG da 2160 × 2700, con i nomi e i codici.</p>
+          <div class="pa-immagine__b">
+            <button type="button" class="pa-pill pa-pill--forte" id="bPng"><svg class="pa-ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5v9M6.3 9.2L10 12.9l3.7-3.7M4.5 15.8h11"/></svg><span>Salva</span></button>
+            <button type="button" class="pa-pill" id="bPngCond" hidden><span>Condividi</span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <p class="pa-fine">Tutto resta sul tuo telefono: niente viene caricato.</p>
+
+  <p class="sr" id="annuncio" aria-live="polite"></p>
+</main>
+
+<footer class="pg-piede pa-piede"><a href="../../home/index.html">Torna alla home</a><span>I nomi dei colori sono quelli di CSS (W3C, CSS Color 4).</span></footer>
+
+<script src="../../../shared/astro-lite.js"></script>
+<script src="../../comune/pagina.js"></script>
+<script src="colore.js"></script>
+<script src="palette.js"></script>
+</body>
+</html>
