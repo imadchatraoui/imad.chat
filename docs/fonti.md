@@ -275,6 +275,20 @@ Palette (`docs/anteprime/casa/tools/palette/`: `colore.js` il motore, `palette.j
 - **Le armonie** (analoga, complementare, divisa, triade, sfumature, neutri, libera) sono ricette nostre in OKLCH, non prese da un'altra applicazione; nessuna usa i colori del tema Kukko del cubo.
 - I caratteri sono le copie già descritte sopra (Manrope e Geist Mono, in `comune/pagina.css`).
 
+## Strumenti: Convertitore
+
+`docs/anteprime/casa/tools/converti/` (anteprima `/anteprima/tools/converti`). Nessuna libreria presa da fuori: tutto il codice è nostro, i caratteri sono le copie di `comune/pagina.css` (sopra). Ogni fattore è esatto per definizione e scritto come frazione di interi (`motore-unita.js`, `TABELLA`); nessun valore misurato.
+
+- **SI e unità ammesse**: BIPM, *Le Système international d'unités*, 9ª edizione (2019): prefissi (k, c, m, µ, n), il litro (1 L = 1 dm³, dal 1964), la tonnellata (1 t = 1000 kg), l'ettaro (1 ha = 10⁴ m²), l'ara (1 a = 100 m²), il grado Celsius (t/°C = T/K − 273,15). https://www.bipm.org/en/publications/si-brochure
+- **Unità USA e imperiali**: NIST Special Publication 811 (2008), appendice B, e NIST Handbook 44, appendice C: pollice = 2,54 cm, piede = 0,3048 m, iarda = 0,9144 m, miglio = 1609,344 m, libbra = 0,45359237 kg (accordo internazionale su iarda e libbra del 1959), oncia = 1/16 lb, stone = 14 lb, tonnellata corta = 2000 lb e lunga = 2240 lb; gallone USA = 231 in³ = 3,785411784 L, pinta = 1/8 gal, oncia liquida = 1/128 gal, tazza = 8 fl oz; acro = 4840 yd² (con la iarda internazionale; il piede di agrimensura USA è stato ritirato nel 2023 e qui non si usa); °F: t/°F = 1,8 · t/°C + 32. https://www.nist.gov/pml/special-publication-811 · https://www.nist.gov/pml/owm/publications/nist-handbooks/handbook-44
+- **Miglio nautico e nodo**: 1 nmi = 1852 m (Conferenza idrografica internazionale, 1929; nel prospetto delle unità non SI del BIPM), 1 kn = 1852 m/h.
+- **Unità imperiali britanniche**: Weights and Measures Act 1985 (UK), allegato 1: gallone = 4,54609 L; pinta = 1/8 gal; oncia liquida = 1/160 gal. https://www.legislation.gov.uk/ukpga/1985/72/schedule/1
+- **Dati**: IEC 80000-13:2008: kilo, mega, giga… = 10³, 10⁶, 10⁹ (anche per i byte); kibi, mebi, gibi… = 2¹⁰, 2²⁰, 2³⁰; 1 byte = 8 bit. Che Windows scriva «KB, MB, GB» contando a 1024 è un uso noto, detto nella pagina come tale.
+- **Colori**: CSS Color Module Level 4 (W3C): sRGB e la sua curva, OKLab e OKLCH con le matrici di Björn Ottosson («A perceptual color space for image processing», 2020, https://bottosson.github.io/posts/oklab/), la riduzione del croma per i colori fuori dallo sRGB (l'algoritmo di «gamut mapping» della specifica, soglia ΔEOK 0,02), HSL. https://www.w3.org/TR/css-color-4/ · Il contrasto: WCAG 2.2, definizione di «contrast ratio» e «relative luminance». https://www.w3.org/TR/WCAG22/
+- **Fusi orari**: i dati IANA (tz database) del telefono, attraverso `Intl.DateTimeFormat`. Una sola correzione scritta a mano: Africa/Casablanca e Africa/El_Aaiun a UTC+0 dal 20 settembre 2026, 01:00 UTC (tzdata 2026c; controllato con Node, tz 2026e). Chromium 153 usato per le prove ha dati più vecchi (dice UTC+1 a ottobre 2026): la pagina lo riconosce, corregge e lo dice. https://www.iana.org/time-zones
+- **Immagini**: niente librerie; le apre il browser (`<img>`, che applica l'orientamento EXIF) e le scrive `HTMLCanvasElement.toBlob`. Il limite di 16 777 216 pixel per tela è il limite noto di Safari su iPhone (non provato qui: nessun iPhone in queste prove). La piccola WebP e la piccola AVIF che provano cosa il telefono sa aprire sono immagini di 1 × 1 pixel scritte da noi.
+- **Nomi delle città**: Torino, Casablanca, Makkah, Medina, Gaza come nel resto del sito; gli altri nomi italiani delle città (Londra, Parigi, Il Cairo…) sono l'uso comune; gli identificatori sono quelli IANA. Nessun testo in arabo.
+
 ## Il gioco del cubo
 
 La pagina `/anteprima/progetti/cubo` (sorgente `docs/anteprime/casa/progetti/cubo/`) fa giocare il fork di Imad di «The Cube». Letto il 2026-11-13.

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Convertitore — imad.chat</title>
+<meta name="description" content="Un campo solo: unità, colori, basi, fusi orari e immagini. Scrivi «12 km» o «70 kg in lb» e vedi subito il risultato. Tutto resta sul tuo telefono.">
+<link rel="canonical" href="https://www.imad.chat/tools/converti">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="imad.chat">
+<meta property="og:locale" content="it_IT">
+<meta property="og:url" content="https://www.imad.chat/tools/converti">
+<meta property="og:title" content="Convertitore — imad.chat">
+<meta property="og:description" content="Un campo solo: unità, colori, basi, fusi orari e immagini. Scrivi «12 km» o «70 kg in lb» e vedi subito il risultato. Tutto resta sul tuo telefono.">
+<meta property="og:image" content="https://www.imad.chat/opengraph-image">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="imad.chat: il logo dei nove tasti con il centro d&#39;oro e la scritta imad.chat, su un cielo di notte">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-icon">
+<meta name="theme-color" content="#f5f4f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070810" media="(prefers-color-scheme: dark)">
+<!-- CONVERTITORE: il terzo strumento. Un campo solo, i risultati mentre scrivi, un tocco per copiare. Tutto si calcola sul telefono:
+     la pagina non chiede niente a nessuno (i caratteri sono le copie dichiarate in ../../comune/pagina.css).
+     I motori (senza pagina, provati anche in Node): motore-numeri.js (frazioni esatte), motore-unita.js, motore-colori.js,
+     motore-basi.js, motore-ore.js. La pagina: converti.js e converti.css sopra il guscio comune; le immagini: immagini.js. -->
+<link rel="stylesheet" href="/casa/comune/pagina.css">
+<link rel="stylesheet" href="/casa/tools/converti/converti.css">
+</head>
+<body class="pg-corpo cv-corpo">
+<div class="wall" aria-hidden="true"><i class="wall__a"></i><i class="wall__b"></i><i class="wall__g"></i></div>
+
+<header class="pg-testa" id="testa">
+  <a class="pg-casa" href="/" aria-label="imad.chat, torna alla home"><span class="l9" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="s"></i><i></i><i></i><i></i><i></i></span></a>
+  <p class="pg-titolo">Convertitore</p>
+</header>
+
+<main class="pg cv" id="cv">
+  <h1 class="sr">Convertitore: unità, colori, basi, fusi orari, immagini</h1>
+
+  <div class="cv-sinistra">
+    <!-- la scheda in cima: cosa converti, il campo, come l'ho letto, il risultato (sul telefono resta in vista mentre scorri) -->
+    <section class="cv-scheda" id="scheda" aria-label="Il campo e il risultato">
+      <div class="cv-cat" id="cat" role="radiogroup" aria-label="Cosa converti">
+        <span class="cv-cat__pill" id="catPill" aria-hidden="true"></span>
+        <button type="button" class="cv-cat__b" role="radio" aria-checked="true" data-c="unita">Unità</button>
+        <button type="button" class="cv-cat__b" role="radio" aria-checked="false" data-c="colori">Colori</button>
+        <button type="button" class="cv-cat__b" role="radio" aria-checked="false" data-c="basi">Basi</button>
+        <button type="button" class="cv-cat__b" role="radio" aria-checked="false" data-c="ore">Fusi orari</button>
+        <button type="button" class="cv-cat__b" role="radio" aria-checked="false" data-c="immagini">Immagini</button>
+      </div>
+
+      <div class="cv-campo" id="campo">
+        <label class="sr" for="in" id="inEt">Scrivi quello che vuoi convertire</label>
+        <input class="cv-in" id="in" type="text" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="12 km, 70 kg in lb, 100 °F" aria-describedby="letto">
+        <button type="button" class="cv-x" id="bX" aria-label="Cancella" hidden><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"/></svg></button>
+      </div>
+
+      <div class="cv-file" id="file" hidden>
+        <label class="cv-file__b" id="fileB"><input type="file" id="fFile" class="cv-file__in" accept="image/png,image/jpeg,image/webp,image/*"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4" width="14" height="12" rx="3"/><path d="M3.6 13.2l3.7-3.6 2.9 2.7 2.2-2 3.9 3.6"/><circle cx="13.2" cy="7.6" r="1.3"/></svg><span id="fileT">Scegli un'immagine</span></label>
+      </div>
+
+      <p class="cv-letto" id="letto"><span class="cv-letto__t" id="lettoT">Scrivi un valore: lo leggo mentre scrivi.</span></p>
+
+      <div class="cv-dubbio" id="dubbio" hidden>
+        <p class="cv-dubbio__d" id="dubbioD"></p>
+        <div class="cv-dubbio__o" id="dubbioO" role="group" aria-labelledby="dubbioD"></div>
+      </div>
+
+      <button type="button" class="cv-main" id="main" aria-describedby="mainAiuto" hidden>
+        <span class="cv-main__r"><span class="cv-main__s" id="mainS" aria-hidden="true"></span><span class="cv-main__v num" id="mainV"></span><span class="cv-main__u" id="mainU"></span></span>
+        <span class="cv-bolla" aria-hidden="true">Copiato</span>
+      </button>
+      <span class="sr" id="mainAiuto">Tocca per copiare</span>
+    </section>
+
+    <!-- come si calcola: il fattore esatto e la sua fonte; e cosa vuol dire «≈» -->
+    <section class="pg-card cv-come" id="come" aria-labelledby="comeT" hidden>
+      <h2 class="cv-h2" id="comeT">Come si calcola</h2>
+      <p class="cv-come__f num" id="comeF"></p>
+      <p class="cv-come__n" id="comeN"></p>
+    </section>
+
+    <div class="cv-barra" id="barra" role="group" aria-label="Azioni">
+      <button type="button" class="cv-b cv-b--primo" id="bCopia"><span class="cv-b__in"><svg class="cv-b__ico cv-b__ico--salva" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5v9M6.3 9.2L10 12.9l3.7-3.7M4.5 15.8h11"/></svg><svg class="cv-b__ico cv-b__ico--copia" viewBox="0 0 20 20" aria-hidden="true"><rect x="6.5" y="6.5" width="9.5" height="10" rx="2.4"/><path d="M13.5 4.4c-.3-.6-.9-.9-1.6-.9H6.2c-1.4 0-2.5 1.1-2.5 2.5v6.2c0 .7.4 1.3.9 1.6"/></svg><svg class="cv-b__ok" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.6 10.4l2.9 2.9 5.9-6.2"/></svg><span class="cv-b__t" id="bCopiaT">Copia</span></span></button>
+      <button type="button" class="cv-b" id="bCifre" aria-pressed="false"><span class="cv-b__in"><svg class="cv-b__ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 13.5h2.2M8.2 13.5h2.2M12.9 13.5h3.6M3.5 8.5h13"/></svg><span class="cv-b__t">Più cifre</span></span></button>
+      <button type="button" class="cv-b" id="bCondividi"><span class="cv-b__in"><svg class="cv-b__ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12.2V3.4M6.8 6.4L10 3.2l3.2 3.2M6.5 9H5.6c-.9 0-1.6.7-1.6 1.6v4.8c0 .9.7 1.6 1.6 1.6h8.8c.9 0 1.6-.7 1.6-1.6v-4.8c0-.9-.7-1.6-1.6-1.6h-.9"/></svg><svg class="cv-b__ok" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.6 10.4l2.9 2.9 5.9-6.2"/></svg><span class="cv-b__t" id="bCondividiT">Condividi</span></span><span class="cv-bolla" aria-hidden="true"></span></button>
+    </div>
+  </div>
+
+  <!-- i risultati: li scrive converti.js (un pannello per cosa converti); le immagini sono in immagini.js -->
+  <div class="cv-pannelli" id="pannelli" aria-live="off"></div>
+
+  <p class="sr" id="annuncio" aria-live="polite"></p>
+</main>
+
+<footer class="pg-piede cv-piede"><a href="/">Torna alla home</a><span>I fattori sono esatti, dalle definizioni del BIPM e del NIST. Niente lascia il tuo telefono.</span></footer>
+
+<script src="/casa/dati/astro-lite.js"></script>
+<script src="/casa/comune/pagina.js"></script>
+<script src="/casa/tools/converti/motore-numeri.js"></script>
+<script src="/casa/tools/converti/motore-unita.js"></script>
+<script src="/casa/tools/converti/motore-colori.js"></script>
+<script src="/casa/tools/converti/motore-basi.js"></script>
+<script src="/casa/tools/converti/motore-ore.js"></script>
+<script src="/casa/tools/converti/rullo.js"></script>
+<script src="/casa/tools/converti/pannelli.js"></script>
+<script src="/casa/tools/converti/immagini.js"></script>
+<script src="/casa/tools/converti/converti.js"></script>
+</body>
+</html>
