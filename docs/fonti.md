@@ -260,3 +260,15 @@ Il motore dei codici QR (`docs/anteprime/casa/tools/qr/qr-core.js`, scritto da n
 - Il banco di prova `strumenti/qr-prova.mjs` usa come secondo lettore, fuori dal browser, **zxing-cpp** (pacchetto Python `zxing-cpp`, licenza Apache 2.0, https://github.com/zxing-cpp/zxing-cpp), installato solo in un ambiente temporaneo per la prova e non incluso nel sito.
 
 “QR Code” è un marchio registrato di DENSO WAVE INCORPORATED.
+
+## Il gioco del cubo
+
+La pagina `/anteprima/progetti/cubo` (sorgente `docs/anteprime/casa/progetti/cubo/`) fa giocare il fork di Imad di «The Cube». Letto il 2026-11-13.
+
+- **«The Cube» di Boris Šehovac**: il gioco (three.js, codice in `src/js/` costruito con rollup). Originale: https://github.com/bsehovac/the-cube (letto da un clone, ultimo commit `1d6bbca`, 2026-11-07).
+- **La versione di Imad**: https://github.com/imadchatraoui/cube, commit `01c55b6` (2026-06-26). Aggiunge il tema pastello «Kukko» (U `#ffb6c1`, D `#fdfd96`, F `#ffb347`, R `#77dd77`, B `#aec6cf`, L `#ff6961`, plastica bianca `#ffffff`, sfondo `#d6f5d6`). Il suo repository si pubblica su cube.imadchatraoui.dev (file `CNAME`).
+- **File copiati così come sono** dal suo repository (sha256 identici): `gioco/cube.js` = `assets/js/cube.js` (`87bba21d…`), `gioco/styles.css` = `assets/css/styles.css` (`993b57c4…`), `vendor/three.js` = `assets/js/three.js` (`bc5ccd5a…`). Il `cube.js` del repository è un po' più nuovo di `src/js` (quando legge le preferenze unisce i colori di base e porta il vecchio tema «erno» su «kukko»): si usa quello, che è il file servito dal suo sito; non è stato ricostruito. Il markup del gioco viene dal suo `index.html`.
+- **Licenza del gioco**: nessun file di licenza, né nel repository di Imad né in quello di Boris Šehovac, e nessuna intestazione di copyright nei file. In entrambi `package.json` dice `"license": "ISC"` (il valore che npm scrive da sé; in quello di Boris c'è anche `"private": true`). Quindi c'è un'indicazione ISC nei metadati e nessun testo di licenza. Il credito sta sulla pagina del gioco (la riga in basso, con i link all'originale e al fork) e nella scheda del cubo in Progetti. Prima che la pagina vada sulla home pubblica conviene una parola con Boris Šehovac.
+- **three.js r95** (il file minimizzato che il gioco usa, intestazione `// threejs.org/license`): licenza MIT, https://github.com/mrdoob/three.js . `vendor/three.LICENSE` riporta il testo MIT di three.js (dal pacchetto npm `three` del progetto) con il copyright «2010-2018 three.js authors», gli anni dell'r95.
+- **Bungee** di David Jonathan Ross, il carattere del gioco, sta dentro `styles.css` come dati base64: SIL Open Font License 1.1 (https://github.com/djrrb/Bungee). Come nell'originale, il testo della licenza non viaggia con il file.
+- **UpUp** di Tal Ater (MIT), il service worker del suo repository: non è copiato, il sito non installa service worker.

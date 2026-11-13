@@ -1,0 +1,78 @@
+/* imad.chat — il cubo: la cornice intorno al gioco di Imad («The Cube» di Boris Šehovac). Il gioco tiene il suo aspetto e il suo
+   carattere (gioco/styles.css, intatto); qui solo la barra in alto, la riga del credito e due regole per il tocco.
+   Il gioco riscrive la dimensione del carattere di <html> a ogni resize (World.resize): qui tutto è in px, mai in rem o em.
+   Il suo foglio mette su * maiuscolo, user-select none, font-family inherit e outline none: le nostre classi li riscrivono.
+   I segni della barra sono quelli di ../../comune/pagina.css (.pg-testa, .pg-casa, .l9, .pg-pill), in chiaro: il gioco è chiaro.
+   Manrope non si carica (niente da altri server): la barra usa il carattere del sistema.
+   Safari non recente: niente :has(), top/right/bottom/left scritti per esteso. */
+
+:root { color-scheme: light; }
+
+/* il tocco: niente rimbalzo della pagina, niente zoom con il doppio tocco (il doppio tocco avvia il gioco); sul gioco nessun gesto
+   del browser, così il dito gira solo il cubo (il gioco blocca già touchmove su tutto il documento) */
+html, body { overscroll-behavior: none; touch-action: manipulation; }
+.ui__game { touch-action: none; -webkit-touch-callout: none; }
+
+/* ------------------------------------------------------------------ la barra: il logo che torna alla home, «Torna ai progetti» */
+.cb-barra {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+  display: flex; align-items: center; gap: 2px;
+  padding: calc(env(safe-area-inset-top) + 6px) 12px 6px 12px;
+  pointer-events: none;   /* fuori dai due link il dito arriva al gioco */
+  color: #16171d;
+  font: 700 15px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -.016em; text-transform: none;
+}
+.cb-barra *, .cb-credito * { text-transform: none; font: inherit; letter-spacing: inherit; cursor: inherit; }
+.cb-barra a, .cb-credito a { pointer-events: auto; cursor: pointer; color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+.cb-barra a:focus-visible, .cb-credito a:focus-visible { outline: 2.5px solid #16171d; outline-offset: 3px; }
+
+.cb-casa { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; transition: transform 140ms cubic-bezier(.22, 1, .36, 1); }
+.cb-casa:active { transform: scale(.92); }
+.cb-l9 { display: grid; grid-template-columns: repeat(3, 8px); grid-auto-rows: 8px; gap: 3px; }
+.cb-l9 i { display: block; border-radius: 2.4px; background: currentColor; opacity: .88; }
+.cb-l9 i:nth-child(2n) { opacity: .6; }
+.cb-l9 .s { border-radius: 50%; background: #b98a2e; opacity: 1; transform: scale(.8); box-shadow: 0 0 7px 1.5px rgba(243, 223, 168, .7); }
+
+/* la capsula, come .pg-pill: 36 px, 44 da toccare */
+.cb-torna {
+  position: relative; display: inline-flex; align-items: center; gap: 3px; min-height: 36px; padding: 0 15px 0 9px; border-radius: 18px;
+  white-space: nowrap; background: rgba(30, 28, 70, .07); box-shadow: inset 0 0 0 .5px rgba(30, 28, 70, .09);
+  transition: transform 140ms cubic-bezier(.22, 1, .36, 1), background 200ms ease;
+}
+.cb-torna::before { content: ""; position: absolute; top: -4px; right: 0; bottom: -4px; left: 0; }
+.cb-torna svg { display: block; flex: none; opacity: .62; }
+.cb-torna:active { transform: scale(.96); }
+
+/* ------------------------------------------------------------------ il credito, in basso tra i due pulsanti del gioco */
+.cb-credito {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+  padding: 0 76px calc(env(safe-area-inset-bottom) + 9px);
+  pointer-events: none; text-align: center;
+  color: rgba(7, 13, 21, .5);
+  font: 500 11px/16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -.002em; text-transform: none;
+}
+.cb-credito p { margin: 0; text-wrap: balance; }
+.cb-credito span { display: inline-block; }   /* sul telefono va a capo tra le due metà, mai a metà di un nome */
+.cb-credito a { color: rgba(7, 13, 21, .74); font-weight: 650; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; text-decoration-color: rgba(7, 13, 21, .28); }
+/* il gioco non è partito (cornice.js) */
+.cb-guasto {
+  position: fixed; top: 50%; left: 16px; right: 16px; z-index: 7; transform: translateY(-50%);
+  text-align: center; text-transform: none; color: rgba(7, 13, 21, .62);
+  font: 500 15px/22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; letter-spacing: -.01em;
+}
+.cb-guasto[hidden] { display: none; }
+.cb-guasto * { text-transform: none; font: inherit; }
+.cb-guasto a { display: inline-flex; align-items: center; min-height: 44px; color: #16171d; font-weight: 700; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; cursor: pointer; }
+.cb-guasto a:focus-visible { outline: 2.5px solid #16171d; outline-offset: 3px; }
+.sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+@media (hover: hover) and (pointer: fine) {
+  .cb-casa:hover { opacity: .72; }
+  .cb-torna:hover { background: rgba(30, 28, 70, .11); }
+  .cb-credito a:hover { color: rgba(7, 13, 21, .92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cb-casa, .cb-torna { transition: none; }
+}
