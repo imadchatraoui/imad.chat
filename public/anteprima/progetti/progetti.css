@@ -33,6 +33,10 @@
 .pj-r__go { position: absolute; top: calc(var(--p) - 1px); right: calc(var(--p) - 3px); color: var(--ink-3); transition: transform 240ms var(--ease-out), color 240ms ease; }
 .pj-r .pj-r__d { margin-top: 5px; font: 500 14px/20px var(--font-sans); letter-spacing: -.006em; color: var(--ink-2); text-wrap: pretty; overflow-wrap: anywhere; }
 .pj-r .pj-r__m { margin-top: auto; padding-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; font: 500 12.5px/18px var(--font-sans); letter-spacing: -.002em; color: var(--ink-3); }
+/* una scheda senza descrizione (pg-card--corta, da progetti.js): niente altezza minima, la riga sotto il nome a 14 px come nella scheda
+   di imad.chat, che pure non ne ha; nessun :has(), che Safari non recente butta via */
+.pj-r.pg-card--corta { min-height: 0; }
+.pj-r.pg-card--corta .pj-r__m { margin-top: 0; }
 /* il linguaggio: la voce della macchina */
 .pj-r__l { font: 500 10.5px/18px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
 .pj-r__sep { display: inline-block; width: 3px; height: 3px; margin: 0 9px; border-radius: 50%; background: currentColor; opacity: .7; }

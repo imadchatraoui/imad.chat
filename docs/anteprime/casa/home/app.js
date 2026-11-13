@@ -214,7 +214,8 @@
     rs.setProperty("--stelle", (dark ? night : 0).toFixed(3));
     rs.setProperty("--hero-spill", rgba(toRgb(mixLch(M, Hh, 0.5)), spill));
     rs.setProperty("--hero-alone", dark ? rgba(toneLab(mixLch(Z, M, 0.5), 0.62, 0.09), 0.16 + 0.1 * night) : "rgba(0, 0, 0, 0)");
-    rs.setProperty("--vetro-base", dark ? rgba(toneLab(M, 0.265 + 0.04 * day, 0.018 + 0.012 * day), 0.9 - 0.12 * day) : rgba(toneLab(M, 0.985, 0.006), 0.62));
+    /* il vetro scuro prende un filo del cielo: di notte croma .028 (era .018, un grigio quasi neutro), di giorno .03 come prima */
+    rs.setProperty("--vetro-base", dark ? rgba(toneLab(M, 0.265 + 0.04 * day, 0.028 + 0.002 * day), 0.9 - 0.12 * day) : rgba(toneLab(M, 0.985, 0.006), 0.62));
     /* la barra del browser prende il colore della cima della pagina, nei due temi */
     $$('meta[name="theme-color"]').forEach(function (m) { m.setAttribute("content", css(a)); });
     stelle();
@@ -580,8 +581,7 @@
     var op = t.closest("[data-open]"); if (!op || S.open) return;
     openSheet(op.getAttribute("data-open"), op.closest(".tile[data-mat]") || op);
   });
-  grid.addEventListener("pointerdown", function (e) { var h = e.target.closest ? e.target.closest(".tile__hit") : null; if (h) h.parentNode.classList.add("is-pressed"); });
-  ["pointerup", "pointercancel", "pointerleave", "dragstart"].forEach(function (n) { grid.addEventListener(n, function () { $$(".tile.is-pressed", grid).forEach(function (t) { t.classList.remove("is-pressed"); }); }, true); });
+  /* la pressione dei riquadri è di moto.js (CASA.md 2d E): qui non si mette più .is-pressed al pointerdown */
   if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
     grid.addEventListener("pointermove", function (e) { var t = e.target.closest ? e.target.closest(".tile") : null; if (!t) return; var r = t.getBoundingClientRect(); t.style.setProperty("--mx", (e.clientX - r.left) + "px"); t.style.setProperty("--my", (e.clientY - r.top) + "px"); });
   }
@@ -630,6 +630,19 @@
     return a;
   })();
   var wallEl = $(".wall"), sBox = null, sCv = [], sW = 0, sH = 0, sFree = 0, sRz = 0;
+  /* le parole di «Ciao» stanno sul cielo: una stella proprio dietro una lettera si legge come un segno («Imad..»). Le stelle il cui
+     centro cade nei rettangoli del titolo, della riga e dei due pulsanti (più 10 px intorno), con la pagina in cima, non si disegnano:
+     mancano dal momento in cui le parole entrano con l'atterraggio dell'intro (ni-ciao); le altre restano dove le ha lasciate l'intro.
+     I rettangoli sono quelli della pagina (offsetTop: la trasformazione dell'entrata non conta), letti a ogni disegno */
+  function sottoParole() {
+    var rs = [];
+    [".ciao__t", ".ciao__p", ".ciao__b"].forEach(function (sel) {
+      var el = $(sel); if (!el || !el.offsetWidth) return;
+      var x = 0, y = 0; for (var e = el; e; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; }
+      rs.push([x - 10, y - 10, x + el.offsetWidth + 10, y + el.offsetHeight + 10]);
+    });
+    return rs;
+  }
   function stelleV() { return parseFloat(root.style.getPropertyValue("--stelle")) || 0; }
   function stelle() {
     if (!wallEl) return;
@@ -648,13 +661,15 @@
         wallEl.insertBefore(sBox, $(".wall__g", wallEl) || null);
       }
       /* densità al più 1,5; sugli schermi grandi ogni tela resta sotto 1,2 milioni di pixel (non sotto 0,75: stelline morbide) */
-      var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      var dpr = Math.min(window.devicePixelRatio || 1, 1.5), via = sottoParole();
       if (W * H * dpr * dpr > 1.2e6) dpr = Math.max(0.75, Math.sqrt(1.2e6 / (W * H)));
       sCv.forEach(function (cv, k) {
         cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + "px"; cv.style.height = H + "px";
         var ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
         for (var i = k; i < SKY_I.length; i += 3) {
-          var s = SKY_I[i], x = s.x * W, y = s.y * H * 0.96, al = s.a * 0.46 * (1 - 0.35 * s.y), rr = s.r * 0.86;
+          var s = SKY_I[i], x = s.x * W, y = s.y * H * 0.96, al = s.a * 0.46 * (1 - 0.35 * s.y), rr = s.r * 0.86, sotto = false;
+          for (var v = 0; v < via.length; v++) if (x >= via[v][0] && x <= via[v][2] && y >= via[v][1] && y <= via[v][3]) sotto = true;
+          if (sotto) continue;
           if (s.big) {
             var gR = rr * 5, g = ctx.createRadialGradient(x, y, 0, x, y, gR);
             g.addColorStop(0, "rgba(255,240,212," + (0.3 * al).toFixed(3) + ")"); g.addColorStop(1, "rgba(255,240,212,0)");
@@ -667,6 +682,8 @@
     } catch (e) { /* senza tele: il cielo senza stelle, va bene lo stesso */ }
   }
   window.addEventListener("resize", function () { clearTimeout(sRz); sRz = setTimeout(stelle, 160); });
+  /* i caratteri veri cambiano le misure delle parole di «Ciao»: arrivati loro, le stelle si ridisegnano una volta */
+  if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(function () { if (sW) { sW = sH = 0; stelle(); } });
 
   /* il tema cambia (il telefono passa al chiaro o allo scuro, o il bottone del tema scrive data-theme): il cielo della pagina,
      il vetro e le stelle si rifanno subito, senza aspettare il minuto */

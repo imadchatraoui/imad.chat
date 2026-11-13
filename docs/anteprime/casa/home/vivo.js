@@ -16,6 +16,22 @@
   /* la molla di IMAD.ease.spring (app.js, springCurve: ω = 6,4 / ζ), qui in JS: da 0 a 1 per u da 0 a 1, si posa con un filo oltre */
   function molla(u, z) { if (u <= 0) return 0; if (u >= 1) return 1; var w = 6.4 / z, wd = w * Math.sqrt(1 - z * z); return 1 - Math.exp(-z * w * u) * (Math.cos(wd * u) + (z * w / wd) * Math.sin(wd * u)); }
   function hexRgb(h) { var n = parseInt(String(h).replace("#", ""), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+  /* si vede davvero? Almeno il 35% del riquadro sopra il dock: la stessa prova del risveglio di moto.js (che resta chi sveglia).
+     s.ok si aggiorna da solo (un IntersectionObserver, niente misure nel giro dei fotogrammi); senza IntersectionObserver vale sempre sì */
+  function inVista(el) {
+    var s = { ok: true };
+    if (!el || !("IntersectionObserver" in window)) return s;
+    s.ok = false;
+    var dock = doc.getElementById("dock"), dh = dock ? Math.round(dock.getBoundingClientRect().height + 12) : 0;
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        var rh = e.rootBounds ? e.rootBounds.height : window.innerHeight;
+        s.ok = e.isIntersecting && e.intersectionRect.height / Math.max(1, Math.min(e.boundingClientRect.height, rh)) >= 0.35;
+      });
+    }, { rootMargin: "0px 0px -" + dh + "px 0px", threshold: [0, 0.2, 0.35, 0.5, 0.75, 1] }).observe(el);
+    return s;
+  }
+  function tileOf(cv) { return cv.closest ? cv.closest(".tile") || cv : cv; }
   var TOR = city("torino");
   /* la luce per i disegni che hanno un volume (il cubo): direzione nello spazio della vista (x a destra, y in alto, z verso chi guarda),
      quanta luce d'ambiente e quanta dalla sorgente, il suo colore (0..1). La scrive luce() con le variabili CSS */
@@ -216,15 +232,17 @@
       hit.addEventListener("click", function (e) { if (suppress) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
     }
     /* il globo si ridisegna un fotogramma sì e uno no: basta, e costa la metà; mentre si sveglia girando, ogni fotogramma.
-       Se dopo prime() nessuno lo sveglia (6 s in vista, a pagina libera), si sveglia da sé */
+       Se dopo prime() nessuno lo sveglia (6 s in vista, a pagina libera, almeno il 35% sopra il dock: mai sotto il dock, dove il giro
+       non lo vedrebbe nessuno), si sveglia da sé */
+    var zzVista = null;
     function frame(t) {
       var dt = gPrev < 0 ? 0 : clamp(t - gPrev, 0, 50); gPrev = t;
-      if (zz === 1) { zzDorme += dt; if (zzDorme > 6000 && !zzPend) sveglia(); }
+      if (zz === 1) { if (zzVista && zzVista.ok) zzDorme += dt; if (zzDorme > 6000 && !zzPend) sveglia(); }
       if (zz === 2) { zzT += dt; if (zzT >= ZZ_DUR) zz = 3; draw(t); return; }
       if ((n2++ & 1) === 0) draw(t);
     }
     return { size: size, draw: frame, still: draw, sun: sunUpdate, readout: readout,
-      prime: function () { if (I.still() || zz) return; zz = 1; zzDorme = 0; draw(performance.now()); },
+      prime: function () { if (I.still() || zz) return; zz = 1; zzDorme = 0; if (!zzVista) zzVista = inVista(tileOf(cv)); draw(performance.now()); },
       wake: function (d) {
         if (zz !== 1 || zzPend) return 0;
         d = Math.max(0, +d || 0); zzPend = true; setTimeout(sveglia, d);
@@ -264,15 +282,16 @@
     /* il risveglio dopo l'intro (moto.js, CASA.md 2d E). zz: 0 vivo da subito, 1 addormentato (girato di −1,05 rad dalla sua base, fermo,
        nessuna mossa: resta il disegno di prime()), 2 si sveglia (una molla, ζ .66, in 900 ms), 3 sveglio; 260 ms dopo la molla si
        mescola. Il tempo è il suo orologio (clock), che avanza solo mentre si disegna */
-    var zz = 0, zzT0 = 0, zzDorme = 0, zzPend = false, zzPrev = -1, ZZ_YAW = -1.05, ZZ_DUR = 900;
+    var zz = 0, zzT0 = 0, zzDorme = 0, zzPend = false, zzPrev = -1, zzVista = null, ZZ_YAW = -1.05, ZZ_DUR = 900;
     function sveglia() { zzPend = false; if (zz !== 1) return; zz = 2; zzT0 = clock; wait = ZZ_DUR + 260; }
     function size() { var f = I.fit(cv, 3); if (f) { W = f.W; H = f.H; dpr = f.dpr; } }
     function rgb(c, k, add) { add = add || 0; return "rgb(" + Math.round(clamp(c[0] * k + add, 0, 255)) + "," + Math.round(clamp(c[1] * k + add, 0, 255)) + "," + Math.round(clamp(c[2] * k + add, 0, 255)) + ")"; }
     var lastDraw = -1e9;
     function frame(t) {
       if (zz === 1) {
-        /* addormentato: la posa resta quella che ha disegnato prime(); si conta solo da quanto si vede (dopo 6 s si sveglia da sé) */
-        zzDorme += zzPrev < 0 ? 0 : clamp(t - zzPrev, 0, 64); zzPrev = t; tPrev = t;
+        /* addormentato: la posa resta quella che ha disegnato prime(); si conta solo da quanto si vede davvero, almeno il 35% sopra
+           il dock (dopo 6 s si sveglia da sé) */
+        zzDorme += zzPrev < 0 || !zzVista || !zzVista.ok ? 0 : clamp(t - zzPrev, 0, 64); zzPrev = t; tPrev = t;
         if (zzDorme > 6000 && !zzPend) sveglia();
         if (zz === 1) return;
       }
@@ -354,7 +373,7 @@
       });
     }
     return { size: size, draw: frame, still: draw,
-      prime: function () { if (I.still() || zz) return; zz = 1; zzDorme = 0; zzPrev = -1; draw(performance.now()); },
+      prime: function () { if (I.still() || zz) return; zz = 1; zzDorme = 0; zzPrev = -1; if (!zzVista) zzVista = inVista(tileOf(cv)); draw(performance.now()); },
       wake: function (d) {
         if (zz !== 1 || zzPend) return 0;
         d = Math.max(0, +d || 0); zzPend = true; setTimeout(sveglia, d);

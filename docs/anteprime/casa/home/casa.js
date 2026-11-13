@@ -123,6 +123,7 @@
       }
       I.relayout(longest ? longest / 1000 + 0.15 : 0);     /* Dot resta sul suo riquadro mentre viaggia; se finisce sotto il Corano se ne va */
     }
+    if (!still && I.moto && I.moto.scorri) { I.moto.scorri(y, viaggio); return; }   /* moto.js: uno scorrimento breve, il viaggio parte al 60% */
     if (y === null) { viaggio(); return; }
     if (still) { window.scrollTo(0, y); viaggio(); return; }
     window.scrollTo({ top: y, behavior: "smooth" });
