@@ -28,12 +28,13 @@
   <div class="t w4" id="saluti">saluti</div>
 </section></main>
 <div class="dock"></div>
-<script src="dot-rig.js"></script><script src="look-base.js"></script><script src="look-adesivo.js"></script><script src="look-manifesto.js"></script><script src="look-pelo.js"></script>
+<script src="dot-rig.js"></script><script src="look-base.js"></script><script src="look-manifesto.js"></script>
 <script src="dot-stage.js"></script><script src="dot-sound.js"></script><script src="dot-fx.js"></script><script src="dot-brain.js"></script>
 <script>
 /* Pagina di prova (mai online): riquadri come sulla casa nuova, una barra in alto (topInset 64) e un dock in basso (bottomInset 76).
    order([id, ...]) riordina, flip([id, ...], ms) riordina con un'animazione FLIP, hide(id, true|false) nasconde: poi DOT.refresh().
-   ?manual=1 (orologio fermo)  ?seme=7  ?primo=1 (con l'apertura)  ?look=adesivo|manifesto|pelo. La usa strumenti/soak.mjs. */
+   ?manual=1 (orologio fermo)  ?seme=7  ?primo=1 (con l'apertura)  ?look=base (l'aspetto semplice di prova; se no Manifesto, quello scelto da Imad).
+   La usa strumenti/soak.mjs. */
 (function () {
   var q = new URLSearchParams(location.search), g = document.getElementById("g");
   if (q.get("manual") === "1") window.__manual = true; if (q.get("seme")) DOT.debug.seed(+q.get("seme"));
@@ -47,7 +48,7 @@
     g.offsetWidth; els.forEach(function (e) { e.style.transition = "transform " + ms + "ms cubic-bezier(.2,.8,.2,1)"; e.style.transform = ""; });
   };
   window.hide = function (id, on) { document.getElementById(id).classList.toggle("hide", on !== false); };
-  DOT.start({ tiles: ".t", home: document.getElementById("hero"), parent: document.getElementById("dotclip"), look: q.get("look") || "adesivo", firstVisit: q.get("primo") === "1", dark: true,
+  DOT.start({ tiles: ".t", home: document.getElementById("hero"), parent: document.getElementById("dotclip"), look: q.get("look") === "base" ? "base" : "manifesto", firstVisit: q.get("primo") === "1", dark: true,
     topInset: function () { return 64; }, bottomInset: function () { return 76; } });
   window.__ready = true;
 })();

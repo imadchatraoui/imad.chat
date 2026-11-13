@@ -2085,6 +2085,18 @@
     for (i = 0; i < L.length; i++) { n = L[i]; var x0 = (n.l - cx) / k, x1 = (n.r - cx) / k, y0 = (Oy - n.b) / k, y1 = (Oy - n.t) / k; c.rect(x0, y0, x1 - x0, y1 - y0); }
     c.clip("evenodd");
   }
+  /* la nuvoletta è parte di Dot (CASA.md 2c E): non copre parole né comandi. FUM.ok dice a dot-fx.js se un rettangolo, con m px attorno,
+     sta tutto nella finestra (sotto la striscia coperta in alto, view.ti) e non tocca ciò davanti a cui Dot non passa (come boxKeep): la
+     lista da non coprire (world.keep), il riquadro quiet, il dock, il Corano (world.no). La scatola di Dot (la voce di world.no con «m»)
+     conta solo se lax è falso: è un disegno, meglio lasciarla libera ma si può coprire. I rettangoli arrivano nelle coordinate dello
+     strato della nuvoletta (la pagina, o lo schermo quando Dot è nello strato fisso): ox, oy li riportano in pagina.
+     hy, hr: l'altezza a cui la nuvoletta sta di lato alla testa (un po' sopra il centro: sopra i baffi) e la mezza larghezza della testa */
+  var FUM = { hy: 0, hr: 0, ox: 0, oy: 0, ok: function (l, t, r, b, m, lax) {
+    var i, n, L = world.no; l += FUM.ox - m; r += FUM.ox + m; t += FUM.oy - m; b += FUM.oy + m;
+    if (l < view.sx || r > view.sx + view.vw || t < view.sy + view.ti || b > view.sy + view.vh || rectHits(world.keep, l, t, r, b) || rectHits(world.quiet, l, t, r, b)) return false;
+    for (i = 0; i < L.length; i++) { n = L[i]; if (!(lax && n.m) && r > n.l && l < n.r && b > n.t && t < n.b) return false; }
+    n = world.dock; return !(n && n.on && r > n.tile.l && l < n.tile.r && b > n.tile.t && t < n.tile.b);
+  } };
   function render(dt) {
     var f = rig.frame(), k = px(), i; lastF = f;
     var Oy = cat.y - cat.lift - cat.voff * k, on = cat.vis && Oy > view.sy - 220 && Oy < view.sy + view.vh + 260 && !(cat.state === "think" && !cat.plat);   /* «think» senza bordo: un passaggio, non si disegna */
@@ -2133,7 +2145,8 @@
         if (gh !== B.grabH) { B.grabH = gh; grab.style.height = gh + "px"; } } }
     if (!free && grab.style.display !== "none" && !(drag && drag.moved)) grab.style.display = "none";
     if (SG.fing || SG.rings.length) sgDraw();                           /* il dito fantasma e gli anelli sul vetro, sopra il gatto */
-    if (bubble) { var ax = cat.x + f.head.x * k, ay = Oy - (f.head.y + f.head.ry + (rig.fezOn ? 9 : 3)) * k; bubble.place(ax - ox0, ay - oy0, cat.y + 6 - oy0, view.sx - ox0, view.sy + view.ti - oy0, view.vw, on && cat.state !== "held" && cat.state !== "fly"); }
+    if (bubble) { var ax = cat.x + f.head.x * k, ay = Oy - (f.head.y + f.head.ry + (rig.fezOn ? 9 : 3)) * k; FUM.ox = ox0; FUM.oy = oy0; FUM.hy = Oy - (f.head.y + f.head.ry * 0.3) * k - oy0; FUM.hr = f.head.rx * k;
+      bubble.place(ax - ox0, ay - oy0, cat.y + 6 - oy0, view.sx - ox0, view.sy + view.ti - oy0, view.vw, on && cat.state !== "held" && cat.state !== "fly", FUM); }
   }
 
   /* ------------------------------------------------------------------ il ciclo */

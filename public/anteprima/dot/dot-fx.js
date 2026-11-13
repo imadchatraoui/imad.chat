@@ -23,7 +23,9 @@
       ".dot-fum--long .dot-fum__in{white-space:normal;width:204px;font-weight:650;font-size:13.5px}",
       ".dot-fum--mini .dot-fum__in{padding:4px 9px 5px;border-radius:12px;font-size:12px}",
       ".dot-fum__in:after{content:\"\";position:absolute;left:var(--tx,50%);bottom:-5px;width:11px;height:11px;margin-left:-5.5px;border-radius:2px;background:inherit;-webkit-transform:rotate(45deg);transform:rotate(45deg)}",
-      ".dot-fum.is-below .dot-fum__in:after{bottom:auto;top:-5px}"
+      ".dot-fum.is-below .dot-fum__in:after{bottom:auto;top:-5px}",
+      ".dot-fum.is-right .dot-fum__in:after,.dot-fum.is-left .dot-fum__in:after{left:-5px;bottom:auto;top:var(--tx,50%);margin:-5.5px 0 0}",   /* di lato al gatto: la coda sul fianco della nuvoletta, verso di lui */
+      ".dot-fum.is-left .dot-fum__in:after{left:auto;right:-5px}"
     ].join("\n");
     doc.head.appendChild(s);
   };
@@ -44,13 +46,13 @@
 
   /* ------------------------------------------------------------------ la nuvoletta: una molla vera (va col tempo del cervello, non con il CSS) */
   fx.Bubble = function (layer) {
-    var el = doc.createElement("div"), inn = doc.createElement("div"), b = { on: false, sc: 0, v: 0, a: 0, left: 0, top: 0, w: 0, h: 0, until: 0, text: "" };
+    var el = doc.createElement("div"), inn = doc.createElement("div"), b = { on: false, sc: 0, v: 0, a: 0, left: 0, top: 0, w: 0, h: 0, until: 0, text: "", k: -1 };
     el.className = "dot-fum"; inn.className = "dot-fum__in"; el.appendChild(inn); el.setAttribute("role", "status"); el.setAttribute("aria-live", "polite"); layer.appendChild(el);
     b.el = el;
     b.say = function (text, sec, kind) {
       b.text = text; inn.textContent = text; el.className = "dot-fum" + (kind ? " dot-fum--" + kind : ""); el.style.display = "block";   /* visibile per misurarla (l'interno è ancora trasparente) */
       inn.style.transform = "none"; b.w = inn.offsetWidth || 120; b.h = inn.offsetHeight || 34; inn.style.transform = "scale(" + Math.max(0.001, b.sc).toFixed(3) + ")";
-      b.on = true; b.until = sec; b.sc = Math.min(b.sc, 0.35); b.v = 0;
+      b.on = true; b.until = sec; b.sc = Math.min(b.sc, 0.35); b.v = 0; b.k = -1;   /* una nuvoletta nuova sceglie da capo il suo posto */
     };
     b.hide = function (at) { b.on = false; if (at) { b.sc = 0; b.v = 0; b.a = 0; } };   /* at: sparisce subito, senza la molla */
     b.vis = true;
@@ -61,17 +63,35 @@
       b.v += (-(b.sc - want) * k - b.v * d) * dt; b.sc += b.v * dt; if (!want && b.sc < 0.02) { b.sc = 0; b.v = 0; }
       b.a += ((want ? 1 : 0) - b.a) * (1 - Math.exp(-dt * (want ? 14 : 18)));
     };
-    /* dove sta: ax, ay = punta della coda (sopra la testa); fy = sotto i piedi (se sopra non c'è posto); vx0, vy0, vw: la finestra */
-    b.place = function (ax, ay, fy, vx0, vy0, vw, vis) {
+    /* dove sta: ax, ay = punta della coda (sopra la testa); fy = sotto i piedi (se sopra non c'è posto); vx0, vy0, vw: la finestra.
+       o (se il cervello lo passa): la nuvoletta è parte di Dot, non copre parole né comandi. o.ok(l, t, r, b, m, lax) dice se quel
+       rettangolo, con m px attorno, è libero (lax: la scatola di Dot non conta); o.hy, o.hr: l'altezza a cui sta di lato alla testa
+       e la mezza larghezza della testa. Il posto di sempre (sopra la testa, o sotto i piedi se sopra non c'è posto), se è libero,
+       resta quello di sempre, disegnato come sempre; se no il primo libero fra: sopra la testa, di lato dalla parte con più posto,
+       dall'altro lato (prima senza coprire la scatola, poi anche su quella); se non ce n'è nessuno, il posto di sempre.
+       Il posto scelto (b.k: 0 quello di sempre, 1 sopra, 2 a destra del gatto, 3 a sinistra; -1 non ancora) si sceglie con 4 px di
+       margine e resta finché è libero senza margine: la nuvoletta non salta avanti e indietro. La coda punta sempre al gatto. */
+    b.place = function (ax, ay, fy, vx0, vy0, vw, vis, o) {
       b.vis = vis;
       if (b.sc <= 0.001 && b.a < 0.01) { if (el.style.display !== "none") el.style.display = "none"; return; }
       if (el.style.display === "none") el.style.display = "block";
       var below = ay - b.h - 12 < vy0 + 8, left = clamp(ax - b.w / 2, vx0 + 12, vx0 + vw - 12 - b.w), top = below ? fy + 12 : ay - b.h - 7;
-      var tx = clamp(ax - left, 16, b.w - 16);
-      el.className = el.className.replace(/ is-below/, "") + (below ? " is-below" : "");
+      var tx = clamp(ax - left, 16, b.w - 16), side = 0;
+      if (o && o.ok) {
+        var w = b.w, h = b.h, up = ay - h - 7, sy = o.hy - h / 2, xr = ax + o.hr + 8, xl = ax - o.hr - 8 - w, s = ax - vx0 < vw / 2 ? 2 : 3, c = [below ? 1 : 0, s, 5 - s], i, lax;
+        var ok = function (k, m, x) {                                  /* il rettangolo del posto k: la nuvoletta più i 7 px della sua coda, dalla parte del gatto */
+          return k === 2 ? o.ok(xr - 7, sy, xr + w, sy + h, m, x) : k === 3 ? o.ok(xl, sy, xl + w + 7, sy + h, m, x) : k === 1 || !below ? o.ok(left, up, left + w, up + h + 7, m, x) : o.ok(left, top - 7, left + w, top + h, m, x);
+        };
+        if (b.k < 0 || !ok(b.k, 0, 1)) {                               /* non ancora scelto, o il posto scelto non è più libero: si sceglie da capo */
+          b.k = ok(0, 4, 1) ? 0 : -1;
+          for (lax = 0; lax < 2 && b.k < 0; lax++) for (i = 0; i < 3 && b.k < 0; i++) if (c[i] && ok(c[i], 4, lax)) b.k = c[i];
+        }
+        if (b.k === 1) { below = false; top = up; } else if (b.k > 1) { side = b.k === 2 ? 1 : -1; left = side > 0 ? xr : xl; top = sy; tx = h / 2; }
+      }
+      el.className = el.className.replace(/ is-\w+/, "") + (side ? (side > 0 ? " is-right" : " is-left") : below ? " is-below" : "");
       el.style.transform = "translate3d(" + left.toFixed(1) + "px," + top.toFixed(1) + "px,0)";
       inn.style.setProperty("--tx", tx.toFixed(1) + "px");
-      inn.style.transformOrigin = tx.toFixed(1) + "px " + (below ? "0%" : "100%");
+      inn.style.transformOrigin = side ? (side > 0 ? "0% " : "100% ") + tx.toFixed(1) + "px" : tx.toFixed(1) + "px " + (below ? "0%" : "100%");
       inn.style.transform = "scale(" + Math.max(0.001, b.sc).toFixed(3) + ")"; inn.style.opacity = clamp(b.a * 1.4, 0, 1).toFixed(3);
     };
     b.remove = function () { if (el.parentNode) el.parentNode.removeChild(el); };
