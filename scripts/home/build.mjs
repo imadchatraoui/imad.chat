@@ -1,81 +1,29 @@
 // Prepara le pagine statiche del sito in public/ (Vercel non esegue questo script: public/ si committa).
 // Uso: node scripts/home/build.mjs
 //
-// L'interruttore del cambio di casa è CASA_NUOVA in lib/site.ts (docs/anteprime/casa/CASA.md, sezione 7):
-//   false (oggi): public/home, la home online a "/" (il disegno c-widget con l'intro «stella»), public/anteprima (la casa nuova,
-//                 non indicizzata, a /anteprima) e public/gatto;
-//   true:         public/casa, la casa nuova a "/" con le sue pagine alla radice, indicizzate, con i metadati veri;
-//                 public/home e public/anteprima spariscono; public/gatto resta (la pagina di prova di Dot, non indicizzata).
-// next.config.ts legge lo stesso interruttore e si ferma se public/ non è stata fatta con quello.
+//   public/casa:  la casa a "/" con le sue pagine alla radice (/progetti, /mondo, /tools/qr, ...), indicizzate, con i metadati veri;
+//   public/gatto: la pagina di prova di Dot, a /gatto (non indicizzata).
+// next.config.ts legge public/casa/pagine.json per gli indirizzi e si ferma se public/casa non c'è (docs/anteprime/casa/CASA.md, sezione 7).
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SITO = leggiSito();
-const home = path.join(root, "docs/anteprime/c-widget");
-const intro = path.join(root, "docs/anteprime/intro");
-const out = path.join(root, "public/home");
 const swap = (text, from, to, file) => {
   if (!text.includes(from)) throw new Error(`${file}: non trovo «${from.slice(0, 60)}»`);
   return text.replace(from, to);
 };
-// lib/site.ts, letto come testo (questo script è JavaScript semplice): l'interruttore e l'indirizzo pubblico
+// lib/site.ts, letto come testo (questo script è JavaScript semplice): l'indirizzo pubblico
 function leggiSito() {
   const src = fs.readFileSync(path.join(root, "lib/site.ts"), "utf8");
-  const on = src.match(/^export const CASA_NUOVA = (true|false);/m);
   const host = src.match(/^export const SITE_HOST = "([a-z0-9.-]+)";/m);
-  if (!on || !host) throw new Error("lib/site.ts: non trovo «export const CASA_NUOVA = true|false;» e «export const SITE_HOST = \"...\";» (una riga ciascuno)");
-  return { casaNuova: on[1] === "true", host: host[1], url: "https://" + host[1] };
+  if (!host) throw new Error("lib/site.ts: non trovo «export const SITE_HOST = \"...\";» (su una riga)");
+  return { host: host[1], url: "https://" + host[1] };
 }
-console.log(`interruttore: CASA_NUOVA = ${SITO.casaNuova} (lib/site.ts) · indirizzo: ${SITO.url}`);
+console.log(`indirizzo: ${SITO.url} (lib/site.ts)`);
 
-// ------------------------------------------------------------------ la home di oggi: public/home (solo con CASA_NUOVA = false)
-// Parte dal disegno scelto (docs/anteprime/c-widget) con sopra la nuova intro (docs/anteprime/intro), versione «stella».
-// Toglie ciò che nelle anteprime è finto o di servizio: le barre "anteprima", i saluti di esempio,
-// le parole di esempio sulle stelle, il pulsante Instagram senza indirizzo.
-if (SITO.casaNuova) {
-  fs.rmSync(out, { recursive: true, force: true });
-  console.log("public/home: tolta (con la casa nuova a \"/\" non serve più)");
-} else {
-  let html = fs.readFileSync(path.join(intro, "index.html"), "utf8");
-  html = swap(html, "<title>imad.chat — anteprima dell'intro</title>", `<title>imad.chat</title>
-<meta name="description" content="imad.chat, il sito di Imad Chatraoui: il Corano, le città adesso, la Palestina, il cielo vero sopra Torino, un cubo di Rubik.">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="imad.chat">
-<meta property="og:title" content="imad.chat">
-<meta property="og:description" content="Il sito di Imad Chatraoui">`, "index.html");
-  html = swap(html, '<meta name="robots" content="noindex">\n', "", "index.html");
-  html = html.split("../c-widget/").join("/home/");
-  html = swap(html, '<link rel="stylesheet" href="intro.css">', '<link rel="stylesheet" href="/home/intro.css">', "index.html");
-  html = swap(html, '<script src="intro.js"></script>', '<script>window.__niMedia = "/home/media/";</script>\n<script src="/home/intro.js"></script>', "index.html");
-  // la barra di servizio dell'anteprima dell'intro non va online
-  const a = html.indexOf("<!-- barra di questa anteprima: non fa parte del design -->");
-  const b = html.indexOf("</aside>", a);
-  if (a < 0 || b < 0) throw new Error("index.html: non trovo la barra dell'anteprima dell'intro");
-  html = html.slice(0, a) + html.slice(b + "</aside>".length).replace(/^\s*\n/, "");
-  if (/128/.test(html)) throw new Error("index.html: c'è ancora un numero di saluti di esempio");
-
-  let app = fs.readFileSync(path.join(home, "app.js"), "utf8");
-  app = swap(app, "function wordStars() {", 'function wordStars() { return ""; }\n  function wordStarsEsempio() {', "app.js");
-  app = swap(app, "Il tuo saluto resta su questo telefono, in questa anteprima.", "Il tuo saluto resta su questo telefono, per ora.", "app.js");
-  app = swap(app, "Scegli un saluto: la tua stella si accende tra le altre.", "Scegli un saluto: la tua stella si accende nel cielo.", "app.js");
-
-  let data = fs.readFileSync(path.join(home, "data.js"), "utf8");
-  data = swap(data, '"sampleStars": 128', '"sampleStars": 0', "data.js");
-
-  fs.rmSync(out, { recursive: true, force: true });
-  fs.mkdirSync(path.join(out, "media"), { recursive: true });
-  fs.writeFileSync(path.join(out, "index.html"), html);
-  fs.writeFileSync(path.join(out, "app.js"), app);
-  fs.writeFileSync(path.join(out, "data.js"), data);
-  for (const f of ["style.css", "astro-lite.js"]) fs.copyFileSync(path.join(home, f), path.join(out, f));
-  for (const f of ["intro.css", "intro.js"]) fs.copyFileSync(path.join(intro, f), path.join(out, f));
-  for (const f of fs.readdirSync(path.join(intro, "media"))) fs.copyFileSync(path.join(intro, "media", f), path.join(out, "media", f));
-  console.log("public/home pronta:", fs.readdirSync(out).join(", "), "| media:", fs.readdirSync(path.join(out, "media")).length, "immagini");
-}
-
-// ------------------------------------------------------------------ la casa nuova: /anteprima (non indicizzata)
+// ------------------------------------------------------------------ la casa: public/casa, a "/"
 // Sorgente: docs/anteprime/casa/home (la casa) e ogni docs/anteprime/casa/<nome>/ con un index.html (le pagine interne, anche
 // annidate: casa/mondo/<luogo>/index.html). Le pagine si aprono così come sono da un server statico su docs/anteprime
 // (node docs/anteprime/casa/strumenti/servi.mjs), con indirizzi relativi; qui gli indirizzi diventano assoluti PER REGOLA e si copiano
@@ -83,18 +31,18 @@ if (SITO.casaNuova) {
 //   - si leggono src, href, poster e ogni data-* che comincia con ./ o ../ ; gli indirizzi con uno schema (https:, data:, mailto:),
 //     quelli che cominciano con / # o ? restano come sono;
 //   - l'indirizzo si risolve rispetto al file sorgente e prende il posto della tabella POSTI qui sotto (il prefisso più lungo vince);
-//     un link a casa/<nome>/index.html diventa l'indirizzo della pagina (BASE/<nome>), anche se quella pagina non c'è ancora;
+//     un link a casa/<nome>/index.html diventa l'indirizzo della pagina (/<nome>), anche se quella pagina non c'è ancora;
 //   - un indirizzo che finisce con / è una cartella: si copia tutta (es. media/); la cartella media/ di ogni pagina si copia sempre;
 //   - nei CSS copiati, url(...) e @import relativi seguono la stessa regola;
 //   - gli indirizzi scritti dentro gli script NON si toccano: mettili in un attributo (data-media="../x/") e leggili da lì;
-//   - <!-- solo anteprima --> ... <!-- /solo anteprima --> sparisce; con BASE "/" sparisce anche il noindex.
+//   - <!-- solo anteprima --> ... <!-- /solo anteprima --> sparisce, e sparisce il noindex delle sorgenti.
 // Si ferma con un errore se resta un indirizzo relativo, se un file non c'è, o se c'è un numero di esempio.
-// Con CASA_NUOVA (lib/site.ts) la casa va a "/" (BASE "/") e i suoi file in public/casa (serviti da /casa/...), così /anteprima/...
-// può portare tutto alla radice; ogni pagina riceve titolo, descrizione, indirizzo canonico, anteprima condivisa e icone (META, più
-// sotto), e public/casa/pagine.json elenca le pagine per next.config.ts (gli indirizzi) e app/sitemap.ts.
+// I file vanno in public/casa (serviti da /casa/...); /anteprima/... porta tutto alla radice (next.config.ts); ogni pagina riceve
+// titolo, descrizione, indirizzo canonico, anteprima condivisa e icone (META, più sotto), e public/casa/pagine.json elenca le pagine
+// per next.config.ts (gli indirizzi) e app/sitemap.ts.
 {
-  const BASE = SITO.casaNuova ? "/" : "/anteprima";  // l'indirizzo della casa e il prefisso delle pagine
-  const DIR = SITO.casaNuova ? "casa" : "anteprima";  // la cartella in public/: i file si servono da /<DIR>/...
+  const BASE = "/";      // l'indirizzo della casa
+  const DIR = "casa";    // la cartella in public/: i file si servono da /casa/...
   const A = path.join(root, "docs/anteprime");
   const PUB = path.join(root, "public", DIR);
   const POSTI = [                // sorgente (dentro docs/anteprime) → posto (dentro /DIR/)
@@ -106,7 +54,7 @@ if (SITO.casaNuova) {
     ["shared/", "dati/"],         // data.js, astro-lite.js
   ].sort((x, y) => y[0].length - x[0].length);
   const posix = (p) => p.split(path.sep).join("/");
-  const pageUrl = (rel) => { const sub = rel.replace(/^casa\//, "").replace(/(^|\/)index\.html$/, "").replace(/\/$/, ""); return sub === "home" ? BASE : (BASE === "/" ? "" : BASE) + "/" + sub; };
+  const pageUrl = (rel) => { const sub = rel.replace(/^casa\//, "").replace(/(^|\/)index\.html$/, "").replace(/\/$/, ""); return sub === "home" ? BASE : "/" + sub; };
   // le pagine: casa/home e ogni casa/<nome>/.../index.html (mai gli strumenti, le librerie, le cartelle media)
   const pages = [];
   (function walk(dir, depth) {
@@ -159,7 +107,7 @@ if (SITO.casaNuova) {
     return pl.url + (dir && !pl.url.endsWith("/") ? "/" : "") + tail;
   }
   // Nel mondo: i testi di Imad (content/mondo/*.md, o la cartella in MONDO_DIR per le prove). Ogni testo diventa una pagina
-  // da casa/mondo/pagina.html (online BASE/mondo/<nome>); l'indice casa/mondo/index.html li elenca dal più recente e il
+  // da casa/mondo/pagina.html (online /mondo/<nome>); l'indice casa/mondo/index.html li elenca dal più recente e il
   // riquadro della casa, al segno <!-- mondo:titoli -->, mostra i titoli e la data dell'ultimo. Senza testi non cambia niente.
   const mondo = leggiMondo(process.env.MONDO_DIR ? path.resolve(process.env.MONDO_DIR) : path.join(root, "content/mondo"));
   const MONDO_T = path.join(A, "casa/mondo/pagina.html");
@@ -175,16 +123,15 @@ if (SITO.casaNuova) {
     const { file, rel } = job;
     let h = job.text;
     h = h.replace(/<!-- solo anteprima -->[\s\S]*?<!-- \/solo anteprima -->\n?/g, "");
-    if (BASE === "/") h = h.replace(/<meta name="robots" content="noindex[^"]*">\n?/, "");
-    else if (!/<meta name="robots" content="noindex/.test(h)) throw new Error(`casa: ${rel}: manca <meta name="robots" content="noindex"> (le anteprime non si indicizzano)`);
-    if (SITO.casaNuova) h = metaPagina(h, pageUrl(rel), job);
+    h = h.replace(/<meta name="robots" content="noindex[^"]*">\n?/, "");
+    h = metaPagina(h, pageUrl(rel), job);
     // il controllo dei numeri d'esempio vale per le nostre pagine, prima che ci entrino le parole di Imad (quelle sono sue)
     if (!job.own) {
       const sample0 = h.replace(/<!--[\s\S]*?-->/g, "").match(/\b\d+\s+(?:saluti|contributi|commit|progetti|stelle|visite)\b/i);
       if (sample0) throw new Error(`casa: ${rel}: un numero di esempio nella pagina: «${sample0[0]}»`);
     }
     if (mondo.length && rel === "casa/home/index.html") h = titoliMondo(h, mondo);
-    if (mondo.length && rel === "casa/mondo/index.html") h = indiceMondo(h, mondo, BASE);
+    if (mondo.length && rel === "casa/mondo/index.html") h = indiceMondo(h, mondo);
     h = h.replace(/(\s)(src|href|poster|data-[a-z0-9-]+)="([^"]*)"/g, (all, sp, attr, v) => {
       if (attr.startsWith("data-") && !/^\.\.?\//.test(v)) return all;
       if (!isRel(v)) return all;
@@ -196,7 +143,7 @@ if (SITO.casaNuova) {
     const sub = rel.replace(/^casa\//, "").replace(/^home\//, "");
     const media = path.join(path.dirname(file), "media");
     if (!job.own && fs.existsSync(media)) wantDir(media, path.join(PUB, path.dirname(sub), "media"));
-    if (SITO.casaNuova && /\s(?:src|href|content|data-[a-z0-9-]+)="[^"]*\/anteprima\b/.test(h)) throw new Error(`casa: ${rel}: un indirizzo porta ancora a /anteprima`);
+    if (/\s(?:src|href|content|data-[a-z0-9-]+)="[^"]*\/anteprima\b/.test(h)) throw new Error(`casa: ${rel}: un indirizzo porta ancora a /anteprima`);
     built.push({ out: path.join(PUB, sub), html: h, rel, data: job.t ? job.t.data : null });
   }
   // i CSS: url(...) e @import relativi, per la stessa regola
@@ -208,9 +155,8 @@ if (SITO.casaNuova) {
     c = c.replace(/@import\s+(["'])([^"']+)\1/g, (all, q, v) => (isRel(v) ? `@import ${q}${rewrite(v, src, false)}${q}` : all));
     cssOut.set(out, c);
   }
-  // si scrive: tutto da capo (e sparisce la cartella dell'altra posizione dell'interruttore)
+  // si scrive: tutto da capo
   fs.rmSync(PUB, { recursive: true, force: true });
-  fs.rmSync(path.join(root, "public", SITO.casaNuova ? "anteprima" : "casa"), { recursive: true, force: true });
   for (const [out, src] of copies) {
     fs.mkdirSync(path.dirname(out), { recursive: true });
     if (cssOut.has(out)) { fs.writeFileSync(out, cssOut.get(out)); continue; }
@@ -223,12 +169,10 @@ if (SITO.casaNuova) {
   }
   for (const b2 of built) { fs.mkdirSync(path.dirname(b2.out), { recursive: true }); fs.writeFileSync(b2.out, b2.html); }
   for (const [out] of copies) if (out.endsWith(".js") && /"sampleStars":\s*[1-9]/.test(fs.readFileSync(out, "utf8"))) throw new Error(`casa: ${posix(path.relative(root, out))}: c'è ancora un numero di stelle di esempio`);
-  if (SITO.casaNuova) {
-    // l'elenco delle pagine: next.config.ts ne fa gli indirizzi (/progetti → /casa/progetti/index.html), app/sitemap.ts la sitemap
-    const pagine = built.map((b2) => ({ url: pageUrl(b2.rel), ...(b2.data ? { data: b2.data } : {}) }))
-      .sort((x, y) => (x.url === "/" ? -1 : y.url === "/" ? 1 : x.url < y.url ? -1 : 1));
-    fs.writeFileSync(path.join(PUB, "pagine.json"), JSON.stringify({ fatto_da: "scripts/home/build.mjs (non si scrive a mano)", pagine }, null, 1) + "\n");
-  }
+  // l'elenco delle pagine: next.config.ts ne fa gli indirizzi (/progetti → /casa/progetti/index.html), app/sitemap.ts la sitemap
+  const pagine = built.map((b2) => ({ url: pageUrl(b2.rel), ...(b2.data ? { data: b2.data } : {}) }))
+    .sort((x, y) => (x.url === "/" ? -1 : y.url === "/" ? 1 : x.url < y.url ? -1 : 1));
+  fs.writeFileSync(path.join(PUB, "pagine.json"), JSON.stringify({ fatto_da: "scripts/home/build.mjs (non si scrive a mano)", pagine }, null, 1) + "\n");
   for (const w of warns) console.log("  avviso:", w);
   console.log(`public/${DIR} pronta (${BASE}):`, built.map((b2) => pageUrl(b2.rel)).join(", "), `| ${copies.size} file`);
   console.log(mondo.length ? `  Nel mondo: ${mondo.length} testi (${mondo.map((t) => t.slug).join(", ")})` : "  Nel mondo: nessun testo ancora («Presto, con le parole di Imad.»)");
@@ -357,8 +301,8 @@ function leggiMondo(dir) {
 function metaMondo(t) {
   return (t.luogo ? `<span dir="auto">${escHtml(t.luogo)}</span><span aria-hidden="true"> · </span>` : "") + `<time datetime="${t.data}">${dataIt(t.data)}</time>`;
 }
-function urlMondo(base, slug) { return (base === "/" ? "" : base) + "/mondo/" + slug; }
-// dir: la cartella in public/ (i file si servono sempre da /<dir>/..., anche quando la casa sarà a "/")
+function urlMondo(slug) { return "/mondo/" + slug; }
+// dir: la cartella in public/ (i file si servono da /<dir>/...)
 function paginaMondo(tpl, t, dir) {
   const imgSrc = t.media ? `/${dir}/mondo/media/${encodeURIComponent(t.media.name)}` : t.img;
   const fig = imgSrc ? `<figure class="mo-foto"><img src="${escHtml(imgSrc)}" alt="${escHtml(t.didascalia || "")}" loading="lazy" decoding="async">${t.didascalia ? `<figcaption dir="auto">${mdInline(t.didascalia)}</figcaption>` : ""}</figure>` : "";
@@ -372,10 +316,10 @@ function paginaMondo(tpl, t, dir) {
   const fill = { titolo: escHtml(t.titolo), meta: metaMondo(t), immagine: fig, corpo: t.corpo, fonti };
   return tpl.replace(/\{\{([a-z]+)\}\}/g, (all, k) => (k in fill ? fill[k] : all));
 }
-function indiceMondo(h, list, base) {
+function indiceMondo(h, list) {
   const a = "<!-- mondo:indice -->", b = "<!-- /mondo:indice -->", i = h.indexOf(a), j = h.indexOf(b);
   if (i < 0 || j < i) throw new Error("casa/mondo/index.html: non trovo <!-- mondo:indice --> ... <!-- /mondo:indice -->");
-  const voci = list.map((t) => `<li><a class="mo-voce" href="${urlMondo(base, t.slug)}"><span class="mo-voce__in"><span class="mo-voce__t" dir="auto">${escHtml(t.titolo)}</span><span class="mo-voce__m">${metaMondo(t)}</span></span><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg></a></li>`).join("\n    ");
+  const voci = list.map((t) => `<li><a class="mo-voce" href="${urlMondo(t.slug)}"><span class="mo-voce__in"><span class="mo-voce__t" dir="auto">${escHtml(t.titolo)}</span><span class="mo-voce__m">${metaMondo(t)}</span></span><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5l5.5 5.5-5.5 5.5"/></svg></a></li>`).join("\n    ");
   return h.slice(0, i) + `<ol class="mo-indice" aria-label="I testi, dal più recente">\n    ${voci}\n  </ol>` + h.slice(j + b.length);
 }
 function titoliMondo(h, list) {
@@ -386,7 +330,7 @@ function titoliMondo(h, list) {
   return h.replace(new RegExp(mark.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + `\\s*<p class="mondo__p">Presto, con le parole di Imad\\.</p>`), html).replace(mark, "");
 }
 
-// ------------------------------------------------------------------ i metadati del sito vero (solo con CASA_NUOVA)
+// ------------------------------------------------------------------ i metadati del sito vero
 // Titolo e descrizione di ogni pagina, in italiano semplice, con i soli fatti del sito: niente su Imad che lui non abbia detto.
 // Una pagina che non è in META tiene il suo <title> e la sua <meta name="description"> (scritti nella pagina, in docs/anteprime/casa/).
 // I testi di Nel mondo tengono il loro titolo; la descrizione dice solo titolo, luogo e data (le parole sono sue: non si riassumono).

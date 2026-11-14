@@ -8,12 +8,13 @@ Le pagine sono statiche (HTML, CSS e script semplici): i disegni stanno in `docs
 serve quei file e fa il resto: le due rotte dei dati di GitHub, la pagina 404, l'anteprima condivisa, le icone,
 `robots.txt` e la sitemap.
 
-## L'interruttore della casa nuova
+## Gli indirizzi
 
-`CASA_NUOVA` in `lib/site.ts`. Con `false` a `/` c'è la prima pagina Widget e la casa nuova è un'anteprima a
-`/anteprima`; con `true` la casa nuova è a `/` con le sue pagine alla radice (`/progetti`, `/mondo`, `/su-di-me`,
-`/tools`, ...). Come si accende e che cosa cambia: `docs/anteprime/casa/CASA.md`, sezione 7.
-Nello stesso file c'è `SITE_HOST`, l'indirizzo pubblico (i link canonici, la sitemap, le anteprime condivise).
+La casa è a `/` con le sue pagine alla radice (`/progetti`, `/mondo`, `/su-di-me`, `/tools`, `/tools/qr`, ...): i file
+stanno in `public/casa` e `next.config.ts` dice quale indirizzo apre quale pagina (dall'elenco `public/casa/pagine.json`).
+I vecchi indirizzi `/anteprima/...` portano (308) allo stesso posto alla radice; `/gatto` è la pagina di prova di Dot
+(non indicizzata). Come funziona e che cosa è stato tolto dopo il cambio: `docs/anteprime/casa/CASA.md`, sezione 7.
+`SITE_HOST` in `lib/site.ts` è l'indirizzo pubblico (i link canonici, la sitemap, le anteprime condivise).
 
 ## In locale
 
@@ -67,15 +68,15 @@ app/
   not-found.tsx              la pagina 404
   opengraph-image.tsx        l'anteprima condivisa, disegnata a codice
   icon.svg, apple-icon.tsx   le icone (il logo dei nove tasti)
-  robots.ts, sitemap.ts      seguono l'interruttore
+  robots.ts, sitemap.ts      robots.txt (tutto tranne /gatto) e la sitemap (da public/casa/pagine.json)
   api/github/                le due rotte dei dati di GitHub
-docs/anteprime/              i disegni: casa/ (la casa e le pagine), gatto/ (Dot), intro/, c-widget/ (la home di oggi)
+docs/anteprime/              i disegni: casa/ (la casa e le pagine), gatto/ (Dot), intro/ (l'intro), shared/ (dati e strumenti)
 scripts/home/build.mjs       dai disegni a public/
 content/
-  astro/                     stelle, città, versetti, curiosità (verificati: docs/fonti.md)
+  astro/                     stelle, le cinque città, versetti, curiosità (verificati: docs/fonti.md)
   mondo/                     i testi di Imad per Nel mondo (come si scrivono: content/mondo/README.md)
 lib/
-  site.ts                    l'interruttore e l'indirizzo pubblico
+  site.ts                    l'indirizzo pubblico
   github/                    i dati di GitHub
   astro/                     la matematica del cielo (astronomy-engine), con le sue prove
 components/reactbits/        componenti React Bits (dal registro shadcn), per quando servono

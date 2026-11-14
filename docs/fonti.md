@@ -69,10 +69,10 @@ Fonti dei contenuti verificati in `content/astro/*.json` e `content/sezioni/*.md
 
 ### Città (`cities.json`)
 
-- **Coordinate**: quelle della voce di Wikipedia EN (lette con l’API `prop=coordinates`) e controllate su Wikidata; per Al-Quds si usa il punto Wikidata della Città Vecchia (31,7767; 35,2342).
-- **Nomi locali**: copiati da Wikidata (nome nativo o ufficiale) o dall’infobox di Wikipedia; per Kyoto 京都, dall’infobox della voce EN. Torino resta senza `nameLocal`.
-- **Fusi orari**: identificatori IANA, controllati con `Intl.DateTimeFormat` di Node (tz 2026e) e con `zoneinfo` di Python. Nota: con i dati tz attuali Africa/Casablanca risulta in UTC+0.
-- **Fatti**: parafrasati dalle voci elencate in `sources` per ogni città.
+- **Le cinque città del sito**: Torino, Gaza, Medina, Makkah, Casablanca (dal 2026-11-14; prima il file aveva le otto piastre del vecchio astrolabio, con le loro descrizioni e i loro fatti: restano nella storia di git). Sono le stesse, campo per campo, di `docs/anteprime/shared/data.js`, che le pagine usano e che `docs/anteprime/shared/gen-data.mjs` scrive da questo file; `npm run check:content` controlla che coincidano.
+- **Nomi arabi** (`ar`): le etichette arabe delle voci di Wikidata, copiate da codice, mai scritte a mano; la voce di ognuna è in `arSource`.
+- **Coordinate**: quelle che le pagine usano dalla prima anteprima (`gen-data.mjs`); per Makkah è il punto della Kaʿba (21,4225; 39,8262), lo stesso di `lib/astro/qibla.ts`.
+- **Fusi orari**: identificatori IANA, controllati con `Intl.DateTimeFormat` di Node. Nota: con i dati tz attuali Africa/Casablanca risulta in UTC+0 (dal 20 settembre 2026).
 
 ### Curiosità (`curiosities.json`)
 
@@ -175,14 +175,11 @@ Ogni voce ha almeno una fonte aperta durante il lavoro. Al massimo 60 parole cia
 
 ### cities.json
 
-- **Torino**: [Wikipedia EN: Turin](https://en.wikipedia.org/wiki/Turin), [Wikipedia EN: Mole Antonelliana](https://en.wikipedia.org/wiki/Mole_Antonelliana), [Wikipedia EN: Museo Egizio](https://en.wikipedia.org/wiki/Museo_Egizio), [Wikipedia IT: Gianduiotto](https://it.wikipedia.org/wiki/Gianduiotto), [Wikipedia IT: Esoterismo a Torino](https://it.wikipedia.org/wiki/Esoterismo_a_Torino), [Wikidata Q495](https://www.wikidata.org/wiki/Q495)
-- **Al-Quds**: [Wikipedia EN: Jerusalem](https://en.wikipedia.org/wiki/Jerusalem), [Wikipedia EN: Names of Jerusalem](https://en.wikipedia.org/wiki/Names_of_Jerusalem), [Wikipedia EN: Dome of the Rock](https://en.wikipedia.org/wiki/Dome_of_the_Rock), [Wikipedia EN: Qibla](https://en.wikipedia.org/wiki/Qibla), [Wikipedia EN: Al-Maqdisi](https://en.wikipedia.org/wiki/Al-Maqdisi), [Wikipedia EN: Tatreez](https://en.wikipedia.org/wiki/Tatreez), [Wikidata Q1218](https://www.wikidata.org/wiki/Q1218)
-- **Gaza**: [Wikipedia EN: Gaza City](https://en.wikipedia.org/wiki/Gaza_City), [Wikipedia EN: Al-Shafi'i](https://en.wikipedia.org/wiki/Al-Shafi'i), [Wikidata Q47492](https://www.wikidata.org/wiki/Q47492)
-- **Fès**: [Wikipedia EN: Fez, Morocco](https://en.wikipedia.org/wiki/Fez,_Morocco), [Wikipedia EN: Fes el Bali](https://en.wikipedia.org/wiki/Fes_el_Bali), [Wikipedia EN: University of al-Qarawiyyin](https://en.wikipedia.org/wiki/University_of_al-Qarawiyyin), [Wikipedia EN: Chouara Tannery](https://en.wikipedia.org/wiki/Chouara_Tannery), [Wikipedia EN: Zellij](https://en.wikipedia.org/wiki/Zellij), [Wikidata Q80985](https://www.wikidata.org/wiki/Q80985)
-- **Istanbul**: [Wikipedia EN: Istanbul](https://en.wikipedia.org/wiki/Istanbul), [Wikipedia EN: Hagia Sophia](https://en.wikipedia.org/wiki/Hagia_Sophia), [Wikipedia EN: Constantinople observatory of Taqi ad-Din](https://en.wikipedia.org/wiki/Constantinople_observatory_of_Taqi_ad-Din), [Wikipedia EN: Iznik pottery](https://en.wikipedia.org/wiki/Iznik_pottery), [Wikidata Q406](https://www.wikidata.org/wiki/Q406)
-- **Samarcanda**: [Wikipedia EN: Samarkand](https://en.wikipedia.org/wiki/Samarkand), [Wikipedia EN: Ulugh Beg Observatory](https://en.wikipedia.org/wiki/Ulugh_Beg_Observatory), [Wikipedia EN: Ulugh Beg](https://en.wikipedia.org/wiki/Ulugh_Beg), [Wikipedia EN: Registan](https://en.wikipedia.org/wiki/Registan), [Wikidata Q5753](https://www.wikidata.org/wiki/Q5753)
-- **Kyoto**: [Wikipedia EN: Kyoto](https://en.wikipedia.org/wiki/Kyoto), [Wikipedia EN: Historic Monuments of Ancient Kyoto (Kyoto, Uji and Otsu Cities)](https://en.wikipedia.org/wiki/Historic_Monuments_of_Ancient_Kyoto_(Kyoto,_Uji_and_Otsu_Cities)), [Wikipedia EN: Gion Matsuri](https://en.wikipedia.org/wiki/Gion_Matsuri), [Wikipedia EN: Tanabata](https://en.wikipedia.org/wiki/Tanabata), [Wikidata Q34600](https://www.wikidata.org/wiki/Q34600)
-- **Cusco**: [Wikipedia EN: Cusco](https://en.wikipedia.org/wiki/Cusco), [Wikipedia EN: Coricancha](https://en.wikipedia.org/wiki/Coricancha), [Wikipedia EN: Inti Raymi](https://en.wikipedia.org/wiki/Inti_Raymi), [Wikipedia EN: Andean dark constellations](https://en.wikipedia.org/wiki/Andean_dark_constellations), [Wikipedia EN: Yakana](https://en.wikipedia.org/wiki/Yakana), [Wikidata Q5582862](https://www.wikidata.org/wiki/Q5582862)
+- **Torino**: [Wikidata Q495](https://www.wikidata.org/wiki/Q495)
+- **Gaza**: [Wikidata Q47492](https://www.wikidata.org/wiki/Q47492)
+- **Medina**: [Wikidata Q35484](https://www.wikidata.org/wiki/Q35484)
+- **Makkah**: [Wikidata Q5806](https://www.wikidata.org/wiki/Q5806)
+- **Casablanca**: [Wikidata Q7903](https://www.wikidata.org/wiki/Q7903)
 
 ### curiosities.json
 

@@ -1,40 +1,19 @@
-# Strumenti per l'anteprima dell'intro
+# Strumenti per l'intro
 
-Si lanciano da una cartella di lavoro qualsiasi (scrivono lì i loro file).
-
-```bash
-node docs/anteprime/intro/strumenti/frames.mjs stella f "200,2350,3900,5700,7700"   # fotogrammi a istanti scelti (ms)
-```
+L'intro del sito è `intro-gatto.js` (versioni `gatto`, quella online, e `stella` e `cursore`, con `?v=`), sulla casa
+(`docs/anteprime/casa/home`). Gli strumenti si lanciano da una cartella di lavoro qualsiasi (scrivono lì i loro file), con
+`node docs/anteprime/casa/strumenti/servi.mjs --port <porta>` acceso:
 
 ```bash
-python3 docs/anteprime/intro/strumenti/sheet.py f foglio.jpg 5 300                   # li mette in un foglio solo
-```
-
-```bash
-node docs/anteprime/intro/strumenti/live.mjs                                         # riproduzione dal vivo: errori, durata, stato finale
-```
-
-```bash
-node docs/anteprime/intro/strumenti/video.mjs stella vid-stella                      # 60 fotogrammi al secondo, poi ffmpeg
-```
-
-```bash
-ffmpeg -framerate 60 -i vid-stella/f-%05d.jpg -c:v libx264 -pix_fmt yuv420p -crf 19 -movflags +faststart intro-stella.mp4
-```
-
-La pagina si comanda dall'indirizzo: `v=stella|cursore`, `seek=1` (ferma: `window.__ni.seek(ms)` disegna un istante), più i parametri della home (`shot=1`, `theme`, `t`).
-
-Per la casa nuova (`docs/anteprime/casa/home`, che usa la copia `intro-gatto.js`), con `node docs/anteprime/casa/strumenti/servi.mjs --port <porta>` acceso:
-
-```bash
-node docs/anteprime/intro/strumenti/casa-fotogrammi.cjs --url "http://127.0.0.1:<porta>/casa/home/index.html?seme=7&t=2026-11-12T17:30:00Z" --out f --from 5700 --to 9600 --every 50 --clip 0,0,390,640 --jpg
+node docs/anteprime/intro/strumenti/casa-fotogrammi.cjs --url "http://127.0.0.1:<porta>/casa/home/index.html?seme=7&t=2026-11-12T17:30:00Z" --out f --from 5700 --to 9600 --every 50 --clip 0,0,390,640
+python3 docs/anteprime/intro/strumenti/sheet.py f/f foglio.jpg 5 300     # i fotogrammi (png) in un foglio solo, con l'istante sotto
 ```
 
 ```bash
 node docs/anteprime/intro/strumenti/casa-passaggio.cjs "http://127.0.0.1:<porta>/casa/home/index.html?seme=7" p 390 844 3 dark && python3 docs/anteprime/intro/strumenti/diff.py p/prima.png p/dopo.png
 ```
 
-Il primo scrive i fotogrammi su un orologio finto (`vclock.js`: ogni orologio della pagina, 60 al secondo, lo stesso film a ogni giro); il secondo misura il passaggio di mano dei nove tasti dall'intro alla scena di Dot (il fotogramma prima e quello dopo, nell'area dei tasti: devono essere uguali entro pochi livelli). Nel resto della pagina le prove non sono deterministiche (il dock entra con una transizione CSS, i riquadri vivi girano da soli): per confrontare l'intro con se stessa si usa `?seek=1` e `window.__ni.seek(ms)`, che disegna qualunque istante.
+Il primo scrive i fotogrammi su un orologio finto (`vclock.js`: ogni orologio della pagina, 60 al secondo, lo stesso film a ogni giro; `--jpg` per fotogrammi più leggeri); il secondo misura il passaggio di mano dei nove tasti dall'intro alla scena di Dot (il fotogramma prima e quello dopo, nell'area dei tasti: devono essere uguali entro pochi livelli). Nel resto della pagina le prove non sono deterministiche (il dock entra con una transizione CSS, i riquadri vivi girano da soli): per confrontare l'intro con se stessa si usa `?seek=1` e `window.__ni.seek(ms)`, che disegna qualunque istante.
 
 ## Dot nell'intro (versione «gatto», `intro-gatto.js`)
 
@@ -46,12 +25,6 @@ node docs/anteprime/intro/strumenti/gatto-striscia.cjs --url "http://127.0.0.1:<
 ```
 
 Strisce di fotogrammi: `--scena gag` (la scenetta della riga, da `T.gag` = l'ultimo tasto) o `salto` (il salto nel quadrato del punto, da `T.jump`); `--from`/`--to` in ms dall'inizio della scena; senza `--clip` il ritaglio è quello che l'intro dice (`__ni.box`). Mette il foglio insieme `striscia.py`.
-
-```bash
-node docs/anteprime/intro/strumenti/gatto-confronta.cjs --base http://127.0.0.1:<porta> --w 390 --h 844 --dpr 3
-```
-
-«stella» e «cursore» della copia contro `intro.js` (servito al posto della copia), dieci istanti più la fine: pixel della tela e quello che l'intro scrive nella pagina. Devono essere uguali.
 
 ```bash
 node docs/anteprime/intro/strumenti/gatto-seek.cjs --base http://127.0.0.1:<porta> --ogni 5

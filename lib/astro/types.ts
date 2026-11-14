@@ -1,5 +1,4 @@
-// Tipi dei contenuti in content/astro/*.json e delle strutture condivise
-// tra l'astrolabio 3D e la sua versione 2D.
+// Tipi dei contenuti in content/astro/*.json e delle strutture della matematica del cielo.
 
 /** Una fonte: un titolo, un link, o entrambi. */
 export type AstroSource = string | { title?: string; url?: string; [key: string]: unknown };
@@ -27,20 +26,19 @@ export interface StarItem {
   sources: AstroSource[];
 }
 
+/** Una delle cinque città del sito: le stesse, campo per campo, di docs/anteprime/shared/data.js. */
 export interface CityItem {
   id: string;
   name: string;
-  nameLocal: string;
+  /** Nome arabo: l'etichetta di Wikidata, copiata da codice (mai scritta a mano). */
+  ar: string;
+  /** La pagina Wikidata da cui viene il nome arabo. */
+  arSource: string;
   country: string;
   lat: number;
   lon: number;
   /** Fuso IANA, es. "Europe/Rome". */
   tz: string;
-  /** Non più usato: le città non hanno ornamenti. Resta facoltativo solo perché il vecchio astrolabio compili. */
-  motif?: string;
-  blurb: string;
-  facts: unknown[];
-  sources: AstroSource[];
 }
 
 export interface VerseItem {

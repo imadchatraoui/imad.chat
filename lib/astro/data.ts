@@ -46,7 +46,7 @@ export function getStar(id: string | undefined | null): StarItem | undefined {
   return STARS.find((s) => s.id === id);
 }
 
-/** Le città nell'ordine delle piastre (prima quelle note, poi le altre del JSON). */
+/** Le città nel loro ordine (prima quelle di CITY_ORDER, poi le eventuali altre del JSON). */
 export function citiesInOrder(): CityItem[] {
   const known = CITY_ORDER.map((id) => getCity(id)).filter((c): c is CityItem => !!c);
   const rest = CITIES.filter((c) => !CITY_ORDER.includes(c.id as (typeof CITY_ORDER)[number]));

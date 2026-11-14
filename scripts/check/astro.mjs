@@ -2,7 +2,7 @@
 // Uso: npm run check:astro   (legge i sorgenti TS di lib/astro in questo repository)
 //
 // 1. Traspila lib/astro/*.ts in una cartella temporanea con il compilatore TypeScript del progetto.
-// 2. Per 3 stelle e 3 città a un istante UTC fisso: trova quando la stella, sulla rete ruotata
+// 2. Per 3 stelle e le cinque città del sito (content/astro/cities.json) a un istante UTC fisso: trova quando la stella, sulla rete ruotata
 //    da reteAngle(), attraversa il cerchio dell'orizzonte della piastra, e chiede ad astronomy-engine
 //    l'altezza in quell'istante (deve essere ~0). Trova quando attraversa il meridiano in alto
 //    e controlla che sia il transito (angolo orario 0, azimut sud o nord, altezza 90-|lat-dec|).
@@ -63,11 +63,7 @@ const stars = [
   { id: "vega", name: "Vega", ra: 18.6156, dec: 38.7837 },
   { id: "aldebaran", name: "Aldebaran", ra: 4.5987, dec: 16.5093 },
 ];
-const cities = [
-  { id: "torino", lat: 45.0703, lon: 7.6869 },
-  { id: "al-quds", lat: 31.7767, lon: 35.2345 },
-  { id: "cusco", lat: -13.532, lon: -71.9675 },
-];
+const cities = JSON.parse(readFileSync(join(repo, "content/astro/cities.json"), "utf8")).items.map(({ id, name, lat, lon }) => ({ id, name, lat, lon }));
 
 console.log(`\nIstante di partenza: ${date0.toISOString()}  (obliquità ${P.OBLIQUITY}°, R_eq ${P.R_EQ.toFixed(5)})`);
 
@@ -110,7 +106,7 @@ function crossings(fn, start, hours = 24, stepMin = 4) {
 
 const bodies = [ae.Body.Star1, ae.Body.Star2, ae.Body.Star3];
 console.log("\nOrizzonte: la stella sul cerchio dell'orizzonte della piastra, altezza secondo astronomy-engine (senza rifrazione)");
-console.log("città     stella     evento    ora UTC              x piastra  alt AE (°)  az AE (°)  Δt vs SearchAltitude (s)");
+console.log("città      stella     evento    ora UTC              x piastra  alt AE (°)  az AE (°)  Δt vs SearchAltitude (s)");
 for (const city of cities) {
   const plate = PL.plateGeometry(city.lat);
   const obs = new ae.Observer(city.lat, city.lon, 0);
@@ -119,7 +115,7 @@ for (const city of cities) {
     const star = { ...s0, raD: d.ra, decD: d.dec };
     ae.DefineStar(bodies[i], s0.ra, s0.dec, 1000);
     const cs = crossings((t) => aboveHorizon(star, city, plate, t), date0);
-    if (!cs.length) console.log(`${city.id.padEnd(9)} ${s0.name.padEnd(10)} (circumpolare o sempre sotto l'orizzonte)`);
+    if (!cs.length) console.log(`${city.id.padEnd(10)} ${s0.name.padEnd(10)} (circumpolare o sempre sotto l'orizzonte)`);
     for (const c of cs) {
       const hor = ae.Horizon(c.t, obs, d.ra, d.dec);
       const p = platePos(star, city, c.t);
@@ -127,7 +123,7 @@ for (const city of cities) {
       const ref = ae.SearchAltitude(bodies[i], obs, rising ? +1 : -1, new Date(c.t.getTime() - 3 * 3600e3), 1, 0);
       const dts = ref ? (c.t.getTime() - ref.date.getTime()) / 1000 : NaN;
       console.log(
-        `${city.id.padEnd(9)} ${s0.name.padEnd(10)} ${(rising ? "sorge" : "tramonta").padEnd(9)} ${c.t.toISOString().slice(0, 19)}  ${f(p.x)}     ${f(hor.altitude, 4)}     ${hor.azimuth.toFixed(2).padStart(6)}     ${dts.toFixed(1)}`,
+        `${city.id.padEnd(10)} ${s0.name.padEnd(10)} ${(rising ? "sorge" : "tramonta").padEnd(9)} ${c.t.toISOString().slice(0, 19)}  ${f(p.x)}     ${f(hor.altitude, 4)}     ${hor.azimuth.toFixed(2).padStart(6)}     ${dts.toFixed(1)}`,
       );
       ok(Math.abs(hor.altitude) < 0.05, `${city.id}/${s0.id}: altezza ${hor.altitude} non ~0`);
       ok(Math.abs(dts) < 20, `${city.id}/${s0.id}: ${dts}s di differenza con SearchAltitude`);
@@ -143,7 +139,7 @@ for (const city of cities) {
 }
 
 console.log("\nMeridiano: la stella sul meridiano in alto della piastra (x=0, y>0) deve essere al transito superiore");
-console.log("città     stella     ora UTC              y piastra  alt AE (°)  atteso (°)  az AE (°)  Δt vs SearchHourAngle (s)");
+console.log("città      stella     ora UTC              y piastra  alt AE (°)  atteso (°)  az AE (°)  Δt vs SearchHourAngle (s)");
 for (const city of cities) {
   const obs = new ae.Observer(city.lat, city.lon, 0);
   stars.forEach((s0, i) => {
@@ -159,7 +155,7 @@ for (const city of cities) {
       const dts = (c.t.getTime() - ref.time.date.getTime()) / 1000;
       const p = platePos(star, city, c.t);
       console.log(
-        `${city.id.padEnd(9)} ${s0.name.padEnd(10)} ${c.t.toISOString().slice(0, 19)}  ${f(p.y)}     ${f(hor.altitude, 3)}    ${f(expected, 3)}    ${hor.azimuth.toFixed(2).padStart(6)}     ${dts.toFixed(1)}`,
+        `${city.id.padEnd(10)} ${s0.name.padEnd(10)} ${c.t.toISOString().slice(0, 19)}  ${f(p.y)}     ${f(hor.altitude, 3)}    ${f(expected, 3)}    ${hor.azimuth.toFixed(2).padStart(6)}     ${dts.toFixed(1)}`,
       );
       ok(Math.abs(hor.altitude - expected) < 0.05, `${city.id}/${s0.id}: altezza al transito ${hor.altitude} invece di ${expected}`);
       const southOfZenith = d.dec < city.lat;
@@ -177,7 +173,7 @@ for (const city of cities) {
   const h = plate.horizon;
   const eOnEq = Math.hypot(plate.east.x, plate.east.y);
   console.log(
-    `${city.id.padEnd(9)} orizzonte c=(${h.cx.toFixed(4)}, ${h.cy.toFixed(4)}) r=${h.r.toFixed(4)}  zenit y=${plate.zenith.y.toFixed(4)}  cielo dentro=${plate.skyInside}  est=(${plate.east.x.toFixed(4)}, ${plate.east.y.toFixed(4)}) |est|=${eOnEq.toFixed(4)} (R_eq ${P.R_EQ.toFixed(4)})  almucantarat ${plate.almucantars.length}  azimut ${plate.azimuths.length}  ore ${plate.hours.length}`,
+    `${city.id.padEnd(10)} orizzonte c=(${h.cx.toFixed(4)}, ${h.cy.toFixed(4)}) r=${h.r.toFixed(4)}  zenit y=${plate.zenith.y.toFixed(4)}  cielo dentro=${plate.skyInside}  est=(${plate.east.x.toFixed(4)}, ${plate.east.y.toFixed(4)}) |est|=${eOnEq.toFixed(4)} (R_eq ${P.R_EQ.toFixed(4)})  almucantarat ${plate.almucantars.length}  azimut ${plate.azimuths.length}  ore ${plate.hours.length}`,
   );
   ok(Math.abs(eOnEq - P.R_EQ) < 1e-9, "il punto est non sta sull'equatore");
   ok(plate.east.x < 0 && plate.west.x > 0, "est a sinistra, ovest a destra");
@@ -220,14 +216,10 @@ ok(Math.abs(sunOff) < 2e-4, "il Sole non cade sull'eclittica della rete");
 
 // ---- qibla
 console.log("\nQibla (azimut iniziale del cerchio massimo verso la Kaʿba, 21.4225 N 39.8262 E):");
-for (const [name, lat, lon] of [
-  ["Torino", 45.0703, 7.6869],
-  ["Al-Quds", 31.7767, 35.2345],
-  ["Gaza", 31.5017, 34.4668],
-  ["Londra", 51.5074, -0.1278],
-  ["Cusco", -13.532, -71.9675],
-]) {
-  console.log(`  ${name.padEnd(8)} ${Q.qiblaBearing(lat, lon).toFixed(2).padStart(7)}°   ${Q.kaabaDistanceKm(lat, lon).toFixed(0).padStart(6)} km`);
+for (const { id, name, lat, lon } of cities) {
+  const km = Q.kaabaDistanceKm(lat, lon);
+  console.log(`  ${name.padEnd(10)} ${km < 1 ? "      —" : Q.qiblaBearing(lat, lon).toFixed(2).padStart(7) + "°"}   ${km.toFixed(0).padStart(6)} km`);
+  ok(id !== "makkah" || km < 1, "Makkah non è alla Kaʿba");
 }
 
 // ---- Luna
