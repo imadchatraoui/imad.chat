@@ -211,3 +211,13 @@ Only three things were made for this look, as asked: the finished machine, its p
 - Labels on the pieces sheets are HTML placed by hand for a 390 px frame.
 - The typewriter's letters on the paper are larger than a real machine's, on purpose.
 - No 3D model was taken from outside: Poly Haven (CC0) was reachable and has no keyboard, keycap, switch or typewriter (only worn photo-scanned screwdrivers, which do not fit the look), so every part is procedural.
+
+## 15. The preview can be touched (added 2026-11-14, after Imad: "non è interagibile non mi fa fare nulla")
+
+The preview went online at `/tastiera/index.html` and on his iPhone it was a film: nothing answered. `tocco.js` (loaded only without `?t=` and `?vista=`) now owns the loop:
+
+- **Time.** Drag up and down on the scene (up = forward, like scrolling the page; one screen height is 9 s), the wheel, the bar at the bottom, a play/stop button, a restart button. On its own the sequence runs to the contact zone (`T.contatto + 1.05`) and waits there; started again it runs to the end and stops at the red button.
+- **Contattami.** A tap on a 3D key presses it and writes its letter (the nearest key within 26 px wins: on a 390 px screen a key is about 22 px wide). The field is a real input laid over the drawn one (16 px, transparent): the phone keyboard opens, every typed letter presses its key, and the scene shrinks into the part of the page the phone keyboard leaves free (`visualViewport`). "Invia" sends nothing and says so.
+- **The red button.** A tap on it (or within 36 px) pushes the dome down; the page edge flashes red twice a second for a second and a half, the scene shakes for half a second, and a line says "Qui il sito si smonta, strato dopo strato." The site coming apart is not designed yet.
+- **Slow phones.** The loop measures its frames: over 34 ms it first lowers the pixel ratio to 1.5, then to 1 with the reflection off (`sc.qualita`).
+- Checked with `scratchpad/pub17/tocco-prova.cjs` (25 checks, touch emulation, software WebGL). Not checked: Safari, a real iPhone, the phone keyboard over the page.

@@ -112,8 +112,11 @@ export function avviaTocco({ sc, st, T, render }) {
   }
 
   /* ---- il giro */
+  let nF = 0, mediaF = 0, livello = 0;                          /* quanto dura un fotogramma: se il telefono arranca, la scena si alleggerisce */
   function giro(now) {
-    const dt = prima ? Math.min(0.05, (now - prima) / 1000) : 0; prima = now;
+    const passo = prima ? now - prima : 0, dt = Math.min(0.12, passo / 1000); prima = now;
+    if (passo > 0 && passo < 1000 && !doc.hidden && ++nF > 20) { mediaF += (passo - mediaF) / Math.min(nF - 20, 30);
+      if (nF > 65 && mediaF > 34 && livello < 2 && sc.qualita) { livello++; sc.qualita(livello); nF = 0; mediaF = 0; } }
     if (va && !(drag && !drag.tasto && !drag.bott && drag.mosso > 6)) {
       tt += dt;
       if (!sostaFatta && tt >= SOSTA) { tt = SOSTA; va = false; sostaFatta = true; dico('Tocca i tasti, o scrivi nel campo'); }
@@ -123,5 +126,5 @@ export function avviaTocco({ sc, st, T, render }) {
     comandi(); requestAnimationFrame(giro);
   }
   requestAnimationFrame(giro);
-  window.__tocco = { get t() { return tt; }, set t(x) { tt = clamp(x, 0, T.fine); va = false; }, get va() { return va; }, vai() { va = true; }, testo: () => utente, colpisci };
+  window.__tocco = { get livello() { return livello; }, get ms() { return Math.round(mediaF); }, get t() { return tt; }, set t(x) { tt = clamp(x, 0, T.fine); va = false; }, get va() { return va; }, vai() { va = true; }, testo: () => utente, colpisci };
 }

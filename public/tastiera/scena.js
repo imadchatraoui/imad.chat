@@ -135,6 +135,8 @@ export function creaScena(canvas, o) {
   }
   function misura() { const w = canvas.clientWidth, h = canvas.clientHeight; renderer.setSize(w, h, false); const k = renderer.getPixelRatio() * 0.5; if (rifl.rt.width !== Math.round(w * k) || rifl.rt.height !== Math.round(h * k)) rifl.rt.setSize(Math.round(w * k), Math.round(h * k)); }
   misura();
-  return { THREE, renderer, scene, camera, sole, M, P, dot, ponte, qK, alMondo, tast, cinepresa, illumina, luceOra, misura, scuro, cam, UN, disegna() { riflesso(); renderer.render(scene, camera); } };
+  return { THREE, renderer, scene, camera, sole, M, P, dot, ponte, qK, alMondo, tast, cinepresa, illumina, luceOra, misura, scuro, cam, UN, disegna() { riflesso(); renderer.render(scene, camera); },
+    /* più leggero se il telefono non ce la fa (tocco.js): 1 = meno pixel, 2 = un pixel per punto e niente riflesso sulla lastra */
+    qualita(n) { if (n >= 2) { renderer.setPixelRatio(1); rifl.acceso = false; } else if (n >= 1) renderer.setPixelRatio(Math.min(dpr, 1.5)); } };
 }
 void seg; void eIO;
