@@ -23,7 +23,7 @@ if (REPO) {
   const items = (f) => JSON.parse(fs.readFileSync(path.join(path.resolve(REPO), "content/astro", f), "utf8")).items;
   DATA.verses = items("verses.json");
   DATA.stars = items("stars.json");
-  DATA.cities = items("cities.json").map((c) => ({ ...c, ar: c.nameLocal || "" }));
+  DATA.cities = items("cities.json");
 }
 
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",

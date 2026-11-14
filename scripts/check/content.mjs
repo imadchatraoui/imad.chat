@@ -99,26 +99,29 @@ for (const need of ['aldebaran', 'rigel', 'betelgeuse', 'sirius', 'procyon', 're
   if (!ids.has(need)) fail('stars.json', `missing required star ${need}`);
 }
 
-// ---------- cities
+// ---------- cities: the site's five, field by field the same as the data the pages use (docs/anteprime/shared/data.js,
+// written by docs/anteprime/shared/gen-data.mjs from this file); the Arabic names are Wikidata labels (docs/fonti.md)
 const cities = load('cities.json');
 topLevel('cities.json', cities);
-const CKEYS = ['id', 'name', 'nameLocal', 'country', 'lat', 'lon', 'tz', 'motif', 'blurb', 'facts', 'sources'];
-const MOTIFS = ['liberty', 'tatreez', 'sea', 'zellige', 'iznik', 'girih', 'seigaiha', 'inca'];
-const CITY_ORDER = ['torino', 'al-quds', 'gaza', 'fes', 'istanbul', 'samarcanda', 'kyoto', 'cusco'];
+const CKEYS = ['id', 'name', 'ar', 'arSource', 'country', 'lat', 'lon', 'tz'];
+const CITY_ORDER = ['torino', 'gaza', 'medina', 'makkah', 'casablanca'];
 if (JSON.stringify(cities.items.map((c) => c.id)) !== JSON.stringify(CITY_ORDER)) fail('cities.json', 'ids/order differ from CITY_ORDER');
 cities.items.forEach((c, i) => {
   const w = `cities[${i}] ${c.id}`;
   exactKeys(w, c, CKEYS);
-  for (const k of ['name', 'country', 'blurb']) if (!nonEmpty(c[k])) fail(w, `${k} empty`);
-  if (!isStr(c.nameLocal)) fail(w, 'nameLocal must be a string');
+  for (const k of ['name', 'country']) if (!nonEmpty(c[k])) fail(w, `${k} empty`);
+  if (!isStr(c.ar) || !AR.test(c.ar) || c.ar !== c.ar.trim()) fail(w, `ar must be unvocalised Arabic: ${c.ar}`);
+  if (!/^https:\/\/www\.wikidata\.org\/wiki\/Q\d+$/.test(c.arSource || '')) fail(w, `arSource must be a Wikidata page: ${c.arSource}`);
   if (!(Number.isFinite(c.lat) && Math.abs(c.lat) <= 90 && Number.isFinite(c.lon) && Math.abs(c.lon) <= 180)) fail(w, 'bad lat/lon');
   try { new Intl.DateTimeFormat('it-IT', { timeZone: c.tz }).format(new Date()); } catch { fail(w, `invalid tz ${c.tz}`); }
-  if (!MOTIFS.includes(c.motif)) fail(w, `bad motif ${c.motif}`);
-  const sentences = c.blurb.split(/(?<=[.!?»])\s+(?=[A-ZÀ-ÖÈÉ«])/u).length;
-  if (sentences < 2 || sentences > 3) fail(w, `blurb has ${sentences} sentences`);
-  if (!Array.isArray(c.facts) || c.facts.length < 2 || c.facts.length > 4 || !c.facts.every(nonEmpty)) fail(w, 'facts must be 2-4 strings');
-  sources(w, c.sources);
 });
+{
+  const src = fs.readFileSync(path.join(repo, 'docs/anteprime/shared/data.js'), 'utf8');
+  const shared = JSON.parse(src.slice(src.indexOf('{'), src.lastIndexOf('}') + 1)).cities || [];
+  const pick = (c) => JSON.stringify(Object.fromEntries(CKEYS.map((k) => [k, c[k]])));
+  if (shared.length !== cities.items.length) fail('cities.json', `docs/anteprime/shared/data.js has ${shared.length} cities, this file ${cities.items.length}`);
+  cities.items.forEach((c, i) => { if (!shared[i] || pick(shared[i]) !== pick(c)) fail(`cities[${i}] ${c.id}`, 'differs from docs/anteprime/shared/data.js'); });
+}
 
 // ---------- curiosities
 const cur = load('curiosities.json');
@@ -137,7 +140,7 @@ cur.items.forEach((c, i) => {
 if (cur.items.length < 28 || cur.items.length > 36) fail('curiosities.json', `expected about 30 items, got ${cur.items.length}`);
 
 // ---------- no Arabic outside the fields meant for it
-for (const [file, d, allowed] of [['stars.json', stars, ['ar']], ['cities.json', cities, ['nameLocal']], ['curiosities.json', cur, []]]) {
+for (const [file, d, allowed] of [['stars.json', stars, ['ar']], ['cities.json', cities, ['ar']], ['curiosities.json', cur, []]]) {
   d.items.forEach((it) => {
     for (const [k, v] of Object.entries(it)) {
       const s = JSON.stringify(v).replace(/https?:[^"]+/g, '');

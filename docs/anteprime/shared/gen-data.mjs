@@ -1,6 +1,6 @@
 // Genera shared/data.js dai contenuti verificati del repo. Nessun testo arabo è scritto a mano:
-// i versetti arrivano da content/astro/verses.json, i nomi delle città dalle etichette di Wikidata.
-// Uso: node gen-data.mjs <cartella del repository> (servono anche i file wd-Q*.json di Wikidata, Special:EntityData, accanto a questo script)
+// i versetti arrivano da content/astro/verses.json, le cinque città (con i nomi arabi, etichette di Wikidata) da content/astro/cities.json.
+// Uso: node gen-data.mjs <cartella del repository>
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,23 +8,13 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(process.argv[2] || ".");
 const read = (p) => JSON.parse(fs.readFileSync(path.join(repo, p), "utf8"));
-const wd = (q) => {
-  const e = JSON.parse(fs.readFileSync(path.join(here, `wd-${q}.json`), "utf8")).entities[q];
-  return { ar: e.labels.ar.value, it: e.labels.it.value, en: e.labels.en.value, source: `https://www.wikidata.org/wiki/${q}` };
-};
 
 const verses = read("content/astro/verses.json").items.map((v) => ({
   key: v.key, surah: v.surah, surahName: v.surahName, ayahs: v.ayahs, ar: v.ar, it: v.it, translator: v.translator, source: v.source,
 }));
 
-const cityDefs = [
-  { id: "torino", q: "Q495", name: "Torino", country: "Italia", tz: "Europe/Rome", lat: 45.0703, lon: 7.6869 },
-  { id: "gaza", q: "Q47492", name: "Gaza", country: "Palestina", tz: "Asia/Gaza", lat: 31.5017, lon: 34.4668 },
-  { id: "medina", q: "Q35484", name: "Medina", country: "Arabia Saudita", tz: "Asia/Riyadh", lat: 24.4672, lon: 39.6111 },
-  { id: "makkah", q: "Q5806", name: "Makkah", country: "Arabia Saudita", tz: "Asia/Riyadh", lat: 21.4225, lon: 39.8262 },
-  { id: "casablanca", q: "Q7903", name: "Casablanca", country: "Marocco", tz: "Africa/Casablanca", lat: 33.5731, lon: -7.5898 },
-];
-const cities = cityDefs.map(({ q, ...c }) => ({ ...c, ar: wd(q).ar, arSource: wd(q).source }));
+// Torino, Gaza, Medina, Makkah, Casablanca: i nomi arabi sono le etichette di Wikidata (arSource), copiate da codice (docs/fonti.md)
+const cities = read("content/astro/cities.json").items.map((c) => ({ id: c.id, name: c.name, country: c.country, tz: c.tz, lat: c.lat, lon: c.lon, ar: c.ar, arSource: c.arSource }));
 
 const starsAll = read("content/astro/stars.json").items;
 const stars = starsAll.map((s) => ({ id: s.id, name: s.name, ar: s.ar, translit: s.translit, meaning: s.meaning, ra: s.ra, dec: s.dec, mag: s.mag, constellation: s.constellation }));

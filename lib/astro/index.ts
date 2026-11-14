@@ -1,4 +1,5 @@
-// lib/astro: la matematica dell'astrolabio, senza React. La usano il 3D, la versione 2D e le pagine.
+// lib/astro: la matematica del cielo (astronomy-engine), senza React, con le sue prove (npm run check:astro).
+// Le pagine del sito fanno i loro conti nel telefono con docs/anteprime/shared/astro-lite.js.
 
 export * from "./types";
 export * from "./projection";

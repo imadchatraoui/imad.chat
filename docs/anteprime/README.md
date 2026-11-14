@@ -1,34 +1,37 @@
 # Anteprime
 
-Il disegno scelto da Imad per la home, in forma di pagina semplice (HTML, CSS e JavaScript, senza build).
-È la **sorgente del disegno** per il sito vero: colori, materiali, misure, movimento e parole si copiano da qui.
+Le sorgenti delle pagine del sito, in forma di pagine semplici (HTML, CSS e JavaScript, senza build).
+`node scripts/home/build.mjs` le copia in `public/` (`public/casa`, servita a `/`, e `public/gatto`).
 
-- `c-widget/` — l'anteprima «Widget», seconda stesura («più aesthetic»). `NOTES.md` spiega i token, che cosa è vero e che cosa è finto, le debolezze note.
-- `BRIEF.md` — le richieste di Imad con le sue parole, le regole fisse, il contratto tecnico.
-- `shared/` — dati veri (`data.js`, generato da `gen-data.mjs`), astronomia leggera (`astro-lite.js`) e strumenti.
+- `casa/` — la casa (`home/`) e le sue pagine (`progetti/`, `mondo/`, `su-di-me/`, `tools/`, `scatola/`), la cornice comune
+  (`comune/`) e gli strumenti di lavoro (`strumenti/`, mai online). Il disegno è in `casa/CASA.md`.
+- `gatto/` — Dot, il gatto (la pagina di prova è `/gatto`). Il disegno è in `gatto/DOT.md`.
+- `intro/` — l'intro (`intro-gatto.js`, `intro.css`), le sue foto (`media/`, fonti in `FONTI.md`) e i suoi strumenti (`strumenti/`).
+- `shared/` — dati veri (`data.js`, scritto da `gen-data.mjs` dai contenuti verificati di `content/astro`), astronomia leggera
+  (`astro-lite.js`) e strumenti.
+- `BRIEF.md` — il brief del primo giro della home: le richieste di Imad con le sue parole, le regole fisse, il contratto tecnico.
 
-Aprirla: servire la cartella `c-widget` con un qualsiasi server statico e aprire `index.html`.
+Aprirle senza Next: `node casa/strumenti/servi.mjs`, poi `/casa/home/index.html`.
 
-Parametri dell'indirizzo: `shot=1` (stato fermo per le fotografie), `theme=light|dark`, `t=<ISO>` (ferma «adesso»),
-`open=<riquadro>` (citta, saluti, corano, cielo, palestina, codice, sudime, curiosita, cubo), `intro=1`,
-`font=manrope|inter|geist|instrument|sistema`.
+Parametri dell'indirizzo della casa: `shot=1` (niente intro, stato fermo per le fotografie), `theme=light|dark`, `t=<ISO>` (ferma «adesso»),
+`open=<riquadro>`.
 
-Strumenti, da questa cartella:
+Strumenti, da questa cartella, sul sito in esecuzione (`npm run start`, oppure `servi.mjs` con l'indirizzo della casa):
 
 ```bash
-node shared/capture.mjs c-widget      # fotografie su telefono, tablet e computer, nei due temi
+node shared/capture.mjs <cartella-dove-salvare> --base http://localhost:3000     # fotografie su telefono, tablet e computer, nei due temi
 ```
 
 ```bash
-node shared/verify.mjs c-widget       # regole fisse: niente corsivo, arabo identico ai dati, niente emoji, niente scorrimento laterale
+node shared/verify.mjs --base http://localhost:3000 --repo ../..               # regole fisse: niente corsivo, arabo identico ai dati, niente emoji, niente scorrimento laterale
 ```
 
 ```bash
-node shared/sheet.mjs c-widget "Widget" "una riga di descrizione"   # fogli di confronto dalle fotografie
+node shared/testo.mjs --base http://localhost:3000                             # tutte le parole che un visitatore può leggere
 ```
 
 ```bash
-node shared/testo.mjs c-widget        # tutte le parole che un visitatore può leggere
+node shared/gen-data.mjs ../..                                                 # riscrive shared/data.js da content/astro
 ```
 
-Le fotografie (`shots/`, `sheet-*.jpg`) non stanno nel repository: si rigenerano con i comandi qui sopra.
+Le fotografie non stanno nel repository: si rigenerano con i comandi qui sopra.
