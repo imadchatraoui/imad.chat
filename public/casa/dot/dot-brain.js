@@ -608,8 +608,10 @@
       if (aligned(0.32)) { d.go += dt; spd = g.v * (0.12 + 0.88 * smooth(0, 0.42, d.go)) * (0.3 + 0.7 * smooth(0, 22, left)); }
       rig.walkT = 1; rig.speedU = spd / (px() * Math.max(0.35, Math.abs(Math.cos(rig.yaw)))); cat.coast = spd * cat.dir;   /* il piede a terra resta fermo sullo schermo anche col corpo di tre quarti */
       if (cat.mood && cat.mood.k === "annoyed") { rig.over.te = 1.2; rig.over.tc = 0.15; rig.tailSwish = 0.25; rig.tailRate = 5; rig.faceTurn = 0; cat.gz = false; rig.look.ty = 0; rig.look.tp = 0.16; rig.gazeT[0].x = rig.gazeT[1].x = 0; }   /* se ne va offeso: coda dritta, naso all'insù, non ti guarda */
+      var wIn = cat.x >= lo - 2 && cat.x <= hi + 2;                     /* era nel suo tratto prima del passo? (dopo il gioco del filo può partire da fuori: allora ci entra camminando, mai di colpo) */
       cat.x += cat.dir * rig.walk * spd * dt;
-      if (left <= 1 || cat.x < lo - 2 || cat.x > hi + 2) { cat.x = clamp(cat.x, lo, hi); if (d.lo != null) cat.x = clamp(cat.x, p.a, p.b); rig.walkT = 0; var th = d.then;
+      var wOff = cat.x < lo - 2 || cat.x > hi + 2;
+      if (left <= 1 || (wOff && (wIn || (cat.x - clamp(cat.x, lo, hi)) * cat.dir > 0))) { if (wIn || !wOff) { cat.x = clamp(cat.x, lo, hi); if (d.lo != null) cat.x = clamp(cat.x, p.a, p.b); } rig.walkT = 0; var th = d.then;
         if (typeof th === "function") th(); else if (th === "sit") sitFor(rr(1.8, 3.6)); else if (th === "none") {} else set("pause", { pose: "stand", dur: rr(0.5, 1.1) }); }
     },
     crouch: function (dt, d) {                                         /* l'anticipo: si carica come una molla, il sedere ondeggia, le zampe spingono, parte */
@@ -2121,7 +2123,7 @@
       var pdx = ptr.x - cat.x, pdy = ptr.y - (cat.y - 20); if (Math.abs(pdx) < 170 && Math.abs(pdx) > 30 && Math.abs(pdy) < 80) { life.pounceAt = now + 10; set("pounce", { tx: clamp(ptr.x, cat.plat.a, cat.plat.b), wait: 0.8, then: "sit" }); }
     }
     if (life.braceAt && now - life.braceAt < 0.1 && cat.plat && !cat.plat.fixed && cat.vis && (cat.state === "sit" || cat.state === "look" || cat.state === "pause" || cat.state === "loaf") && !reduced && !lowNow()) { life.braceAt = 0; set("brace", { face: cat.face, pose: "crouch" }); }
-    if (cat.state !== "walk" && rig.walk > 0.03 && cat.plat && onEdge()) cat.x = clamp(cat.x + rig.walk * cat.coast * dt, cat.plat.a, cat.plat.b);
+    if (cat.state !== "walk" && rig.walk > 0.03 && cat.plat && onEdge() && cat.x >= cat.plat.a - 2 && cat.x <= cat.plat.b + 2) cat.x = clamp(cat.x + rig.walk * cat.coast * dt, cat.plat.a, cat.plat.b);   /* fuori dal suo tratto (dopo il gioco del filo) non scivola: lo porterebbe di colpo dentro il tratto */
     if (cat.plat && onEdge()) cat.rel = cat.x - cat.plat.tile.l;
     if (!cat.ownRot) cat.rot *= Math.exp(-dt * 10); cat.ownRot = false;
     if (!cat.ownLift) cat.lift *= Math.exp(-dt * 12); cat.ownLift = false;
