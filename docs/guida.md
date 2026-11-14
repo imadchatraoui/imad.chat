@@ -53,7 +53,10 @@ Un trucco per provare in fretta: aggiungi **`?shot=1`** all'indirizzo (`www.imad
 1. Tocca il pulsante del tema: la pagina cambia, e una scritta piccola dice quale tema hai scelto.
 2. Tira giù un filo come la cordicella di una lampada e lascialo: il suo pulsante scatta (suono acceso o spento, tema cambiato).
 
-Dot che si appende al filo e strappa il pulsante arriva nel prossimo giro.
+3. **Appendi Dot al filo:** tieni premuto su Dot, portalo sulla parte bassa di un filo e lascialo. Si aggrappa alla lana, dondola, scende e tira: il pulsante si stacca (senza cambiare né il tema né il suono), Dot ci gioca un momento e poi il pulsante torna al suo posto.
+4. **Da solo:** sul telefono, se resti fermo in cima alla pagina per circa un minuto, ogni tanto Dot lo fa da solo (al massimo una volta ogni tre minuti).
+
+Per riprendere Dot mentre è appeso basta prenderlo col dito. Un tocco leggero gli fa mollare il filo.
 
 ## 6. Il menu dal logo
 
@@ -116,7 +119,7 @@ Si aprono dal riquadro Tools della home o da `www.imad.chat/tools`. Tutto si cal
 
 ## 12. Cosa manca ancora
 
-- Dot che si appende al filo e strappa il pulsante, e Dot che gioca col menu e con la scatola.
+- Dot che gioca col menu e con la scatola dei tasti.
 - Dot's playground, il riquadro di Dot supereroe.
 - Sotto la bento: la tastiera 3D, la zona «contattami» e il bottone rosso «do not press».
 - I saluti visibili a tutti.
