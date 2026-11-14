@@ -1,11 +1,12 @@
 /* main.js — l'anteprima. Tutto si comanda dall'indirizzo, così ogni fotogramma si può rifare uguale:
-   ?t=6.2            il tempo della sequenza, in secondi (senza: la sequenza scorre da sola, in ciclo)
+   ?t=6.2            il tempo della sequenza, in secondi (senza: la sequenza scorre da sola e si tocca, vedi tocco.js)
    ?stile=tastiera|macchina    ?tema=scuro|chiaro    ?ora=22.2 (l'ora di «adesso», 0..24)
    ?vista=storia|due|pezzi|contatto|fermo  (fermo: la macchina finita e la zona contatto, come con «riduci movimento»)
    ?cam=largo|banco|finita|contatto|bottone|faccia   forza l'inquadratura     ?nudo=1  senza scritte     ?dpr=2 */
 import { creaScena } from './scena.js';
 import { creaStoria, T, FATTORE } from './storia.js';
 import { seg, sat } from './forme.js';
+import { avviaTocco } from './tocco.js';
 
 const q = new URLSearchParams(location.search), tema = q.get('tema') === 'chiaro' ? 'chiaro' : 'scuro', stile = q.get('stile') === 'macchina' ? 'macchina' : 'tastiera';
 let vista = q.get('vista') || 'storia';
@@ -38,18 +39,13 @@ async function avvia() {
   function render(t, extra) {
     sc.misura();
     const info = tav ? tav.applica(t, extra) : st.applica(t, Object.assign({ cielo: el.cielo, cam: q.get('camq') ? camq(q.get('camq')) : q.get('cam') ? st.CAM[q.get('cam')] : null }, extra));
+    if (extra && extra.testo != null) info.testo = extra.testo;      /* quello che ha scritto chi guarda (tocco.js) */
+    if (extra && extra.prima) extra.prima(info);                      /* un ultimo ritocco ai pezzi prima di disegnare (il bottone premuto) */
     scritte(info); sc.disegna(); return info;
   }
   window.__render = (t, extra) => { render(t, extra); return true; };
   if (q.get('t') != null || vista !== 'storia') { render(q.get('t') != null ? +q.get('t') : vista === 'contatto' ? 16.6 : T.contatto); }
-  else {
-    /* la sequenza scorre da sola; spazio ferma, le frecce spostano di un decimo; alla fine si può scrivere davvero */
-    let t0 = performance.now(), fermo = false, tt = 0;
-    const giro = (now) => { if (!fermo) tt = ((now - t0) / 1000) % (T.fine + 2.5); render(Math.min(tt, T.fine), { ora: now / 1000 }); requestAnimationFrame(giro); };
-    addEventListener('keydown', (e) => { if (e.key === ' ' && tt < T.contatto) { fermo = !fermo; t0 = performance.now() - tt * 1000; } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { fermo = true; tt = Math.max(0, tt + (e.key === 'ArrowRight' ? 0.1 : -0.1)); } else st.premi(e.key.toLowerCase(), performance.now() / 1000); });
-    addEventListener('keyup', (e) => st.lascia(e.key.toLowerCase(), performance.now() / 1000));
-    requestAnimationFrame(giro);
-  }
+  else avviaTocco({ sc, st, T, render });   /* la sequenza scorre da sola fino a «Contattami» e si lascia toccare: tocco.js */
   addEventListener('resize', () => { if (q.get('t') != null) render(+q.get('t')); });
   window.__pronto = true;
 }
