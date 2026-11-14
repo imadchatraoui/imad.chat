@@ -263,7 +263,8 @@
         } else B.onG = false;
         /* vicino alla mensola non va oltre il tratto piano: sugli angoli tondi rotolerebbe giù dal fianco dell'hero (a destra, fuori dallo
            schermo). Un muro che non si vede, con un rimbalzo spento: il tasto si ferma dove la curva comincia */
-        if (ground && !groundFn && B.y > ground.top - CONTACT - 8) {
+        /* (solo per un tasto che cade sopra la mensola: sul computer i fili pendono oltre la fine dell'hero, e il muro lo teletrasportava sull'angolo) */
+        if (ground && !groundFn && B.y > ground.top - CONTACT - 8 && this.sock.x > ground.left - CONTACT && this.sock.x < ground.right + CONTACT) {
           var gl = ground.left + ground.r, gr = ground.right - ground.r;
           if (B.x > gr) { B.x = gr; if (B.vx > 0) { B.vx *= -0.3; B.va *= -0.3; } } else if (B.x < gl) { B.x = gl; if (B.vx < 0) { B.vx *= -0.3; B.va *= -0.3; } }
         }
