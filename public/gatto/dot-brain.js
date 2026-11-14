@@ -52,6 +52,15 @@
     P["b-pounce"] = pz({ f0x: 13.5, f0y: 4.5, f1x: 12, f1y: 4.5, f2x: -9, f3x: -10, hx: -7.5, hy: 11.5, cx: 7.5, cy: 9.2, dx: 6.6, dy: 6.4, eye: 1.2, ear: 0.1, te: 0.9, tc: 0.3 }, St);
     /* sciolto sotto il dito: la «pozzanghera» dell'aspetto, il mento a terra, occhi chiusi (archi felici), respiro lento */
     P["b-melt"] = pz({ dy: 3.5, eye: 0, lid: 0, hp: -0.04, ear: -0.06, br: 1.15 }, P.puddle);
+    /* appeso al filo di gomitolo (sulla «hang» dell'aspetto): le zampe davanti una sopra l'altra attorno al filo, sopra il fez; la testa
+       inclinata (il fez pende di lato, non sotto le zampe), il corpo che pende sotto. L'origine sta 3.75 unità sotto la presa (GRIP) */
+    /* le zampe dietro raccolte sotto la pancia (un gatto appeso le tira su): dalla presa ai piedi 33 unità, così sul telefono, dove il nodo
+       sta 68 px sopra la mensola, resta appeso un attimo prima di toccare */
+    P["b-rope"] = pz({ fs: -3.2, fo: -0.8, f0x: 0.6, f0y: 7.2, f1x: 0.6, f1y: 2.8, cy: -6.6, dy: -7, hy: -20.5, f2x: 2.6, f2y: -25.2, f3x: 2, f3y: -24.6, hs: 0.2, ho: 3.4, hr: 0.3, hp: 0.12 }, P.hang);
+    /* in fondo al filo, senza niente sotto (il computer): le zampe dietro lasciate giù, a penzoloni */
+    P["b-ropelong"] = pz({ hy: P.hang.hy, cy: P.hang.cy - 1.6, f2x: P.hang.f2x, f2y: P.hang.f2y, f3x: P.hang.f3x, f3y: P.hang.f3y, hs: P.hang.hs, ho: P.hang.ho }, P["b-rope"]);
+    /* coi piedi sulla mensola, tira: le zampe dietro piantate e larghe (le ginocchia piegate), il corpo basso, il muso in su verso il tasto */
+    P["b-ropepull"] = pz({ cy: -7.6, hy: -18.6, dy: -6, f2y: -25.2, f3y: -25.2, f2x: 1.2, f3x: 0.8, ho: 5.2, hs: 0.8, hp: 0.34, hr: 0.14, sqx: 1.03, sqy: 0.97, ear: 0.4, te: 0.3, tc: 0.95, tw: 0 }, P["b-rope"]);   /* la coda su, a punto di domanda: non pende davanti all'hero */
   }
   var HEADMAX = 0.55;   /* la testa si gira al massimo 0.55 rad via da chi guarda: due occhi tondi, mai l'occhio lontano schiacciato contro il bordo (0.7 lo schiacciava: tavola ?giri=1) */
 
@@ -223,8 +232,8 @@
       if (!m.n) { goneProp(pr); continue; }
       if (m.dx || m.dy) { pr.x += m.dx; pr.y += m.dy; if (pr.b) { pr.b.x += m.dx; pr.b.y += m.dy; } if (pr.tw) { pr.tw.x += m.dx; pr.tw.y += m.dy; } if (pr.home && pr.name !== "star") { pr.home.x += m.dx; pr.home.y += m.dy; } } }
   }
-  var AIRBORNE = { air: 1, fall: 1, fly: 1, slide: 1, hang: 1, tumble: 1 };
-  function onEdge() { var s = cat.state; return !(s === "air" || s === "held" || s === "fall" || s === "fly" || s === "slide" || s === "hang" || s === "opening" || s === "boxed" || s === "box"); }
+  var AIRBORNE = { air: 1, fall: 1, fly: 1, slide: 1, hang: 1, tumble: 1, rope: 1, ropeleap: 1 };
+  function onEdge() { var s = cat.state; return !(s === "air" || s === "held" || s === "fall" || s === "fly" || s === "slide" || s === "hang" || s === "rope" || s === "ropeleap" || s === "opening" || s === "boxed" || s === "box"); }
   function landOn(p) { cat.plat = p; cat.y = p.y; cat.gy = p.y; cat.rel = cat.x - p.tile.l; }
   /* «si vede»: sopra e sotto ci possono essere strisce coperte (una barra in alto view.ti, la barra dell'anteprima o di Safari in fondo view.bi): lì non si vede */
   function inView(y, top, bot) { return y > view.sy + view.ti + (top || 0) && y < view.sy + view.vh - view.bi - (bot || 0); }
@@ -258,6 +267,8 @@
   function aligned(tol) { return Math.abs(wrap(rig.yaw - rig.yawT)) < (tol || 0.4); }
   function set(state, d) {
     if (cat.state === "slide" && cat.d.sc) cat.d.sc.done();
+    if (RP.hold && state !== "ropebat" && state !== "ropeland" && !(state === "walk" && d && d.rope)) ropeUnhold();   /* il tasto tenuto giù per giocarci torna su appena Dot fa altro */
+    if (ROPE[cat.state] && !ROPE[state] && cat.d && cat.d.h) ropeLet(cat.d);
     if (cat.state !== state && (cat.state === "purr" || cat.state === "pet" || cat.state === "melt") && state !== "melt") sound("purr", false);   /* le fusa finiscono con lo stato */
     if (fez && fez.hold && state !== "fezoff" && !(fez.back && fez.back.free)) { fez.hold = false; fez.back = null; }   /* interrotto mentre lanciava il fez: il fez ricade da solo (sul suo riquadro) */
     cat.state = state; cat.st = 0; cat.d = d || {};
@@ -315,6 +326,7 @@
       if ((!fezSeen() && now - fez.t0 > 1.5) || now - fez.t0 > 20) return set("dive", { fez: true, wait: 0.7, face: "side", pose: "crouch" });
     }
     if (sgHold()) return sitFor(rr(1.4, 2.2));                         /* il dito fantasma sta per arrivare: resta seduto dov'è */
+    if (O.filo && rnd() < 0.6) { var fp = filoPlan(false); if (fp) return filoGo(fp); }   /* il filo di gomitolo: ogni tanto ci si appende da solo */
     var w = {}, k, base = now - lastIn > 25 ? SLEEPY : IDLE; for (k in base) w[k] = base[k];
     if (now < life.propAt || props.length || !gameRoom()) w.prop = 0;   /* niente oggetti vicino al riquadro quiet */
     if (p.b - p.a < 60) { w.walk = 0.02; w.dive *= 0.5; }
@@ -755,6 +767,8 @@
   function tap() {
     lastIn = now; cat.taps.push(now); while (cat.taps.length && cat.taps[0] < now - 6) cat.taps.shift();
     var s = cat.state; if (s === "swat") s = "sit";                    /* la zampata è un attimo: conta come seduto */
+    if (s === "rope") { ropeOff(cat.d, cat.d.lp); return; }              /* appeso al filo: un tocco gentile, lo lascia e si posa (o cade) */
+    if (s === "ropeleap") return;
     if (cat.vis && onQuiet()) { cat.taps = []; if (!reduced && s !== "crouch" && s !== "air" && s !== "land" && s !== "fall" && s !== "fly" && s !== "held") leaveQuiet(); return; }   /* sul riquadro quiet un tocco lo fa solo andare via: niente miao, niente giochi */
     if (reduced) { say("miao", 1.2, "mini"); sound("meow"); return; }
     if (s === "boxed" || s === "box") return boxOut();
@@ -896,8 +910,8 @@
   /* quanto stanno sopra l'origine le zampe davanti nella posa «slide» (l'origine è sulla faccia del riquadro) */
   function slideTop() { var s = rig.poses.slide; return Math.max(s.f0y, s.f1y) + rig.P.leg.paw * 0.6; }
   function pickUp(ghost) {                                             /* ghost: il dito fantasma del suggerimento (fake.ghost): per la collottola, posa «scruff» */
-    clearHeld();
-    set("held", { face: "view", pose: ghost ? "scruff" : "held" }); cat.plat = null; cat.gy = null; pend.a = 0; pend.w = 0; pend.pvx = 0; pend.px = cat.x;
+    clearHeld(); if (ROPE[cat.state]) { ropeLet(cat.d); pend.a = -(cat.rot || 0); }   /* appeso al filo: lo lascia per la mano di chi lo prende, senza salti */
+    var pa0 = ROPE[cat.state] ? pend.a : 0; set("held", { face: "view", pose: ghost ? "scruff" : "held" }); cat.plat = null; cat.gy = null; pend.a = pa0; pend.w = 0; pend.pvx = 0; pend.px = cat.x;
     reanchor(below() - below("held")); rig.rate = 14; lastIn = now;   /* l'origine passa alla collottola: il corpo resta dov'era */
   }
   Object.assign(STATES, {
@@ -924,12 +938,13 @@
       if (rig.pose === "scruff") { rig.pose = "held"; delete rig.over.brow; delete rig.over.te; delete rig.over.tc; cat.gz = true; }   /* il dito vero l'ha preso al posto del fantasma */
       rig.longT = clamp(3 + cat.st * 4 + sp / 140, 0, 11);
       rig.over.lid = 0.42; rig.over.eye = 0.9; rig.over.ear = 0.18 + 0.25 * sat(sp / 900); rig.tailSwish = 0.25; rig.tailRate = 2;
-      cat.att = null; cat.gz = true;
+      cat.att = null; cat.gz = true; delete rig.over.f0y; delete rig.over.f1y;
+      if (O.filo) ropeReach();                                         /* vicino a un filo: lo guarda e ci allunga le zampe */
     },
     fall: function (dt, d) {                                           /* cade dritto fino al bordo di sotto: le zampe davanti cercano il bordo */
       d.vy = (d.vy || 0) + 2300 * dt; var y0 = cat.y; cat.y += d.vy * dt; cat.x += (d.vx || 0) * dt; d.vx = (d.vx || 0) * Math.exp(-dt * 3);
       rig.grounded = false; rig.pose = cat.st < 0.12 ? "air" : "b-reach"; rig.rate = 16; rig.pitchT = 0; rig.over.eye = 1.15; rig.over.ear = 0.3; rig.pupilDotT = 0.6;
-      var yb = Math.min(y0, y0 + below() * px()), p = d.p && cat.x >= d.p.a - 10 && cat.x <= d.p.b + 10 ? d.p : platBelow(cat.x, yb - 2);   /* il bordo si cerca dal corpo: i piedi possono essere già oltre un bordo che sta appena sotto il corpo (in fondo a una scivolata, lasciato a cavallo di un bordo) */
+      var yb = Math.min(y0, y0 + below() * px()), p = d.p && (d.drift || (cat.x >= d.p.a - 10 && cat.x <= d.p.b + 10)) ? d.p : platBelow(cat.x, yb - 2);   /* il bordo si cerca dal corpo: i piedi possono essere già oltre un bordo che sta appena sotto il corpo (in fondo a una scivolata, lasciato a cavallo di un bordo) */
       cat.gy = p ? p.y : null;
       if (p && cat.y >= p.y) { cat.x = clamp(cat.x, p.a, p.b); if (cat.y > p.y + 0.5) reanchor((p.y - cat.y) / px()); landOn(p);   /* i piedi erano già sotto il bordo: l'origine sale al bordo, il disegno resta dov'è e ci sale sopra con la molla */
         if (p.quiet) { set("land", { then: leaveQuiet, quiet: true, v: d.vy, face: cat.face === "front" ? "view" : cat.face, pose: "land" }); return; }
@@ -996,6 +1011,7 @@
   /* dove lasciarlo: sul bordo, nella scatola, sulla faccia di un riquadro, appeso sotto, oppure giù */
   function release(vx, vy) {
     var sp = hyp(vx, vy), k = px(); lastIn = now; if (!(fake && fake.ghost)) B.dropAt = now;   /* lasciato da chi guarda (il dito fantasma lo rimette giù da sé) */
+    if (ropeCatch(vx, vy)) return;                                     /* lasciato vicino a un filo di gomitolo: ci si aggrappa */
     var bodyY = cat.y + below() * k;
     if (stageOn && stage.hit && stage.hit(cat.x, bodyY)) return boxIn(true);
     if (sp > 650) { var f = Math.min(1, 1500 / sp), tv = { vx: vx * f, vy: vy * f }, tries = 0;
@@ -1423,7 +1439,7 @@
   function peekBox(x, lv) { var P = PEEKS[lv || 0], p = world.dock, k = K / 1.5; return { x0: x - P.w * k, y0: p.y - P.h * k, x1: x + P.w * k, y1: p.y }; }
   function peekWords(x, lv) {
     var p = world.dock; if (!p) return false; var b = peekBox(x, lv), i, n, L = world.keep, m = 3;   /* 3 px d'aria attorno alle parole */
-    for (i = 0; i < L.length; i++) { n = L[i]; if (b.x1 + m > n.l && b.x0 - m < n.r && b.y1 > n.t && b.y0 - m < n.b) return true; }
+    for (i = 0; i < L.length; i++) { n = L[i]; m = n.c ? 7 : 3; if (b.x1 + m > n.l && b.x0 - m < n.r && b.y1 > n.t && b.y0 - m < n.b) return true; }   /* un comando (il codice QR, un campo): più aria, la punta di un orecchio non ci si appoggia */
     return false;
   }
   function peekLv(x) { var lv; for (lv = 0; lv < PEEKS.length; lv++) if (!peekWords(x, lv)) return lv; return -1; }   /* la sbirciata più alta che lì non copre niente (-1: nessuna) */
@@ -2088,12 +2104,13 @@
     if (now < (B.followTo || 0)) { readWorld(true); if (stageOn && stage.place && O.home && O.home.nodeType === 1) { var hp0 = homePoint(); if (Math.abs(hp0.x - B.home.x) > 0.3 || Math.abs(hp0.y - B.home.y) > 0.3) { B.home = hp0; stage.place(hp0.x, hp0.y); } } }   /* DOT.refresh(secondi): segue i riquadri mentre si muovono */
     else if (now - world.at > 0.8) readWorld();
     if (B.evict) { var why = B.evict, s0 = cat.state; B.evict = null;
-      if (cat.vis && onEdge() && s0 !== "crouch" && s0 !== "land" && s0 !== "peek" && s0 !== "think" && s0 !== "wait" && s0 !== "dive") relocate(why); }
+      if (cat.vis && onEdge() && s0 !== "crouch" && s0 !== "land" && s0 !== "peek" && s0 !== "think" && s0 !== "wait" && s0 !== "dive" && !ROPEISH[s0] && !(cat.d && cat.d.rope)) relocate(why); }   /* il gioco del filo sta (per poco) sotto i tasti in alto: non lo si sposta */
     if (B.lidA && stageOn) { var la = B.lidA, lu = seg(now, la.t0, la.t0 + la.dur); B.lidV = lerp(la.a, la.b, eIO(lu)); try { stage.lid(B.lidV); } catch (e) {} if (lu >= 1) B.lidA = null; }   /* il coperchio si apre e si chiude, non scatta */
     if (script) { var i; for (i = script.length - 1; i >= 0; i--) if (now >= script[i].t) { var fn = script[i].fn; script.splice(i, 1); fn(); } }
     cat.st += dt; rig.yawT = yawFor(cat.face, cat.dir);
     sgPre(dt); rig.yawT = yawFor(cat.face, cat.dir);                     /* il suggerimento (il dito fantasma muove il dito finto prima dello stato) */
     rig.tailSwish -= life.flAdd || 0; var S = STATES[cat.state]; if (S) S(dt, cat.d);
+    if (O.filo) ropeStep();
     applyMood(); sgPost(dt); turnStep(dt);
     if (bubble && (bubble.on || bubble.a > 0.01) && cat.vis && world.quiet.length && onQuiet()) bubble.hide(true);   /* sul riquadro quiet nessuna nuvoletta, nemmeno una rimasta da prima */
     if (CALM[cat.state] && now > (life.flAt || 0) && !reduced) { life.flAt = now + rr(3, 7); life.flT = now; }
@@ -2130,6 +2147,268 @@
       if (cat.plat && cat.state !== "walk") set("greet", { face: "view", pose: "sit", dur: 6.4, text: "Lo sapevi che «chat» vuol dire gatto in francese?", sec: 6, kind: "long" });   /* lo dice lui: si siede, ti guarda, inclina la testa */
       else say("Lo sapevi che «chat» vuol dire gatto in francese?", 6, "long");
     }
+  }
+
+  /* ------------------------------------------------------------------ il filo di gomitolo (CASA.md 2f H; DOT.md 3, «Il filo»).
+     Dai tasti del tema e dei suoni pende un filo di lana (filo.js, window.FILO; coordinate della pagina, come le nostre). Dot ci si appende:
+     portato lì da chi guarda e lasciato (o da solo, ogni tanto, dalla mensola), afferra il filo con le zampe davanti, dondola, scivola giù;
+     coi piedi sulla mensola tira (una tiratina, poi lo strattone), il tasto si stacca e cade, Dot sobbalza, gli dà una zampata, il tasto torna
+     su da solo. Lo strappo non cambia niente (né suono né tema): lo decide filo.js. Senza appoggio sotto (il computer: sotto i fili non c'è
+     la mensola) arriva in fondo al filo, penzola, si dà lo slancio, lo strappa e cade sul riquadro di sotto.
+     Appeso, l'origine del gatto sta GRIP unità sotto la presa (la posa «b-rope»: le zampe una sopra l'altra attorno al filo, la testa
+     inclinata sotto, il corpo che pende), e il gatto ruota attorno alla presa con una molla che insegue l'angolo del filo (l'inerzia). */
+  var GRIP = 5, FOOT = 28;                                          /* unità: dalla presa all'origine; dall'origine alla pianta delle zampe dietro */
+  var RP = { wired: false, next: 45, lastId: null, hold: null, watch: null, look: null, top: -1e9, batAt: 0 };
+  var ROPE = { ropeleap: 1, rope: 1 }, ROPEISH = { ropeaim: 1, ropeleap: 1, rope: 1, ropeland: 1, ropebat: 1, ropeswat: 1 };
+  function FL() { var F = O.filo === true ? window.FILO : O.filo; return F && typeof F.hang === "function" && typeof F.rope === "function" ? F : null; }
+  /* la mensola sotto un filo, per FILO: il bordo alto dell'hero (filo.js lo usa come terra), se il filo ci sta sopra */
+  function ropeGround(x, y0) { var hero = B.home && B.home.el ? tileOf(B.home.el) : null; return hero && x > hero.l && x < hero.r && hero.t > y0 ? hero.t : Infinity; }
+  function ropeH() { return (GRIP + FOOT) * px(); }                    /* dalla presa alle zampe dietro, in px: il «h» del peso per FILO */
+  function ropeWire() {
+    var F = FL(); if (!F || RP.wired) return; RP.wired = true;
+    /* strappato: lascia il filo subito, dentro il passo di filo.js (se no per un fotogramma il suo peso tirerebbe il tasto caduto di lato) */
+    F.on("torn", function (e) { if (!B.on || cat.state !== "rope" || cat.d.id !== e.id) return; var d = cat.d; try { d.lp = (d.h && !d.h.free && d.h.pos()) || d.lp; } catch (x) {} ropeLet(d); d.torn = true;
+      /* lo strattone lo fa schizzare di lato: il tasto non cade dritto sulla testa del gatto (che sta proprio sotto) */
+      try { var r = F.rope(e.id), hero = B.home && B.home.el ? tileOf(B.home.el) : null, inw = hero && r.socket.x > (hero.l + hero.r) / 2 ? -1 : 1; F.bat(e.id, r.button.x, r.button.y, inw * 330, -80); } catch (x) {} });
+    /* il tasto tocca la mensola vicino a Dot: lo si tiene giù (ci gioca); torna su quando Dot lo lascia (al più 7 s dopo) */
+    F.on("landed", function (e) { if (!B.on || reduced || !(cat.state === "ropeland" || cat.state === "ropebat") || cat.d.id !== e.id || Math.abs(e.x - cat.x) > 150) return; try { F.holdDown(e.id, true); RP.hold = { id: e.id, until: now + 7 }; } catch (x) {} });
+    F.on("release", function (e) { if (B.on && !B.paused) ropeSwing(e.id); });
+  }
+  function ropeUnhold() { var F = FL(), h = RP.hold; RP.hold = null; if (F && h) { try { F.holdDown(h.id, false); } catch (e) {} } }
+  function ropeLet(d) { var h = d && d.h; if (h && typeof h.release === "function" && !h.free) { try { h.tug(0); h.release(0, 0); } catch (e) {} } }
+  /* il filo più vicino a (x, y), sotto il nodo e fermo: { id, s, d } (s: px dal nodo) o null */
+  function ropeNear(x, y, maxD) {
+    var F = FL(); if (!F) return null; var ids = F.ids(), best = null, i, j, r, a, b, ex, ey, L, u, qx, qy, dd, sg;
+    for (i = 0; i < ids.length; i++) { r = F.rope(ids[i]); if (!r || r.state !== "rest" || r.length < 20) continue; sg = r.length / (r.points.length - 1);
+      for (j = 0; j < r.points.length - 1; j++) { a = r.points[j]; b = r.points[j + 1]; ex = b.x - a.x; ey = b.y - a.y; L = ex * ex + ey * ey || 1e-6; u = clamp(((x - a.x) * ex + (y - a.y) * ey) / L, 0, 1);
+        qx = a.x + ex * u; qy = a.y + ey * u; if (qy < r.knot.y + 4) continue; dd = hyp(x - qx, y - qy);
+        if (dd <= maxD && (!best || dd < best.d)) best = { id: ids[i], s: (j + u) * sg, d: dd, len: r.length }; } }
+    return best;
+  }
+  /* appeso adesso al filo id, a s px dal nodo, con la velocità di chi arriva. Il disegno resta dov'era (lo scarto rientra con la molla) */
+  function ropeHang(id, s, vx, vy, why) {
+    var F = FL(); if (!F) return false; var h = null, r0 = F.rope(id), gy = r0 ? ropeGround(r0.end.x, r0.knot.y) : Infinity;
+    if (r0 && gy < Infinity) { var smax = gy - r0.knot.y - ropeH() - 2; if (smax < 3) return false; s = Math.min(s, smax); }   /* i piedi mai sotto la mensola: partono appena sopra (spinti su da sotto, il peso di filo.js rimbalzerebbe) */
+    try { h = F.hang(id, { s: s, vx: vx, vy: vy, mass: 42, h: ropeH(), w: 30 }); } catch (e) { h = null; }
+    if (!h) return false;
+    var p = h.pos(); if (!p) { try { h.release(0, 0); } catch (e) {} return false; }
+    clearHeld(); var k = px(), ox = cat.x - p.x, a0 = cat.rot || 0;
+    reanchor(below() - below("b-rope")); var ny = p.y + GRIP * k; cat.voff += (ny - cat.y) / k; cat.y = ny; cat.x = p.x + ox;
+    cat.plat = null; cat.gy = null; cat.piv = GRIP; lastIn = now;
+    set("rope", { id: id, h: h, why: why, ox: ox, a: a0, av: 0, face: "front", pose: "b-rope" });
+    return true;
+  }
+  /* lasciato andare (un tocco, un dito sul filo, la pagina che si copre): coi piedi sulla mensola si posa, se no cade */
+  function ropeOff(d, p) {
+    var k = px(), ground = !!(p && p.onGround); ropeLet(d);
+    if (ground) { var q = ropeFloor(cat.x); if (q) { reanchor(below() - below("land")); cat.voff += (q.y - cat.y) / k; cat.y = q.y; cat.plat = q; cat.gy = q.y; return set("ropeland", { id: d.id, face: "view", pose: "land" }); } }
+    reanchor(below() - below("air")); cat.rot = 0;
+    set("fall", { vy: Math.max(0, p ? p.vy : 0), vx: p ? p.vx * 0.3 : 0, face: "view", pose: "air" });
+  }
+  /* il bordo sotto i piedi del gatto appeso (anche oltre la fine del tratto, sulla curva dell'angolo: ci si sposta saltellando) */
+  function ropeFloor(x) { var i, q, best = null, bd = 1e9, dd; for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (q.y < cat.y - 4) continue; dd = (x < q.a ? q.a - x : x > q.b ? x - q.b : 0) + Math.abs(q.y - cat.y) * 0.2; if (dd < 46 && dd < bd) { bd = dd; best = q; } } return best; }
+  /* lo strappo: il tasto è via. Lascia il filo; coi piedi giù sobbalza sulla mensola, se no cade */
+  function ropeTorn(d, p) {
+    RP.lastId = d.id; RP.next = now + 180; RP.watch = { id: d.id, until: now + 4 };
+    var k = px(), ground = !!(p && p.onGround); ropeLet(d);
+    if (ground) { var q = ropeFloor(cat.x); if (q) { reanchor(below() - below("land")); cat.voff += (q.y - cat.y) / k; cat.y = q.y; cat.plat = q; cat.gy = q.y; return set("ropeland", { id: d.id, startle: true, face: "view", pose: "land" }); } }
+    reanchor(below() - below("air")); cat.rot = 0; moodSet("scared", 2.2);
+    /* sotto il filo c'è un riquadro, ma il gatto sta oltre la fine del suo bordo (l'angolo tondo): cadendo scivola un poco verso il bordo */
+    var i, q, best = null; for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (q.y > cat.y && cat.x > q.a - 70 && cat.x < q.b + 70 && !q.quiet && (!best || q.y < best.y)) best = q; }
+    var tx = best ? clamp(cat.x, best.a + 6, best.b - 6) : cat.x;
+    set("fall", { p: best, vy: Math.max(0, p ? p.vy : 0), vx: (p ? p.vx * 0.3 : 0) + (tx - cat.x) * 3, drift: !!best, face: "view", pose: "air" });
+  }
+  /* finito il gioco, sotto i tasti in alto non resta: torna sul tratto buono più vicino della mensola (saltando la scatola) e si lava */
+  function ropeAfter() {
+    var p = cat.plat, best = null, i, q, x, dd; if (!p) return think();
+    var wash = function () { set("groom", { dur: rr(2.4, 3.4), face: "view", pose: "groom" }); };
+    if (!p.quiet && !p.cov && !p.low) return wash();
+    for (i = 0; i < world.plats.length; i++) { q = world.plats[i]; if (q.el !== p.el || q.quiet || q.cov || q.low || q.b - q.a < 30) continue; x = clamp(cat.x, q.a + 16, q.b - 16); dd = Math.abs(x - cat.x); if (!best || dd < best.d) best = { q: q, x: x, d: dd }; }
+    if (!best) return think();
+    if (best.d < 30) return walkTo(best.x, wash, { gait: "walk", rope: 1 });
+    jumpTo(best.q, best.x, wash);
+  }
+  /* il gioco da solo (2f H, punto 1): sveglio e tranquillo sulla mensola, il filo fermo, in vista, al più una volta ogni 3 minuti,
+     mai due volte di fila sullo stesso filo. Dove stare: sotto il filo se il tratto ci arriva, se no in fondo al tratto, e di là un balzo */
+  function filoPlan(force) {
+    var F = FL(); if (!F || reduced || !O.strict || !cat.vis || !cat.plat || !atHome() || B.openT0 != null || drag || fake) return null;
+    if (!force && (now < RP.next || cat.mood)) return null;
+    var cl = doc.documentElement.classList; if (cl.contains("ni-on") || cl.contains("is-menu") || cl.contains("is-sz") || cl.contains("is-sheet") || cl.contains("filo-preso")) return null;
+    if (!catInView()) return null;
+    var p = cat.plat, t = p.tile, ids = F.ids(), i, r, k = px(), out = null;
+    for (i = 0; i < ids.length; i++) {
+      if (ids[i] === RP.lastId && ids.length > 1) continue;
+      r = F.rope(ids[i]); if (!r || r.state !== "rest" || r.length < (F.REST || 52) - 1) continue;
+      if (!(r.knot.y - 30 > view.sy + view.ti && r.end.y + 20 < view.sy + view.vh - view.bi)) continue;   /* il filo (col suo tasto) si vede */
+      var rx = r.end.x; if (rx < t.l + 12 || rx > t.r - 12) continue;   /* sotto il filo c'è la mensola */
+      var s = rr(8, 14), up = (p.y - (r.knot.y + s)) / k - (GRIP + FOOT);   /* quanto devono salire i piedi per arrivarci (unità) */
+      if (up > 40) continue;
+      var sx = rx >= p.a && rx <= p.b ? rx : rx > p.b ? p.b : p.a, dx = Math.abs(rx - sx);
+      if (dx > 150 * k / 1.5) continue;
+      out = { id: ids[i], s: s, x: sx, dx: dx }; break;
+    }
+    return out;
+  }
+  function filoGo(fp) {
+    RP.next = now + 40;                                                 /* se va storto, non riprova subito */
+    var aim = function () { cat.dir = FL().rope(fp.id).end.x >= cat.x ? 1 : -1; set("ropeaim", { id: fp.id, s: fp.s, face: "side", pose: "sit" }); };
+    if (Math.abs(fp.x - cat.x) < 4) return aim();
+    walkTo(fp.x, aim, { gait: Math.abs(fp.x - cat.x) > 90 ? "trot" : "walk", rope: 1 });
+  }
+  /* un dito ha tirato (o lasciato) un filo che ora dondola: Dot lo guarda; se la punta gli passa davanti, una zampata (mai mentre lo si tiene) */
+  function ropeSwing(id) {
+    var F = FL(); if (!F || reduced || !cat.vis || !cat.plat || drag || fake) return;
+    if (!(cat.state === "sit" || cat.state === "look" || cat.state === "pause" || cat.state === "loaf" || cat.state === "think")) return;
+    var r = F.rope(id); if (!r || r.state === "held" || r.state === "weighted") return;
+    var k = px(), dx = r.end.x - cat.x, ady = cat.y - r.end.y;
+    if (Math.abs(dx) < 260) RP.look = { id: id, until: now + 1.8 };
+    if (cat.state !== "loaf" && Math.abs(dx) > 12 * k / 1.5 && Math.abs(dx) < 64 * k / 1.5 && ady > 4 && ady < 72 * k / 1.5 && now > RP.batAt) { RP.batAt = now + 4; set("ropeswat", { id: id, side: dx > 0 ? 1 : -1, face: "view", pose: narrow() ? "ride" : "sit" }); }
+  }
+
+  Object.assign(STATES, {
+    ropeaim: function (dt, d) {                                        /* guarda il filo, il sedere ondeggia, si carica (220 ms) e parte */
+      var F = FL(), r = F ? F.rope(d.id) : null, st = cat.st, k = px(); if (!r || r.state !== "rest" || !cat.plat) return sitFor(rr(1.5, 2.5));
+      var g = F.pointAt(d.id, d.s); cat.att = { x: g.x, y: g.y }; rig.pupilT = 1.15; rig.over.ear = -0.08; cat.face = Math.abs(r.end.x - cat.x) < 8 ? "view" : "side"; rig.headMax = null;
+      if (st < 0.62) { rig.pose = "wiggle"; rig.tailSwish = 0.5; rig.tailRate = 9; var w = seg(st, 0.15, 0.3); rig.over.hy = rig.poses.wiggle.hy + 1.1 * Math.sin(st * 24) * w; rig.over.hp = 0.3; return; }
+      delete rig.over.hy; rig.pose = "b-coil"; rig.rate = 16; rig.over.hp = 0.36; rig.over.sqy = 0.95; rig.over.sqx = 1.03;
+      if (st > 0.62 + 0.22) set("ropeleap", { id: d.id, s: d.s, face: "front", pose: "b-rope" });
+    },
+    ropeleap: function (dt, d) {                                       /* il balzo: dalla mensola alla presa; in cima afferra il filo */
+      var F = FL(), r = F ? F.rope(d.id) : null, k = px();
+      if (!d.init) { d.init = 1; reanchor(below() - below("b-rope")); d.x0 = cat.x; d.y0 = cat.y; cat.plat = null;
+        var g0 = F.pointAt(d.id, d.s), ty = g0.y + GRIP * k; d.T = clamp(Math.sqrt(2 * Math.max(8, d.y0 - ty) / 2300) + Math.abs(g0.x - d.x0) / 900, 0.24, 0.5); }
+      if (!r || r.state !== "rest") { reanchor(below() - below("air")); return set("fall", { vy: 0, face: "view", pose: "air" }); }   /* un dito ha preso il filo: ricade */
+      var g = F.pointAt(d.id, d.s), u = sat(cat.st / d.T), tx = g.x, ty2 = g.y + GRIP * k;
+      cat.x = lerp(d.x0, tx, u); cat.y = d.y0 + (ty2 - d.y0) * (1 - (1 - u) * (1 - u)); cat.gy = null;   /* arriva in cima alla parabola: lì la velocità in su è zero */
+      rig.grounded = false; rig.poseAs = "hang"; rig.edge = "hang"; rig.rate = 17; cat.face = "front";
+      rig.over.sqy = 1 + 0.08 * (1 - u); rig.over.sqx = 1 - 0.05 * (1 - u); rig.over.f0y = rig.poses["b-rope"].f0y + 3 * (1 - u); rig.over.f1y = rig.poses["b-rope"].f1y + 4.5 * (1 - u); rig.over.eye = 1.2; rig.pupilT = 1.1;
+      cat.att = { x: g.x, y: g.y - 20 };
+      if (u >= 1) { var vx = (tx - d.x0) / d.T; if (!ropeHang(d.id, d.s, clamp(vx * 0.3, -140, 140), 0, "leap")) { reanchor(below() - below("air")); set("fall", { vy: 0, face: "view", pose: "air" }); } }
+    },
+    rope: function (dt, d) {                                           /* appeso al filo */
+      var F = FL(), h = d.h, p = h && !h.free ? h.pos() : null, k = px(), st = cat.st, P0;
+      if (d.torn) return ropeTorn(d, p || d.lp);
+      if (!F || !p) return ropeOff(d, d.lp);                             /* un dito ha preso il filo (slip): Dot lo lascia subito */
+      d.lp = p; var r = F.rope(d.id); RP.top = r ? Math.max(r.socket.y + 22, p.y - 5) : -1e9;   /* la maniglia comincia alla presa: il filo sopra le zampe resta del dito (lo prende, e Dot scivola giù) */
+      if (p.onGround && d.feet == null) { d.feet = st; h.slide(0); }   /* i piedi toccano: smette di scivolare e si pianta */
+      var pn = d.feet != null ? "b-ropepull" : p.atEnd && (d.endT || 0) > 0.15 ? "b-ropelong" : "b-rope"; rig.pose = pn; P0 = rig.poses[pn];
+      rig.grounded = false; rig.poseAs = "hang"; rig.edge = "hang"; cat.face = "front"; cat.gz = false;
+      /* l'inerzia: il corpo insegue l'angolo del filo con una molla (va un poco oltre e torna); il gatto gira un filo su se stesso */
+      /* l'angolo che conta è quello del filo teso dal nodo alla presa (lento, il filo ammucchiato non gira il gatto); coi piedi giù sta dritto */
+      var kn = r ? r.knot : { x: p.x, y: p.y - 10 }, kd = hyp(p.x - kn.x, p.y - kn.y), ta = kd > 0.82 * p.s && kd > 4 ? Math.atan2(p.x - kn.x, p.y - kn.y) : 0;
+      ta = d.feet != null ? clamp(ta, -0.12, 0.12) : clamp(ta, -1.2, 1.2); var w = d.feet != null ? 14 : 10.5, zz = d.feet != null ? 0.6 : 0.32;
+      d.av += (w * w * (ta - d.a) - 2 * zz * w * d.av) * dt; d.a = clamp(d.a + d.av * dt, -1.4, 1.4);
+      d.ox *= Math.exp(-dt * 14);
+      cat.ownRot = true; cat.piv = GRIP; cat.rot = d.a; cat.x = p.x + d.ox; cat.y = p.y + GRIP * k;
+      var sw = clamp(d.av, -4, 4); rig.yawT = Y.front + clamp(-sw * 0.09, -0.32, 0.32);
+      if (d.feet == null) { rig.over.f2y = P0.f2y + clamp(sw * 1.1, -3, 3); rig.over.f3y = P0.f3y - clamp(sw * 1.1, -3, 3); rig.over.ho = P0.ho + Math.min(2.5, Math.abs(sw) * 0.8); }   /* le zampe dietro scalciano col dondolio */
+      else { delete rig.over.f2y; delete rig.over.f3y; delete rig.over.ho; }
+      rig.over.te = P0.te + clamp(-sw * 0.12, -0.4, 0.4); rig.tailSwish = 0.2 + Math.min(0.5, Math.abs(sw) * 0.15); rig.tailRate = 3;
+      var fl = r ? r.socket.y + 40 : p.y; cat.gy = p.onGround ? p.y + ropeH() : null; if (cat.gy != null && cat.gy < fl) cat.gy = null;
+      if (st < 0.3) { var cu = bell(seg(st, 0, 0.3)); rig.over.sqy = 1 + 0.07 * cu; rig.over.sqx = 1 - 0.05 * cu; rig.over.ear = 0.2 + 0.4 * cu; rig.over.eye = 1.25; rig.pupilDotT = 0.6 * (1 - seg(st, 0.15, 0.3)); rig.rate = 16; }   /* la presa: le braccia prendono il peso */
+      else { delete rig.over.sqy; delete rig.over.sqx; rig.rate = 13; }
+      if (!d.slid && st > 0.5 && d.feet == null) { d.slid = 1; h.slide(d.why === "leap" ? 90 : 80); }   /* poi giù, zampa dopo zampa */
+      var ds = d.ls == null ? 0 : (p.s - d.ls) / Math.max(dt, 1e-3); d.ls = p.s; d.slv = lerp(d.slv || 0, ds, 1 - Math.exp(-dt * 10));
+
+      rig.look.ty = 0; rig.look.tp = 0;
+      if (d.feet != null) {                                            /* i piedi sulla mensola: si pianta e tira. Una tiratina, poi lo strattone */
+        var u = st - d.feet; rig.rate = 14; rig.gazeT[0].y = rig.gazeT[1].y = 0.7; rig.gazeT[0].x = rig.gazeT[1].x = 0; rig.pupilT = 1;
+        if (u < 0.32) { h.tug(0); rig.over.ear = 0.1; }
+        else if (u < 0.52) { h.tug(0.75); rig.over.sqy = 0.96; rig.over.sqx = 1.03; rig.over.ear = 0.35; rig.over.lid = 0.15; }
+        else if (u < 0.74) { h.tug(0); rig.over.sqy = 1.02; rig.over.ear = 0.15; }
+        else if (u < 0.86) { h.tug(0); rig.over.sqy = 1.05; rig.over.sqx = 0.97; rig.over.ear = -0.05; rig.over.eye = 1.2; }   /* si raccoglie in su: l'anticipo */
+        else if (u < 1.9) { h.tug(1.6); rig.over.sqy = 0.92; rig.over.sqx = 1.06; rig.over.ear = 0.6; rig.over.lid = 0.3; rig.over.brow = 0.3; rig.over.hp = 0.1; rig.rate = 20; }   /* lo strattone */
+        else { h.tug(0); return ropeOff(d, p); }                         /* non si stacca (non dovrebbe succedere): lascia e si posa */
+        return;
+      }
+      if (d.slv > 12) {                                                /* scende: le zampe vanno una sotto l'altra, gli occhi giù */
+        d.ph2 = (d.ph2 || 0) + dt * 10; var sn = Math.sin(d.ph2); rig.over.f0y = P0.f0y - 1.2 + 2.4 * sn; rig.over.f1y = P0.f1y + 1.2 - 2.4 * sn;
+        rig.gazeT[0].y = rig.gazeT[1].y = -0.75; rig.gazeT[0].x = rig.gazeT[1].x = 0.05; rig.pupilT = 0.9; rig.over.ear = Math.max(rig.over.ear || 0, 0.3);
+      } else if (st > 0.3) { delete rig.over.f0y; delete rig.over.f1y; rig.gazeT[0].y = rig.gazeT[1].y = 0.15 * Math.sin(st * 1.3); rig.gazeT[0].x = rig.gazeT[1].x = 0.3 * Math.sin(st * 0.9); }
+      if (p.atEnd) {                                                   /* in fondo al filo, senza appoggio: penzola, guarda giù, poi si dà lo slancio e strappa */
+        d.endT = (d.endT || 0) + dt; var e = d.endT;
+        if (e < 0.9) { rig.gazeT[0].y = rig.gazeT[1].y = -0.85; rig.pupilDotT = 0.4; h.tug(0); }
+        else if (e < 1.12) { rig.over.sqy = 1.06; rig.over.sqx = 0.96; rig.over.f2y = P0.f2y + 4; rig.over.f3y = P0.f3y + 4; rig.over.ear = 0; h.tug(0); }   /* si tira su, le zampe dietro raccolte */
+        else if (e < 2.3) { h.tug(0.62); rig.over.sqy = 0.92; rig.over.sqx = 1.05; rig.over.f2y = P0.f2y - 2; rig.over.f3y = P0.f3y - 2; rig.over.ear = 0.55; rig.over.lid = 0.25; }   /* lo strattone */
+        else { h.tug(0); return ropeOff(d, p); }
+      }
+    },
+    ropeland: function (dt, d) {                                       /* di nuovo sulla mensola: un saltello per rientrare nel tratto; dopo lo strappo, uno spavento */
+      var st = cat.st, k = px(), q = cat.plat, F = FL(), r = F ? F.rope(d.id) : null, b = r && r.button; if (!q) return think();
+      if (d.x0 == null) { d.x0 = cat.x;
+        /* il tasto cade proprio sopra di lui e poi rotola verso il centro della mensola: il balzo va dall'altra parte se c'è posto, se no più in là verso il centro */
+        var hero = q.tile, inw = r && r.socket.x > (hero.l + hero.r) / 2 ? -1 : 1, lx = (r ? r.socket.x : cat.x) + inw * 18, room = 34 * k / 1.5;
+        var out = clamp(lx - inw * room, q.a + 4, q.b - 4), inn = clamp(lx + inw * 2.4 * room, q.a + 4, q.b - 4);
+        d.x1 = !d.startle ? clamp(cat.x, q.a + 4, q.b - 4) : Math.abs(out - lx) >= room * 0.8 ? out : inn; d.H = d.startle ? 15 : 5; d.T0 = d.startle ? 0.07 : 0; d.T1 = d.startle ? 0.42 : 0.26; }
+      var u = seg(st, d.T0, d.T1); cat.ownLift = true; cat.lift = 4 * d.H * u * (1 - u) * k / 1.5; cat.x = lerp(d.x0, d.x1, eIO(u)); rig.grounded = u <= 0 || u >= 1;
+      if (b) { cat.att = { x: b.x, y: b.y }; cat.dir = b.x < cat.x ? -1 : 1; }
+      if (d.startle) {                                                 /* le orecchie indietro 300 ms, pupille a puntino, il pelo gonfio; si gira verso il tasto */
+        rig.pose = st < d.T0 ? "land" : u < 0.9 ? "startle" : "crouch"; rig.rate = 18; cat.face = st > 0.2 ? "side" : "view";
+        rig.over.ear = st < 0.3 ? 0.8 : 0.2; rig.over.eye = 1.3; rig.pupilDotT = st < 0.9 ? 1 : 0; if (st < d.T0) { rig.over.sqy = 0.88; rig.over.sqx = 1.08; } else { delete rig.over.sqy; delete rig.over.sqx; }
+        if (st > 0.8) { if (b && r.state !== "returning" && r.state !== "rest" && RP.hold && RP.hold.id === d.id) return set("ropebat", { id: d.id, face: "side", pose: "wiggle" }); return set("ropewatch", { id: d.id, face: "view", pose: "sit" }); }
+      } else { rig.pose = u < 1 ? "land" : "sit"; if (st > 0.55) { if (!q.quiet && !q.cov) sitFor(rr(1.5, 2.5)); else ropeAfter(); } }
+    },
+    ropebat: function (dt, d) {                                        /* il tasto caduto: il sedere ondeggia, una zampata (o due), poi lo lascia tornare */
+      var F = FL(), r = F ? F.rope(d.id) : null, b = r && r.button, st = cat.st, k = px(), q = cat.plat;
+      if (!r || !q || !b || r.state === "returning" || r.state === "rest") { ropeUnhold(); return set("ropewatch", { id: d.id, face: "view", pose: "sit" }); }
+      var side = b.x < cat.x ? -1 : 1, reach = 20 * k / 1.5 + 17; cat.att = { x: b.x, y: b.y }; rig.pupilT = 1.15; cat.face = "side"; cat.dir = side;
+      if (d.ph == null) { d.ph = 0; d.n = 0; d.max = rnd() < 0.5 ? 2 : 1; }
+      if (d.ph === 0.5) {                                              /* troppo vicino (il tasto gli è rotolato addosso): un saltello indietro, sempre guardandolo */
+        var ub = seg(st - d.t, 0, 0.26); cat.ownLift = true; cat.lift = 4 * 6 * ub * (1 - ub) * k / 1.5; cat.x = lerp(d.bx0, d.bx1, eIO(ub)); rig.pose = ub < 1 ? "crouch" : "wiggle"; rig.grounded = ub <= 0 || ub >= 1;
+        if (ub >= 1) { d.ph = 1; d.t = st; } return; }
+      if (d.ph === 0) { var gap = Math.abs(b.x - cat.x), tx = clamp(b.x - side * reach, q.a - 8, q.b + 8);
+        if (gap < reach - 8) { var bx = clamp(b.x - side * reach, q.a - 26, q.b + 8); if (Math.abs(bx - cat.x) > 4) { d.ph = 0.5; d.t = st; d.bx0 = cat.x; d.bx1 = bx; return; } }
+        if (gap > reach + 10 && Math.abs(tx - cat.x) > 6 && Math.abs(tx - cat.x) < 120) return walkTo(tx, function () { set("ropebat", { id: d.id, ph: 1, t: 0, n: 0, max: d.max, face: "side", pose: "wiggle" }); }, { speed: 66, rope: 1 });
+        d.ph = gap > reach + 30 ? 3 : 1; d.t = st; }
+      if (d.ph === 1) { rig.pose = "wiggle"; rig.tailSwish = 0.5; rig.tailRate = 9; var w = seg(st - d.t, 0.1, 0.25); rig.over.hy = rig.poses.wiggle.hy + 1.1 * Math.sin(st * 24) * w; if (st - d.t > (d.n ? 0.28 : 0.45)) { d.ph = 2; d.t = st; d.hit = 0; } return; }
+      if (d.ph === 2) {                                                /* la zampata: su, giù sul tasto, indietro */
+        var u = st - d.t, W0 = rig.poses.wiggle; delete rig.over.hy; rig.pose = "wiggle"; rig.rate = 22;
+        if (u < 0.09) { rig.over.f0x = W0.f0x + 1; rig.over.f0y = 9; }
+        else if (u < 0.2) { rig.over.f0x = W0.f0x + 6; rig.over.f0y = 1.5; if (!d.hit) { d.hit = 1; try { F.bat(d.id, b.x, b.y, side * rr(230, 300), -rr(40, 90)); } catch (e) {} life.earKickAt = now; } }
+        else { delete rig.over.f0x; delete rig.over.f0y; rig.rate = 14; }
+        if (u > 0.45) { d.n++; if (d.n < d.max) { d.ph = 1; d.t = st; } else { d.ph = 3; d.t = st; } }
+        return;
+      }
+      if (d.ph === 3) { rig.pose = "crouch"; if (st - d.t > 0.5) { ropeUnhold(); try { F.goHome(d.id); } catch (e) {} set("ropewatch", { id: d.id, face: "view", pose: "sit" }); } }
+    },
+    ropewatch: function (dt, d) {                                      /* guarda il tasto che torna al suo posto; poi si lava, o se ne va */
+      var F = FL(), r = F ? F.rope(d.id) : null, st = cat.st; rig.pose = narrow() ? "ride" : "sit";
+      if (r) { cat.att = { x: r.button.x, y: r.button.y }; rig.pupilT = 1; } if (r && r.state === "returning" && !d.up) { d.up = 1; life.earKickAt = now; }
+      if (!r || r.state === "rest" || st > 4.5) { if (st > 0.35 || !r) ropeAfter(); }
+    },
+    ropeswat: function (dt, d) {                                       /* la punta del filo che dondola gli passa davanti: una zampata */
+      var F = FL(), r = F ? F.rope(d.id) : null, st = cat.st, base = narrow() ? "ride" : "sit"; if (!r) return sitFor(rr(1.5, 2.5));
+      cat.att = { x: r.end.x, y: r.end.y }; rig.pupilT = 1.15; rig.pose = base; cat.face = "view";
+      if (st < 0.22) { rig.over.ear = -0.06; rig.over.eye = 1.15; rig.over.sqy = 0.97; return; }
+      if (st < 0.36) { rig.pose = "bat"; rig.rate = 22; rig.over.fo0 = d.side < 0 ? 3 : -3; delete rig.over.sqy;
+        if (!d.hit && st > 0.3) { d.hit = 1; if (r.state !== "held") { try { F.bat(d.id, r.end.x, r.end.y, d.side * 260, -60); } catch (e) {} } } return; }
+      delete rig.over.fo0; rig.rate = 13; if (st > 1.2) sitFor(rr(1.6, 2.6));
+    }
+  });
+  /* a ogni passo: i fili si guardano (uno che dondola, il tasto che torna); il tasto tenuto giù non resta giù per sempre */
+  function ropeStep() {
+    if (!RP.wired) ropeWire(); var F = FL(); if (!F) return;
+    if (RP.hold && now > RP.hold.until) ropeUnhold();
+    var s = cat.state, calm = s === "sit" || s === "look" || s === "pause" || s === "loaf" || s === "land" || s === "shake";
+    if (!calm || !cat.vis) return;
+    var w = RP.look && now < RP.look.until ? RP.look : RP.watch && now < RP.watch.until ? RP.watch : null, r = w ? F.rope(w.id) : null;
+    if (!r) return; var q = w === RP.look ? r.end : r.button; if (Math.abs(q.x - cat.x) > 420) return;
+    cat.att = { x: q.x, y: q.y }; rig.pupilT = Math.max(rig.pupilT, 1);
+  }
+  /* chi tiene Dot e lo porta vicino a un filo: allunga le zampe verso il filo, lo guarda (sa che può afferrarlo) */
+  function ropeReach() {
+    if (!FL() || reduced || !lastF || (fake && fake.ghost)) return; var n = ropeNear(cat.x, cat.y + 6 * px(), 44); if (!n) return;
+    var r = FL().rope(n.id), g = FL().pointAt(n.id, n.s); cat.att = { x: g.x, y: g.y }; cat.gz = true; rig.pupilT = 1.1; rig.over.eye = 1.1; rig.over.lid = 0; rig.over.ear = -0.05;
+    var w = 1 - sat((n.d - 14) / 30); rig.over.f0y = rig.poses.held.f0y + 12 * w; rig.over.f1y = rig.poses.held.f1y + 10 * w; if (r) RP.near = n.id;
+  }
+  /* lasciato vicino al filo (entro 28 px, sotto il nodo): ci si aggrappa invece di cadere */
+  function ropeCatch(vx, vy) {
+    if (reduced || !FL() || (fake && fake.ghost) || hyp(vx, vy) > 1100) return false;
+    var f = lastF, pts = [{ x: cat.x, y: cat.y + 4 * px() }], best = null, i, n;
+    if (f) { pts.push(drawnPt(f.body.chest.x, f.body.chest.y)); pts.push(drawnPt(f.head.x, f.head.y)); }
+    for (i = 0; i < pts.length; i++) { n = ropeNear(pts[i].x, pts[i].y, 28); if (n && (!best || n.d < best.d)) best = n; }
+    if (!best) return false;
+    return ropeHang(best.id, clamp(best.s, 6, best.len - 4), clamp(vx * 0.35, -320, 320), clamp(vy * 0.25, -200, 260), "drop");
   }
 
   /* ------------------------------------------------------------------ il disegno */
@@ -2212,6 +2491,7 @@
       else if (bw && bw.strict) env.clipY = (Oy - bw.y) / k;
       else if (cat.clipAt != null) env.clipY = (Oy - cat.clipAt) / k;
       else if (rd) env.clipY = (Oy - (world.dock.y + 1.5)) / k;       /* sulla pillola: niente sotto la cima (coda, zampe), così nulla copre i filtri */
+      else if (O.strict && cat.plat && cat.plat.tile && cat.plat.tile.mode === "perch" && onEdge() && !cat.lift && cat.state !== "dive") env.clipY = (Oy - (cat.plat.y + 2)) / k;   /* sul logo 3x3 del fondo: niente sotto la fila di tasti (le zampe, la coda), mai sulle lettere i, m, a */
       env.pawsOnEdge = cat.paws;
       c.save(); if (cat.plat && cat.plat.fixed && !B.raw) clipOutNo(c, k, jx, Oy);   /* sul dock, l'ultima guardia: niente sopra il Corano o il riquadro quiet che passano (mentre si abbassa) */
       if (cat.clipTop != null && cat.clipAt != null && !B.raw) { var yl = (Oy - cat.clipAt) / k, yh = (Oy - cat.clipTop) / k, sl = bw ? (bw.l - cat.x - jx) / k : -500, sr = bw ? (bw.r - cat.x - jx) / k : 500; c.beginPath(); c.rect(sl, yl, sr - sl, yh - yl); c.clip(); }   /* dentro la scatola: si vede solo la fessura buia (larga quanto la scatola) */
@@ -2242,14 +2522,15 @@
     var gox = flayer ? view.sx : 0, goy = flayer ? view.sy : 0, gh = 76;
     if (free) { var gxp, gyp; if (drag && drag.moved) { gxp = drag.x; gyp = drag.y; } else { var b = f.body, mx = (b.hips.x + b.chest.x) / 2 * 0.6 + f.head.x * 0.4, my = (b.hips.y + b.chest.y) / 2 * 0.6 + f.head.y * 0.4; gxp = cat.x + mx * k; gyp = Oy - my * k; }
       if (dockOn() && !(drag && drag.moved)) { var dk = world.dock.tile, gt = gyp - 38; if (gxp + 38 > dk.l && gxp - 38 < dk.r && gt + 76 > dk.t) gh = Math.floor(dk.t - 1 - gt); }
+      var gt0 = gyp - 38; if (ROPE[cs] && !(drag && drag.moved) && gt0 < RP.top) { gh = Math.floor(gt0 + gh - RP.top); gt0 = RP.top; }   /* appeso: la maniglia comincia sotto i tasti in alto (un tocco lì va al tasto, non al gatto) */
       if (gh < 30) free = false;
-      else if (O.strict && !(drag && drag.moved)) { var j, kn, gx0 = gxp - 34, gx1 = gxp + 34, gy0 = gyp - 38, gy1 = gyp - 38 + gh; for (j = 0; j < world.keep.length; j++) { kn = world.keep[j]; if (kn.c && gx1 > kn.l && gx0 < kn.r && gy1 > kn.t && gy0 < kn.b) { free = false; break; } } }   /* sopra un comando la maniglia non c'è: il tocco arriva al comando */
-      if (free) { grab.style.transform = "translate3d(" + (gxp - 38 - gox).toFixed(1) + "px," + (gyp - 38 - goy).toFixed(1) + "px,0)"; if (grab.style.display === "none") grab.style.display = "block";
+      else if (O.strict && !(drag && drag.moved) && !ROPE[cs]) { var j, kn, gx0 = gxp - 34, gx1 = gxp + 34, gy0 = gyp - 38, gy1 = gyp - 38 + gh; for (j = 0; j < world.keep.length; j++) { kn = world.keep[j]; if (kn.c && gx1 > kn.l && gx0 < kn.r && gy1 > kn.t && gy0 < kn.b) { free = false; break; } } }   /* sopra un comando la maniglia non c'è: il tocco arriva al comando */
+      if (free) { grab.style.transform = "translate3d(" + (gxp - 38 - gox).toFixed(1) + "px," + (gt0 - goy).toFixed(1) + "px,0)"; if (grab.style.display === "none") grab.style.display = "block";
         if (gh !== B.grabH) { B.grabH = gh; grab.style.height = gh + "px"; } } }
     if (!free && grab.style.display !== "none" && !(drag && drag.moved)) grab.style.display = "none";
     if (SG.fing || SG.rings.length) sgDraw();                           /* il dito fantasma e gli anelli sul vetro, sopra il gatto */
     if (bubble) { var ax = cat.x + f.head.x * k, ay = Oy - (f.head.y + f.head.ry + (rig.fezOn ? 9 : 3)) * k; FUM.ox = ox0; FUM.oy = oy0; FUM.hy = Oy - (f.head.y + f.head.ry * 0.3) * k - oy0; FUM.hr = f.head.rx * k;
-      bubble.place(ax - ox0, ay - oy0, cat.y + 6 - oy0, view.sx - ox0, view.sy + view.ti - oy0, view.vw, on && cat.state !== "held" && cat.state !== "fly", FUM); }
+      bubble.place(ax - ox0, ay - oy0, cat.y + 6 - oy0, view.sx - ox0, view.sy + view.ti - oy0, view.vw, on && cat.state !== "held" && cat.state !== "fly" && !ROPEISH[cat.state], FUM); }
   }
 
   /* ------------------------------------------------------------------ il ciclo */
@@ -2280,7 +2561,7 @@
   function onMove(e) {
     if (!drag || e.pointerId !== drag.id) return; drag.x = e.pageX; drag.y = e.pageY; lastIn = now;
     drag.hist.push({ x: e.pageX, y: e.pageY, rt: perf() }); if (drag.hist.length > 10) drag.hist.shift();
-    if (!drag.moved && hyp(e.pageX - drag.x0, e.pageY - drag.y0) > 8 && !reduced) { drag.moved = true; if (canGrab()) { pickUp(); sgDragged(); grabbing(true); } }   /* trascinato davvero: il telefono lo ricorda (il dito fantasma non serve più) */
+    if (!drag.moved && hyp(e.pageX - drag.x0, e.pageY - drag.y0) > 8 && !reduced) { drag.moved = true; if (canGrab()) { var wr = !!ROPE[cat.state]; pickUp(); sgDragged(); grabbing(true); if (wr) { drag.ox = cat.x - drag.x; drag.oy = cat.y - drag.y; } } }   /* dal filo: la presa resta dov'era e scivola piano sotto il dito */   /* trascinato davvero: il telefono lo ricorda (il dito fantasma non serve più) */
   }
   function onUp(e) {
     if (!drag || (e && e.pointerId !== drag.id)) return;               /* si alza un altro dito: il primo tiene ancora il gatto */
@@ -2423,7 +2704,7 @@
   }
   function lidTo(v, dur) { if (!stageOn) return; B.lidA = { a: B.lidV == null ? 1 : B.lidV, b: v, t0: now, dur: dur || 0.25 }; }
   DOT.stop = function () {
-    if (!B.on) return; B.on = false; B.paused = false; cancelAnimationFrame(raf); clearInterval(stillI); sound("purr", false);
+    if (!B.on) return; if (ROPE[cat.state]) ropeLet(cat.d); ropeUnhold(); B.on = false; B.paused = false; cancelAnimationFrame(raf); clearInterval(stillI); sound("purr", false);
     window.removeEventListener("pointermove", onPtr); window.removeEventListener("pointerdown", onPtrDown); window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onResize); doc.removeEventListener("visibilitychange", onVis);
     window.removeEventListener("pointerup", onPtrUp); window.removeEventListener("pointercancel", onPtrUp); window.removeEventListener("mouseout", onPtrOut); window.removeEventListener("keydown", onKeyAny); doc.removeEventListener("input", onKeyAny);
     sgClear(); SG.on = false; drag = null; grabbing(false); if (fake && fake.ghost) fake = null;
@@ -2461,7 +2742,9 @@
   }
   /* congela tutto mentre un foglio copre la pagina: nessun fotogramma, nessun suono, nessuna nuvoletta, nessun tocco */
   DOT.pause = function () {
-    if (!B.on || B.paused) return; B.paused = true; cancelAnimationFrame(raf); raf = 0; clearInterval(stillI); stillI = 0; sound("purr", false);
+    if (!B.on || B.paused) return;
+    if (ROPEISH[cat.state]) { if (ROPE[cat.state]) ropeOff(cat.d, cat.d.lp); else sitFor(rr(1.5, 2.5)); } ropeUnhold();   /* un foglio copre la pagina: il filo si lascia */
+    B.paused = true; cancelAnimationFrame(raf); raf = 0; clearInterval(stillI); stillI = 0; sound("purr", false);
     if (drag) { try { grab.releasePointerCapture(drag.id); } catch (e) {} drag = null; } grabbing(false);
     if (SG.g || SG.fing || SG.rings.length) sgClear();                 /* un foglio si apre: il dito fantasma lascia stare (il gatto torna seduto dov'era) */
     if (grab) grab.style.visibility = "hidden"; if (bubble && bubble.el) bubble.el.style.visibility = "hidden";
@@ -2519,7 +2802,14 @@
     hintGo: function () { if (SG.g || !SG.on) return false; return ghostStart(); }, hintCan: function () { return ghostCan(); },
     hintKnock: function () { if (!SG.on || SG.g) return false; SG.knocks++; SG.knockAt = now; SG.ks = true; set("knock", { face: "front", pose: narrow() ? "ride" : "sit" }); return true; },
     hintReset: function () { [SGK.sess, SGK.tocco, SGK.bussa].forEach(function (k) { try { sessionStorage.removeItem(k); } catch (e) {} }); [SGK.preso, SGK.visti].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} }); },
-    hintAt: function (s) { SG.ghostOk = SG.on; SG.ghostAt = now + (s || 0); SG.chk = 0; }
+    hintAt: function (s) { SG.ghostOk = SG.on; SG.ghostAt = now + (s || 0); SG.chk = 0; },
+    /* il filo di gomitolo: filo(id) il gioco da solo adesso (se si può: true); filoPlan() dove andrebbe; hangRope(id, s, vx, vy) appeso
+       adesso (come lasciato lì da chi guarda); rope() lo stato del gioco; ropeNext(s) il prossimo gioco da solo fra s secondi */
+    filo: function (id) { var p = filoPlan(true); if (!p) return false; if (id && p.id !== id) { RP.lastId = p.id; p = filoPlan(true); if (!p || p.id !== id) return false; } filoGo(p); return true; },
+    filoPlan: function () { return filoPlan(true); },
+    hangRope: function (id, s, vx, vy) { return ropeHang(id, s || 12, vx || 0, vy || 0, "drop"); },
+    rope: function () { var d = cat.d || {}, p = cat.state === "rope" && d.h && !d.h.free ? d.h.pos() : null; return { state: cat.state, id: d.id || null, s: p ? p.s : null, onGround: p ? p.onGround : null, rot: cat.rot, next: RP.next, lastId: RP.lastId, hold: RP.hold ? RP.hold.id : null, top: RP.top, now: now }; },
+    ropeNext: function (s) { RP.next = now + (s || 0); }
   };
   /* tutto c'è? (l'intro e la casa lo leggono: senza Dot niente scenetta, niente passaggio verso la scatola) */
   DOT.ready = !!(DOT.makeRig && DOT.fx && DOT.looks && DOT.looks.manifesto && DOT.stage);

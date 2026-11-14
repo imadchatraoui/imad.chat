@@ -200,6 +200,7 @@
          logo 3x3 del fondo (data-dot="perch": solo la sua fila di tasti in alto) */
       DOT.start({ tiles: ".testa > .tile, .grid > .tile, .foot [data-dot=\"perch\"]", home: $("#hero"), homeX: HOME_X, parent: clip, look: look, firstVisit: first, keysFormed: !!(first && keysFormed), dark: I.isDark(), bottomInset: bottomInset,
         keep: KEEP, strict: true, dock: dock, fixedParent: fisso,
+        filo: true,   /* i fili di gomitolo sotto il tema e i suoni (filo.js, window.FILO): Dot ci si appende e strappa il tasto (CASA.md 2f H) */
         hint: Q.get("suggerimento") !== "no" });   /* il suggerimento che Dot si può toccare (CASA.md 2c C): il dito fantasma, bussa, si accorge del dito */
     } catch (e) { if (window.console) console.error(e); return; }
     seguiPagina();
