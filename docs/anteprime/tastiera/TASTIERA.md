@@ -72,7 +72,7 @@ Units are centimetres; x right, y up, z toward the viewer. On a 390 px phone the
 | `contatto` | 0, 1.2, 8.5 | 34.5 | 34 | 0.60 | 16.0 s: the same, shifted down 15% for the title |
 | `bottone` | 16.3, 3.1, 6.6 | 11 | 12 | 0.60 | from 20.8 s |
 
-Between two framings every number is eased (`eIO`). On a screen wider than 1.15 : 1 the contact framing also shifts right by 9% and the title stands on the left.
+Between two framings every number is eased (`eIO`). On a screen wider than 1.15 : 1 the contact framing also shifts left by 7% (the box and Dot are on that side) and the title stands on the right.
 
 ## 5. The twelve beats (look 1)
 
