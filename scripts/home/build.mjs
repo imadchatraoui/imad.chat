@@ -404,3 +404,25 @@ function metaPagina(h, url, job) {
   for (const f of fs.readdirSync(path.join(src, "media"))) fs.copyFileSync(path.join(src, "media", f), path.join(dst, "media", f));
   console.log("public/gatto pronta:", fs.readdirSync(dst).join(", "), "| media:", fs.readdirSync(path.join(dst, "media")).length, "file");
 }
+
+// ------------------------------------------------------------------ l'anteprima della tastiera 3D: /tastiera/index.html (non indicizzata)
+// Il prototipo di docs/anteprime/tastiera (three.js, a moduli) così com'è: la pagina, i suoi script e la cartella vendor.
+// Si apre col nome del file (/tastiera/index.html) perché i suoi indirizzi sono relativi; Dot lo prende da /gatto/ (../gatto/...).
+// Non è una pagina del sito: nessun link ci porta, non sta nella sitemap, e la pagina dice noindex.
+{
+  const src = path.join(root, "docs/anteprime/tastiera");
+  const dst = path.join(root, "public/tastiera");
+  fs.rmSync(dst, { recursive: true, force: true });
+  if (fs.existsSync(path.join(src, "index.html"))) {
+    const h = fs.readFileSync(path.join(src, "index.html"), "utf8");
+    if (!h.includes('<meta name="robots" content="noindex')) throw new Error("tastiera index.html: manca noindex");
+    for (const f of [...h.matchAll(/<script src="\.\.\/gatto\/([a-z-]+\.js)"><\/script>/g)].map((m) => m[1]))
+      if (!fs.existsSync(path.join(root, "public/gatto", f))) throw new Error("tastiera index.html: /gatto/" + f + " non è online");
+    fs.mkdirSync(path.join(dst, "vendor"), { recursive: true });
+    fs.writeFileSync(path.join(dst, "index.html"), h);
+    const js = fs.readdirSync(src).filter((f) => /\.js$/.test(f)).sort();
+    for (const f of js) fs.copyFileSync(path.join(src, f), path.join(dst, f));
+    for (const f of fs.readdirSync(path.join(src, "vendor")).sort()) fs.copyFileSync(path.join(src, "vendor", f), path.join(dst, "vendor", f));
+    console.log("public/tastiera pronta:", js.join(", "), "| vendor:", fs.readdirSync(path.join(dst, "vendor")).length, "file");
+  }
+}

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>imad.chat — la tastiera di Dot (anteprima)</title>
+<style>
+@font-face { font-family: "Manrope"; font-style: normal; font-weight: 400 800; font-display: swap; src: url("vendor/manrope-latin.woff2") format("woff2"); }
+@font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 400 700; font-display: swap; src: url("vendor/geist-mono-latin.woff2") format("woff2"); }
+:root { --cielo-alto: #05070f; --cielo-mezzo: #080b18; --cielo-basso: #0c1022; --cielo-bagliore: rgba(255,170,110,0); --cielo-gx: 80%;
+  --ink: #f4f5fa; --ink-2: rgba(240,242,252,.66); --ink-3: rgba(240,242,252,.54); --ink-meta: rgba(240,242,252,.78); --hair: rgba(255,255,255,.1);
+  --vetro-base: rgba(39,41,50,.9); --accent: #f3dfa8; --axis: 34px; --font-sans: "Manrope", system-ui, sans-serif; --font-mono: "Geist Mono", ui-monospace, monospace; }
+:root[data-tema="chiaro"] { --cielo-alto: #eef0f8; --cielo-mezzo: #e8e9f5; --cielo-basso: #ece6f0; --ink: #16171d; --ink-2: rgba(22,23,29,.66); --ink-3: rgba(22,23,29,.64); --ink-meta: rgba(22,23,29,.66); --hair: rgba(30,28,70,.09); --vetro-base: rgba(255,255,255,.62); }
+html, body { margin: 0; height: 100%; background: var(--cielo-alto); color: var(--ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overflow: hidden; }
+.cielo { position: fixed; top: 0; right: 0; bottom: 0; left: 0; inset: 0; background: linear-gradient(180deg, var(--cielo-alto) 0%, var(--cielo-mezzo) 56%, var(--cielo-basso) 100%); }
+.cielo::after { content: ""; position: absolute; top: -16%; right: -16%; bottom: -16%; left: -16%; background: radial-gradient(72% 44% at var(--cielo-gx) 104%, var(--cielo-bagliore) 0%, transparent 74%); }
+#c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+.voce { position: fixed; left: var(--axis); top: 22px; font: 500 10.5px/16px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-meta); white-space: nowrap; font-variant-numeric: tabular-nums; opacity: 0; }
+.voce i { font-style: normal; display: inline-block; width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: .6; margin: 0 7px 2.5px; }
+.voce b { font-weight: 500; color: var(--accent); } :root[data-tema="chiaro"] .voce b { color: #7f5810; }
+.contatto { position: fixed; left: 0; right: 0; top: 0; padding: 64px var(--axis) 0; opacity: 0; pointer-events: none; }
+.contatto h2 { margin: 0; font: 800 40px/1 var(--font-sans); letter-spacing: -.052em; }
+.contatto p { margin: 12px 0 0; font: 500 17px/24px var(--font-sans); letter-spacing: -.014em; color: var(--ink-3); max-width: 19em; }
+.campo { margin-top: 20px; display: flex; gap: 8px; align-items: center; height: 52px; padding: 0 6px 0 18px; border-radius: 26px; background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.012)), linear-gradient(var(--vetro-base), var(--vetro-base)); box-shadow: 0 0 0 .5px var(--hair), inset 0 1px 0 rgba(255,255,255,.1), 0 1px 2px rgba(0,1,8,.4), 0 12px 26px -12px rgba(0,1,8,.5); max-width: 420px; }
+:root[data-tema="chiaro"] .campo { background: linear-gradient(180deg, rgba(255,255,255,.3), transparent), linear-gradient(var(--vetro-base), var(--vetro-base)); box-shadow: 0 0 0 .5px rgba(46,40,100,.07), inset 0 1px 0 #fff, 0 1px 2px rgba(46,40,100,.14), 0 12px 26px -12px rgba(46,40,100,.17); }
+.campo span { flex: 1; font: 500 16px/24px var(--font-sans); letter-spacing: -.012em; white-space: pre; overflow: hidden; }
+.campo span.vuoto { color: var(--ink-3); }
+.campo span u { text-decoration: none; display: inline-block; width: 2px; height: 20px; margin-left: 1px; vertical-align: -4px; background: var(--accent); border-radius: 1px; } :root[data-tema="chiaro"] .campo span u { background: #b98a2e; }
+.campo em { font-style: normal; flex: none; height: 40px; padding: 0 18px; border-radius: 20px; display: grid; place-items: center; font: 700 15px/1 var(--font-sans); letter-spacing: -.016em; color: #2b2210; background: linear-gradient(180deg, #f8e7b9, #ebd08a); box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 18px -10px rgba(0,0,0,.6); }
+@media (min-width: 900px) { .contatto { padding: 84px 0 0 max(64px, calc(50vw - 560px)); width: 440px; } .contatto h2 { font-size: 56px; } .voce { left: max(64px, calc(50vw - 560px)); top: 30px; } }
+</style>
+</head>
+<body>
+<div class="cielo" id="cielo"></div>
+<canvas id="c"></canvas>
+<div class="voce" id="voce" aria-hidden="true"></div>
+<section class="contatto" id="contatto">
+  <h2>Contattami</h2>
+  <p id="riga">Scrivi qui. I tasti si muovono con te.</p>
+  <div class="campo" id="campoBox"><span id="campo" class="vuoto">Scrivi qualcosa</span><em>Invia</em></div>
+</section>
+<script>window.DOT = window.DOT || {};</script>
+<script src="../gatto/dot-rig.js"></script>
+<script src="../gatto/look-manifesto.js"></script>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+<script type="module" src="main.js"></script>
+</body>
+</html>
