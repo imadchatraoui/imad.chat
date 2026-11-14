@@ -2,7 +2,7 @@
 
 Scritta il 14 novembre 2026, per Imad. Il sito è online su **https://www.imad.chat** (anche `imad.chat` porta lì). Tutto è stato provato solo in un browser simulato: provalo sul tuo iPhone e dimmi cosa vedi.
 
-Un trucco per provare in fretta: aggiungi **`?shot=1`** all'indirizzo (`www.imad.chat/?shot=1`) e la home si apre senza intro, già pronta.
+Un trucco per provare in fretta: apri **`www.imad.chat/#x`** e la home si apre senza intro, con Dot che esce subito dalla scatola. C'è anche `www.imad.chat/?shot=1`, che apre la pagina già pronta ma ferma (serve per le foto): lì i fili non si muovono e Dot non ci si può appendere.
 
 ## 1. L'intro con Dot
 
